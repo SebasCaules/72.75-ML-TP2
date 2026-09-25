@@ -16,5 +16,6 @@ OPCIONES_FINALES = Opciones(default="indicadora", raras=True)
 # Ola 4, D-22. Hasta que se midan las curvas, la referencia de cada modelo.
 HIPERPARAMETROS_FINALES = {nombre: dict(valores) for nombre, valores in REFERENCIA.items()}
 
-# Los clasificadores del enunciado (punto 2.1). Naive Bayes tiene dos variantes hasta D-18.
-MODELOS_FINALES = ["nb_gaussiano", "nb_categorico", "svm", "knn", "rf"]
+# Los clasificadores del enunciado (punto 2.1). D-18 eligió el Naive Bayes categórico; el gaussiano
+# queda medido en cv_referencia_* como comparación.
+MODELOS_FINALES = ["nb_categorico", "svm", "knn", "rf"]
