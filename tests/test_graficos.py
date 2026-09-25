@@ -33,6 +33,7 @@ from src.graficos import (
     FIGURA_ABLACIONES,
     FIGURA_EFECTO,
     FIGURA_MODELOS,
+    FIGURA_MODELOS_REFERENCIA,
     ROTULO_MODELO,
     ROTULO_VARIANTE,
     delta,
@@ -793,7 +794,7 @@ def test_cli_escribe_los_png_y_no_falla_si_falta_un_csv():
                      "03-curva-rf-n-estimators-por-max-depth.png"}
         escritas = {p.name for p in figuras.glob("*.png")}
         assert escritas == esperadas, escritas ^ esperadas
-        assert FIGURA_MODELOS not in escritas
+        assert FIGURA_MODELOS not in escritas and FIGURA_MODELOS_REFERENCIA not in escritas
         assert "cv_referencia_resumen.csv" in salida, "informa que falta el resumen de la CV"
         assert "Se ignora notas.csv" in salida
         assert all(f"Escrita {p.name}" in salida or p.name in salida for p in figuras.glob("*.png"))
@@ -803,12 +804,14 @@ def test_cli_escribe_los_png_y_no_falla_si_falta_un_csv():
                 assert ancho > 600 and alto > 300
                 assert round(imagen.info["dpi"][0]) == 150
 
-        # Cuando llega el resumen de la CV, --solo modelos dibuja la 02 y nada más.
+        # Cuando llega el resumen de la CV de referencia, --solo modelos dibuja su figura, la 02b,
+        # y nada más: la 02 sale de cv_final_resumen.csv, que todavía falta.
         _resumen_cv().to_csv(resultados / "cv_referencia_resumen.csv", index=False)
         antes = {p: p.stat().st_mtime_ns for p in figuras.glob("*.png")}
         codigo, salida = _en_silencio(cli, ["--solo", "modelos", "--resultados", str(resultados),
                                             "--figuras", str(figuras)])
-        assert codigo == 0 and (figuras / FIGURA_MODELOS).exists()
+        assert codigo == 0 and (figuras / FIGURA_MODELOS_REFERENCIA).exists()
+        assert not (figuras / FIGURA_MODELOS).exists() and "cv_final_resumen.csv" in salida
         assert all(p.stat().st_mtime_ns == t for p, t in antes.items())
 
         # Sin nada en resultados/: informa y termina bien, sin escribir.
@@ -865,11 +868,11 @@ def test_cli_un_csv_vacio_o_cortado_se_informa_y_no_frena_lo_demas():
         codigo, salida = _en_silencio(cli, ["--solo", "curvas", *argumentos])
         assert codigo == 1 and not _renglon(salida, "Se ignora", "svm_C.csv"), salida
 
-        # Con el resumen completo, la 02 sale aunque linea_base.csv esté vacío: la línea de base
+        # Con el resumen completo, la 02b sale aunque linea_base.csv esté vacío: la línea de base
         # viene de las filas sin_modelo. El archivo ilegible se informa igual, con código 1.
         (resultados / "cv_referencia_resumen.csv").write_text(texto, encoding="utf-8")
         codigo, salida = _en_silencio(cli, ["--solo", "modelos", *argumentos])
-        assert codigo == 1 and (figuras / FIGURA_MODELOS).exists(), salida
+        assert codigo == 1 and (figuras / FIGURA_MODELOS_REFERENCIA).exists(), salida
         assert "linea_base.csv: está vacío" in salida
 
         # Un resumen al que le faltan modelos se dibuja con un aviso.
