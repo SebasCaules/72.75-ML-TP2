@@ -2,16 +2,18 @@
   "criterio": "D-22: el punto de mayor AUC medio de validación; si otros quedan dentro de 1 error estándar del mejor, el más simple entre ellos. Sin orden de simplicidad (kernel, weights, pesos_clase), el de mayor media. Entre curvas del mismo eje que difieren en un valor fijo, la de mayor media en su punto elegido",
   "modelos": {
     "knn": {
-      "n_neighbors": 201,
+      "n_neighbors": 801,
       "weights": "uniform"
     },
     "rf": {
       "max_depth": 8,
-      "n_estimators": 200,
+      "n_estimators": 25,
       "pesos_clase": "balanced"
     },
     "svm": {
-      "C": 0.01,
+      "C": 0.001,
+      "implementacion": "liblinear",
+      "kernel": "linear",
       "pesos_clase": "balanced"
     }
   },
@@ -58,22 +60,26 @@
     "knn_n_neighbors_uniform": {
       "modelo": "knn",
       "parametro": "n_neighbors",
-      "valor": 201,
-      "punto": "201",
+      "valor": 801,
+      "punto": "801",
       "criterio": "dentro de 1 ES del mejor, el más simple: más vecinos, una frontera más suave",
-      "auc_validacion_media": 0.7829677598307623,
-      "auc_train_media": 0.8033802197669868,
-      "brecha": 0.020412459936224536,
-      "error_estandar": 0.0030515783838854183,
+      "auc_validacion_media": 0.7842366243346924,
+      "auc_train_media": 0.7906091704684483,
+      "brecha": 0.006372546133755819,
+      "error_estandar": 0.003384898506587912,
       "curva_plana": true,
       "puntos_dentro_1es": [
         "151",
-        "201"
+        "201",
+        "301",
+        "401",
+        "601",
+        "801"
       ],
-      "mejor": "201",
-      "auc_validacion_mejor": 0.7829677598307623,
-      "error_estandar_mejor": 0.0030515783838854183,
-      "umbral_1es": 0.7799161814468769,
+      "mejor": "601",
+      "auc_validacion_mejor": 0.7842998130825997,
+      "error_estandar_mejor": 0.0036978141892182975,
+      "umbral_1es": 0.7806019988933813,
       "puntos": [
         "1",
         "3",
@@ -85,10 +91,14 @@
         "61",
         "101",
         "151",
-        "201"
+        "201",
+        "301",
+        "401",
+        "601",
+        "801"
       ],
       "configuracion": {
-        "n_neighbors": 201,
+        "n_neighbors": 801,
         "weights": "uniform"
       },
       "omitidos": [],
@@ -166,6 +176,45 @@
         "n_estimators": 200
       },
       "omitidos": [],
+      "adoptada": false
+    },
+    "rf_n_estimators_depth8": {
+      "modelo": "rf",
+      "parametro": "n_estimators",
+      "valor": 25,
+      "punto": "25",
+      "criterio": "dentro de 1 ES del mejor, el más simple: menos árboles",
+      "auc_validacion_media": 0.7932929042803233,
+      "auc_train_media": 0.8219653558916086,
+      "brecha": 0.028672451611285288,
+      "error_estandar": 0.0020257013537386625,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "25",
+        "50",
+        "100",
+        "200",
+        "400",
+        "800"
+      ],
+      "mejor": "800",
+      "auc_validacion_mejor": 0.7956058616395524,
+      "error_estandar_mejor": 0.0025826415102888395,
+      "umbral_1es": 0.7930232201292635,
+      "puntos": [
+        "10",
+        "25",
+        "50",
+        "100",
+        "200",
+        "400",
+        "800"
+      ],
+      "configuracion": {
+        "max_depth": 8,
+        "n_estimators": 25
+      },
+      "omitidos": [],
       "adoptada": true
     },
     "rf_pesos_clase": {
@@ -192,6 +241,37 @@
         "balanced"
       ],
       "configuracion": {
+        "n_estimators": 300,
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
+      "adoptada": false
+    },
+    "rf_pesos_clase_depth8": {
+      "modelo": "rf",
+      "parametro": "pesos_clase",
+      "valor": "balanced",
+      "punto": "balanced",
+      "criterio": "sin orden de simplicidad: el de mayor AUC medio de validación",
+      "auc_validacion_media": 0.7960819697959977,
+      "auc_train_media": 0.8307340657330545,
+      "brecha": 0.03465209593705687,
+      "error_estandar": 0.002429144788146131,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "None",
+        "balanced"
+      ],
+      "mejor": "balanced",
+      "auc_validacion_mejor": 0.7960819697959977,
+      "error_estandar_mejor": 0.002429144788146131,
+      "umbral_1es": 0.7936528250078515,
+      "puntos": [
+        "None",
+        "balanced"
+      ],
+      "configuracion": {
+        "max_depth": 8,
         "n_estimators": 300,
         "pesos_clase": "balanced"
       },
@@ -236,6 +316,122 @@
         "kernel": "rbf"
       },
       "omitidos": [],
+      "adoptada": false
+    },
+    "svm_C_balanced": {
+      "modelo": "svm",
+      "parametro": "C",
+      "valor": 0.001,
+      "punto": "0.001",
+      "criterio": "dentro de 1 ES del mejor, el más simple: más regularización",
+      "auc_validacion_media": 0.7681016536903726,
+      "auc_train_media": 0.7699486821654875,
+      "brecha": 0.0018470284751148647,
+      "error_estandar": 0.003814479116247298,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "0.001",
+        "0.01",
+        "0.1",
+        "0.3",
+        "1"
+      ],
+      "mejor": "0.01",
+      "auc_validacion_mejor": 0.7720917882581563,
+      "error_estandar_mejor": 0.004208728300963213,
+      "umbral_1es": 0.7678830599571931,
+      "puntos": [
+        "0.001",
+        "0.01",
+        "0.1",
+        "0.3",
+        "1",
+        "3",
+        "10",
+        "30",
+        "100"
+      ],
+      "configuracion": {
+        "C": 0.001,
+        "gamma": "scale",
+        "kernel": "rbf",
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
+      "adoptada": false
+    },
+    "svm_C_linear_balanced": {
+      "modelo": "svm",
+      "parametro": "C",
+      "valor": 0.001,
+      "punto": "0.001",
+      "criterio": "dentro de 1 ES del mejor, el más simple: más regularización",
+      "auc_validacion_media": 0.774081387141884,
+      "auc_train_media": 0.7761515539915217,
+      "brecha": 0.002070166849637678,
+      "error_estandar": 0.004074289344109139,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "0.001",
+        "0.01"
+      ],
+      "mejor": "0.01",
+      "auc_validacion_mejor": 0.7743167956249872,
+      "error_estandar_mejor": 0.004070912238816968,
+      "umbral_1es": 0.7702458833861703,
+      "puntos": [
+        "0.001",
+        "0.01",
+        "0.1",
+        "0.3",
+        "1",
+        "3",
+        "10",
+        "30",
+        "100"
+      ],
+      "configuracion": {
+        "C": 0.001,
+        "gamma": "scale",
+        "implementacion": "liblinear",
+        "kernel": "linear",
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "svm_kernel": {
+      "modelo": "svm",
+      "parametro": "kernel",
+      "valor": "linear",
+      "punto": "linear",
+      "criterio": "sin orden de simplicidad: el de mayor AUC medio de validación",
+      "auc_validacion_media": 0.774081387141884,
+      "auc_train_media": 0.7761515539915217,
+      "brecha": 0.002070166849637678,
+      "error_estandar": 0.004074289344109139,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "linear",
+        "poly"
+      ],
+      "mejor": "linear",
+      "auc_validacion_mejor": 0.774081387141884,
+      "error_estandar_mejor": 0.004074289344109139,
+      "umbral_1es": 0.7700070977977749,
+      "puntos": [
+        "linear",
+        "poly",
+        "rbf"
+      ],
+      "configuracion": {
+        "C": 0.001,
+        "gamma": "scale",
+        "implementacion": "liblinear",
+        "kernel": "linear",
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
       "adoptada": true
     },
     "svm_pesos_clase": {
@@ -271,10 +467,9 @@
     }
   },
   "avisos": [
-    "rf_max_depth se midió con n_estimators=300, pesos_clase=None, pero la configuración final de rf tiene n_estimators=200, pesos_clase=balanced",
-    "rf_n_estimators se midió con max_depth=None, pesos_clase=None, pero la configuración final de rf tiene max_depth=8, pesos_clase=balanced",
-    "rf_pesos_clase se midió con max_depth=None, n_estimators=300, pero la configuración final de rf tiene max_depth=8, n_estimators=200",
-    "svm_C se midió con pesos_clase=None, pero la configuración final de svm tiene pesos_clase=balanced",
-    "svm_pesos_clase se midió con C=1.0, pero la configuración final de svm tiene C=0.01"
+    "rf_max_depth se midió con n_estimators=300, pesos_clase=None, pero la configuración final de rf tiene n_estimators=25, pesos_clase=balanced",
+    "rf_n_estimators_depth8 se midió con pesos_clase=None, pero la configuración final de rf tiene pesos_clase=balanced",
+    "rf_pesos_clase_depth8 se midió con n_estimators=300, pero la configuración final de rf tiene n_estimators=25",
+    "svm_pesos_clase se midió con C=1.0, implementacion=libsvm, kernel=rbf, pero la configuración final de svm tiene C=0.001, implementacion=liblinear, kernel=linear"
   ]
 }
