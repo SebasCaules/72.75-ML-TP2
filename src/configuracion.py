@@ -9,8 +9,9 @@ al cerrar la ola 4, con los hiperparámetros elegidos (D-22). Nada más se decid
 from src.modelos import REFERENCIA
 from src.preproceso import Opciones
 
-# Ola 1, D-08 a D-17. Hasta que se midan las ablaciones, la referencia.
-OPCIONES_FINALES = Opciones()
+# Ola 1, D-08 a D-17 (DECISIONES.md): default como indicadora y categorías raras fundidas. El
+# resto quedó como la referencia porque las ablaciones no lo justificaron.
+OPCIONES_FINALES = Opciones(default="indicadora", raras=True)
 
 # Ola 4, D-22. Hasta que se midan las curvas, la referencia de cada modelo.
 HIPERPARAMETROS_FINALES = {nombre: dict(valores) for nombre, valores in REFERENCIA.items()}
