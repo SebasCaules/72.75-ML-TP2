@@ -1,0 +1,8 @@
+grilla,ajustes,peor_ajuste_s,minutos,entra
+rf: max_depth,50,11.4,9.5,sí
+rf: n_estimators,35,11.4,6.7,sí
+knn: n_neighbors,55,1.1,1.0,sí
+svm: C,45,31.1,23.3,sí
+svm: kernel linear (liblinear) en el mejor C,5,52.1,4.3,sí
+svm: kernel poly en el mejor C,5,60.2,5.0,sí
+svm: kernel rbf en el mejor C,5,31.1,2.6,sí

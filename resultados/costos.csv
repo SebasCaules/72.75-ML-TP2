@@ -1,0 +1,19 @@
+modelo,parametros,ajuste,prediccion_validacion,prediccion_train,estado
+nb_gaussiano,{},0.05,0.01,0.04,ok
+nb_categorico,{},0.04,0.01,0.03,ok
+knn,"{""n_neighbors"": 1}",0.04,0.14,0.35,ok
+knn,"{""n_neighbors"": 201}",0.04,0.44,0.63,ok
+rf,"{""n_estimators"": 10}",0.16,0.01,0.04,ok
+rf,"{""n_estimators"": 800}",9.67,0.43,1.34,ok
+rf,"{""max_depth"": 2, ""n_estimators"": 300}",0.96,0.03,0.08,ok
+svm,"{""C"": 0.001, ""kernel"": ""rbf""}",3.09,2.12,8.42,ok
+svm,"{""C"": 1, ""kernel"": ""rbf""}",7.67,3.0,11.86,ok
+svm,"{""C"": 100, ""kernel"": ""rbf""}",16.46,2.95,11.69,ok
+svm,"{""C"": 1, ""degree"": 3, ""kernel"": ""poly""}",7.73,0.7,2.71,ok
+svm,"{""C"": 100, ""degree"": 3, ""kernel"": ""poly""}",56.84,0.68,2.7,ok
+svm,"{""C"": 0.01, ""kernel"": ""linear""}",3.54,0.61,2.36,ok
+svm,"{""C"": 1, ""kernel"": ""linear""}",55.71,0.92,3.64,ok
+svm,"{""C"": 10, ""kernel"": ""linear""}",,,,excedido (más de 600 s)
+svm,"{""C"": 0.01, ""implementacion"": ""liblinear"", ""kernel"": ""linear""}",0.98,0.01,0.03,ok
+svm,"{""C"": 1, ""implementacion"": ""liblinear"", ""kernel"": ""linear""}",52.08,0.01,0.03,ok
+svm,"{""C"": 100, ""implementacion"": ""liblinear"", ""kernel"": ""linear""}",49.23,0.01,0.03,ok

@@ -8,7 +8,9 @@ Predecir si un cliente contrata un depósito a plazo fijo (`y` = yes/no) a parti
 demográficos, de campañas previas y del contexto económico, con Naive Bayes, SVM, KNN y Random
 Forest (scikit-learn) evaluados con *k-fold cross-validation*.
 
-**Estado:** paso 1 hecho. El test está separado y el EDA corre sobre train.
+**Estado:** paso 1 y ola 0 hechos (salvo el envío de las consultas, que es del grupo): el test está separado, el EDA corre sobre train y está la
+infraestructura común (pipelines, métricas, paleta y tests). Sigue la ola 1 de `plan/PLAN.md`;
+el avance, en `plan/EXEC_STATE.md`.
 
 ---
 
@@ -60,9 +62,17 @@ python -m src.datos         # paso 1: duplicados y partición train/test
 python -m src.eda           # EDA sobre train -> resultados/eda/
 python -m src.validacion    # por qué la CV tiene que barajar
 python -m src.evidencia_particion  # las cifras de D-02 y D-03
+python -m src.eda_html      # el mismo EDA en HTML, con qué se ve y qué hacer en cada gráfico
+python -m src.metricas      # ejemplo de las cinco métricas
+python -m src.costos        # presupuesto de cómputo por modelo (hasta una hora)
 
 python -m tests.test_datos        # la partición, contra el CSV original
 python -m tests.test_validacion   # los folds de la CV
+python -m tests.test_preproceso   # sin fuga: todo se ajusta con el fold de entrenamiento
+python -m tests.test_modelos      # los cinco clasificadores entrenan y predicen
+python -m tests.test_metricas     # las métricas, contra casos calculados a mano
+python -m tests.test_paleta       # la paleta, bajo simulación de daltonismo
+python -m tests.test_aislamiento  # nadie fuera de la lista blanca toca el test
 ```
 
 La partición está versionada, así que `src.datos` sólo hace falta si cambia el CSV o la
@@ -75,19 +85,22 @@ data/raw/            el dataset tal como se bajó (no se edita)
 data/particion/      train.csv y test.csv, generados por src/datos.py
 src/datos.py         carga, duplicados, partición; cargar_train() y cargar_test()
 src/eda.py           análisis exploratorio sobre train (punto 1)
+src/eda_html.py      el mismo EDA en HTML -> resultados/eda/eda.html
+src/preproceso.py    variables derivadas y codificación por modelo, con las opciones de la ola 1
+src/modelos.py       los clasificadores como Pipelines, su referencia y sus grillas
+src/metricas.py      AUC, precisión promedio y recall/precisión/F1 en el presupuesto
+src/estilo.py        paleta y estilo de las figuras (la del TP1)
+src/costos.py        cuánto tarda cada modelo -> resultados/costos.csv
 src/validacion.py    folds() para la validación cruzada
 src/evidencia_particion.py  por qué estratificar y por qué no partir por fecha
-tests/               verificación de la partición y de los folds
+tests/               partición, folds, no fuga, modelos, métricas, paleta y aislamiento del test
 resultados/eda/      reporte.txt y figuras del EDA
 resumen-tp2/         resumen del enunciado y del dataset para el grupo (PDF)
 DECISIONES.md        cada decisión con su justificación (D-01, D-02, …)
+plan/                el plan de punta a punta, su estado y las consultas (no se entrega)
 ```
 
 ## Próximos pasos
 
-1. EDA sobre train, con consecuencias concretas para el preprocesamiento: `unknown`, `pdays`,
-   categorías raras, colinealidad de las variables macroeconómicas (punto 1).
-2. Un `Pipeline` por modelo, con el preprocesamiento ajustado dentro de cada fold (punto 2).
-3. Dos métricas vistas en clase, justificadas para el desbalance (punto 2.3).
-4. Curvas de validación de SVM, KNN y RF (punto 3).
-5. Modelo final y una única evaluación en test (punto 4); conclusiones (punto 5).
+El plan completo, con fechas, decisiones reservadas (D-07 a D-25) y la prueba de terminado
+de cada paso, está en `plan/PLAN.md`.
