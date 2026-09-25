@@ -18,19 +18,19 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 1.1 EDA en HTML sobre train | DONE (falta la lectura del grupo) | fdc110c | 16 gráficos; publicado como página privada |
 | 1.2 Línea de base «sin modelo» | DONE | 94de6af | `resultados/linea_base.csv`: AUC 0,5, recall_q 0,2001, exactitud 0,8873 |
 | 1.3 D-07, momento en que opera el modelo | DONE | (este) | Redactor y refutador en la ola A; 8 hallazgos aplicados por N0 al integrar |
-| 1.4 Ablaciones A1 a A12 | DOING | 94de6af | Corriendo los cuatro modelos en paralelo |
-| 1.5 D-08 a D-17 | TODO | | |
-| 1.6 Figura de ablaciones | TODO | | |
-| 2.1 D-19, métricas | TODO | | |
-| 2.2 D-20, presupuesto de llamadas | TODO | | La tabla de sensibilidad a q exige `cv_referencia_*`: se hace después del 3.3 (hallazgo del verificador) |
-| 2.3 D-21, desbalance | TODO | | |
-| 3.1 Pipelines definitivos | TODO | | `src/experimentos.py` ya lee `configuracion.py`; el paso es actualizar OPCIONES_FINALES |
+| 1.4 Ablaciones A1 a A12 | DONE | 2ecee39 | 4 modelos × hasta 12 variantes × 5 folds; `resultados/ablaciones_resumen.csv` |
+| 1.5 D-08 a D-17 | DONE | 2ecee39 | Adoptadas A3 (default indicadora) y A4 (raras fundidas); A12 rechazada por juicio (D-12); el resto nulo o peor |
+| 1.6 Figura de ablaciones | DOING | | Workflow `graficos` en curso |
+| 2.1 D-19, métricas | DONE | 9a6347f | |
+| 2.2 D-20, presupuesto de llamadas | DONE (texto); tabla de sensibilidad en curso | 9a6347f | `experimentos --sensibilidad-q` corre tras el 3.3 (N0-10) |
+| 2.3 D-21, desbalance | DONE (texto); `pesos_clase` en curso | 9a6347f | Curvas rf/svm `pesos_clase` corriendo |
+| 3.1 Pipelines definitivos | DONE | 2ecee39 | `OPCIONES_FINALES = Opciones(default="indicadora", raras=True)`, 58 columnas |
 | 3.2 D-18, variante de Naive Bayes | TODO | | |
-| 3.3 CV de los cuatro modelos | TODO | e66ee0f | Módulo listo; falta correrlo con la configuración de la ola 1 |
-| 3.4 Figura de los cuatro modelos | TODO | | |
-| 4.1 Curvas de RF | TODO | 39284ce | Módulo listo |
-| 4.2 Curvas de KNN | TODO | | |
-| 4.3 Curvas de la SVM | TODO | | |
+| 3.3 CV de los cuatro modelos | DOING | e66ee0f | Corriendo `experimentos --etiqueta referencia` (5 modelos) |
+| 3.4 Figura de los cuatro modelos | DOING | | Workflow `graficos` |
+| 4.1 Curvas de RF | DOING | 39284ce | Corriendo |
+| 4.2 Curvas de KNN | DOING | 39284ce | Corriendo (uniform y distance) |
+| 4.3 Curvas de la SVM | DOING | 39284ce | Corriendo C; kernels después de elegir C |
 | 4.4 D-22, hiperparámetros | TODO | | |
 | 4.5 Figuras de las curvas | TODO | | |
 | 4.6 Grilla C × γ (opcional) | TODO | | S-04 |
