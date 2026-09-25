@@ -1,19 +1,17 @@
-"""Análisis exploratorio del dataset Bank Marketing (bank-additional-full.csv).
+"""Correr con: python -m src.eda   (antes: python -m src.datos)
 
-Uso:
-    python3 dataset-EDA.py [ruta_csv] [carpeta_salida]
+Análisis exploratorio del dataset Bank Marketing, **sólo sobre train**. Las decisiones que
+salgan de aquí (qué variables excluir, qué categorías agrupar, qué escalar) no pueden haber
+mirado el test: si lo miran, la estimación del punto 4 sale optimista. Ver DECISIONES.md, D-04.
 
-Imprime un reporte por consola (también lo guarda en <salida>/reporte.txt) y
-guarda las figuras en <salida>/. Solo depende de pandas, numpy y matplotlib.
+Imprime un reporte por consola (también lo guarda en resultados/eda/reporte.txt) y guarda las
+figuras en resultados/eda/.
 
 Cubre lo que pide el enunciado del TP2 (sección 1): balance de clases,
 distribuciones, relación predictor-objetivo, faltantes ("unknown"), categorías
 poco frecuentes, diferencias entre clases, correlaciones y posibles fuentes de
 data leakage (duration).
 """
-
-import sys
-from pathlib import Path
 
 import matplotlib
 
@@ -22,14 +20,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-AQUI = Path(__file__).resolve().parent
-CSV = Path(sys.argv[1]) if len(sys.argv) > 1 else AQUI / "bank-marketing" / "bank-additional-full.csv"
-SALIDA = Path(sys.argv[2]) if len(sys.argv) > 2 else AQUI / "eda"
+from src.datos import FILA, OBJETIVO, RAIZ, RUTA_TRAIN, cargar_train
+
+SALIDA = RAIZ / "resultados" / "eda"
 SALIDA.mkdir(parents=True, exist_ok=True)
 
-OBJETIVO = "y"
 UMBRAL_RARA = 0.01  # categoría "poco frecuente": menos del 1 % de las filas
-PDAYS_SIN_CONTACTO = 999  # valor centinela: el cliente no fue contactado antes
+# Centinela de pdays: no hay días registrados desde un contacto previo. NO equivale a «nunca
+# contactado», aunque bank-additional-names.txt lo describa así: hay filas con pdays == 999 y
+# previous >= 1. La sección 2 del reporte las cuenta.
+PDAYS_CENTINELA = 999
 
 ORDEN_MESES = ["mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 ORDEN_DIAS = ["mon", "tue", "wed", "thu", "fri"]
@@ -71,20 +71,21 @@ def cramers_v(x, y):
 # --------------------------------------------------------------------------
 # 1. Carga y estructura
 # --------------------------------------------------------------------------
-df = pd.read_csv(CSV, sep=";")
+df = cargar_train()
 df["y_bin"] = (df[OBJETIVO] == "yes").astype(int)
 
-numericas = [c for c in df.select_dtypes(include="number").columns if c != "y_bin"]
+numericas = [c for c in df.select_dtypes(include="number").columns if c not in (FILA, "y_bin")]
 categoricas = [c for c in df.select_dtypes(exclude="number").columns if c != OBJETIVO]
 
 titulo("1. ESTRUCTURA")
-log(f"Archivo: {CSV}")
-log(f"Filas: {len(df):,}   Columnas: {df.shape[1] - 1} (20 predictoras + y)")
+log(f"Archivo: {RUTA_TRAIN.relative_to(RAIZ)}  (train: 80 % del dataset sin duplicados)")
+log("El test (data/particion/test.csv) no se abre hasta el punto 4.")
+log(f"Filas: {len(df):,}   Columnas: {len(numericas) + len(categoricas)} predictoras + y")
 log(f"Numéricas ({len(numericas)}): {', '.join(numericas)}")
 log(f"Categóricas ({len(categoricas)}): {', '.join(categoricas)}")
 
-duplicadas = df.duplicated().sum()
-log(f"Filas duplicadas exactas: {duplicadas}")
+duplicadas = df.drop(columns=FILA).duplicated().sum()
+log(f"Filas duplicadas exactas: {duplicadas} (los 12 duplicados del CSV se quitaron antes de partir)")
 
 # --------------------------------------------------------------------------
 # 2. Faltantes: NaN explícitos y "unknown" implícitos
@@ -105,11 +106,16 @@ unknown = unknown[unknown["n_unknown"] > 0].sort_values("pct", ascending=False)
 log('Categóricas con "unknown" (faltante codificado como categoría):')
 log(unknown.round(2).to_string())
 
-sin_contacto = (df["pdays"] == PDAYS_SIN_CONTACTO).mean()
+centinela = df["pdays"] == PDAYS_CENTINELA
 log()
-log(f"pdays == {PDAYS_SIN_CONTACTO} (sin contacto previo): {100 * sin_contacto:.2f} % de las filas")
+log(f"pdays == {PDAYS_CENTINELA} (centinela): {100 * centinela.mean():.2f} % de las filas")
 log("  -> es un centinela, no una distancia: tratarlo como numérico directo distorsiona")
-log("     escalado y distancias (KNN/SVM). Candidato a binaria 'contactado_antes'.")
+log("     escalado y distancias (KNN/SVM).")
+contactados = centinela & (df["previous"] >= 1)
+log(f"  Pero NO significa 'nunca contactado': {contactados.sum():,} filas con pdays == "
+    f"{PDAYS_CENTINELA} tienen previous >= 1")
+log(f"  (poutcome de esas filas: {df.loc[contactados, 'poutcome'].value_counts().to_dict()}).")
+log("  -> para marcar 'contactado antes' conviene usar previous > 0, no pdays != 999.")
 log(f"poutcome == 'nonexistent': {100 * (df['poutcome'] == 'nonexistent').mean():.2f} % "
     "(coherente con previous == 0)")
 log(f"  Filas con previous == 0 y poutcome != 'nonexistent': "
@@ -125,7 +131,7 @@ for clase, n in conteo.items():
 log(f"  Ratio no/yes: {conteo['no'] / conteo['yes']:.1f} : 1")
 log("  -> desbalanceado: accuracy engaña (predecir siempre 'no' da "
     f"{100 * conteo['no'] / len(df):.1f} %). Usar métricas como recall/precision/F1/AUC-PR")
-log("     y StratifiedKFold.")
+log("     y StratifiedKFold barajado: folds() de src/validacion.py (D-06), nunca cv=5.")
 
 fig, ax = plt.subplots(figsize=(4, 3.5))
 ax.bar(conteo.index, conteo.values, color=["#8a9bb0", "#d9822b"])
@@ -167,7 +173,7 @@ fig, axes = plt.subplots(filas, cols, figsize=(4 * cols, 3 * filas))
 for ax, c in zip(axes.flat, numericas):
     datos = df[c]
     if c == "pdays":
-        datos = datos[datos != PDAYS_SIN_CONTACTO]
+        datos = datos[datos != PDAYS_CENTINELA]
     bins = min(40, datos.nunique())
     for clase, color in [("no", "#8a9bb0"), ("yes", "#d9822b")]:
         ax.hist(datos[df.loc[datos.index, OBJETIVO] == clase], bins=bins,
@@ -286,7 +292,7 @@ log(f"  Correlación duration-y: {corr_y['duration']:.3f} (la mayor de las numé
 
 fig, ax = plt.subplots(figsize=(7, 3.5))
 ax.bar(range(len(tasa_dur)), tasa_dur.values, color="#d9822b")
-ax.set_xticks(range(len(tasa_dur)), [f"{iv.left:.0f}-{iv.right:.0f}" for iv in tasa_dur.index],
+ax.set_xticks(range(len(tasa_dur)), [f"{max(0, iv.left):.0f}-{iv.right:.0f}" for iv in tasa_dur.index],
               rotation=45, ha="right", fontsize=8)
 ax.set_xlabel("Decil de duration (s)")
 ax.set_ylabel("% yes")
@@ -299,18 +305,19 @@ guardar(fig, "06-duration-leakage.png")
 titulo("9. ORDEN TEMPORAL")
 log("El archivo está ordenado cronológicamente. La tasa de 'yes' cambia a lo largo")
 log("del archivo, así que un split sin mezclar (shuffle=False) no es representativo.")
-bloques = df["y_bin"].groupby(np.arange(len(df)) // 2000).mean() * 100
-log("Tasa de 'yes' por bloque de 2000 filas:")
+log(f"Los bloques se arman por la columna '{FILA}' (posición en el CSV original).")
+bloques = df["y_bin"].groupby(df[FILA] // 2000).mean() * 100
+log("Tasa de 'yes' por bloque de 2000 filas del CSV original (sólo las de train):")
 log(bloques.round(1).to_string())
 
 fig, ax1 = plt.subplots(figsize=(9, 3.5))
 ax1.plot(bloques.index * 2000, bloques.values, marker="o", color="#d9822b", label="% yes")
-ax1.set_xlabel("Índice de fila (orden temporal)")
+ax1.set_xlabel("Fila del CSV original (orden temporal)")
 ax1.set_ylabel("% yes", color="#d9822b")
 ax2 = ax1.twinx()
-ax2.plot(df.index, df["euribor3m"], color="#4c72b0", lw=0.8, label="euribor3m")
+ax2.plot(df[FILA], df["euribor3m"], color="#4c72b0", lw=0.8, label="euribor3m")
 ax2.set_ylabel("euribor3m", color="#4c72b0")
-ax1.set_title("Tasa de 'yes' y euribor3m a lo largo del archivo")
+ax1.set_title("Tasa de 'yes' y euribor3m a lo largo del archivo (train)")
 guardar(fig, "07-orden-temporal.png")
 
 # --------------------------------------------------------------------------
@@ -318,17 +325,18 @@ guardar(fig, "07-orden-temporal.png")
 # --------------------------------------------------------------------------
 titulo("10. CONSECUENCIAS PARA EL PIPELINE (a discutir)")
 decisiones = [
-    "Excluir duration (leakage); a lo sumo, reportar un modelo con duration como techo.",
-    "Split train/test estratificado y con shuffle ANTES de cualquier transformación.",
-    "StratifiedKFold en CV; métricas acordes al desbalance (no accuracy sola).",
-    "pdays: convertir el 999 en una binaria 'contactado_antes' (y/o descartar pdays).",
+    "HECHO (D-01): duplicados exactos eliminados antes del split.",
+    "HECHO (D-02, D-03): split 80/20 estratificado y con shuffle antes de cualquier transformación.",
+    "HECHO (D-05): duration fuera del modelo (leakage); a lo sumo, un modelo con duration como techo.",
+    "HECHO (D-06): la CV usa folds() = StratifiedKFold barajado; nunca cv=5 (no baraja).",
+    "Métricas acordes al desbalance (no accuracy sola).",
+    "pdays: el 999 es un centinela; 'contactado antes' sale de previous > 0 (y/o descartar pdays).",
     "'unknown': mantener como categoría (su tasa de 'yes' difiere) o imputar dentro del pipeline.",
     "default: casi no tiene 'yes' conocidos; evaluar descartarla (ver tabla de la sección 7).",
     "Agrupar categorías < 1 % (p. ej. education 'illiterate', default 'yes') en 'otros'.",
     "One-hot para categóricas nominales; month y day_of_week también (no son lineales).",
     "Escalado (StandardScaler) para KNN y SVM, dentro del Pipeline.",
     "Macro colineales: considerar quedarse con una o dos (euribor3m, nr.employed), sobre todo para NB.",
-    "Duplicados exactos: eliminarlos antes del split para no filtrar entre train y test.",
 ]
 for d in decisiones:
     log(f"  - {d}")

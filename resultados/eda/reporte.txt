@@ -1,0 +1,307 @@
+
+==============================================================================
+1. ESTRUCTURA
+==============================================================================
+Archivo: data/particion/train.csv  (train: 80 % del dataset sin duplicados)
+El test (data/particion/test.csv) no se abre hasta el punto 4.
+Filas: 32,940   Columnas: 20 predictoras + y
+Numéricas (10): age, duration, campaign, pdays, previous, emp.var.rate, cons.price.idx, cons.conf.idx, euribor3m, nr.employed
+Categóricas (10): job, marital, education, default, housing, loan, contact, month, day_of_week, poutcome
+Filas duplicadas exactas: 0 (los 12 duplicados del CSV se quitaron antes de partir)
+
+==============================================================================
+2. VALORES FALTANTES
+==============================================================================
+NaN explícitos en todo el dataset: 0
+Categóricas con "unknown" (faltante codificado como categoría):
+           n_unknown    pct  tasa_yes_si_unknown
+default         6857  20.82                 5.31
+education       1389   4.22                14.90
+housing          779   2.36                11.68
+loan             779   2.36                11.68
+job              267   0.81                12.36
+marital           68   0.21                16.18
+
+pdays == 999 (centinela): 96.34 % de las filas
+  -> es un centinela, no una distancia: tratarlo como numérico directo distorsiona
+     escalado y distancias (KNN/SVM).
+  Pero NO significa 'nunca contactado': 3,302 filas con pdays == 999 tienen previous >= 1
+  (poutcome de esas filas: {'failure': 3302}).
+  -> para marcar 'contactado antes' conviene usar previous > 0, no pdays != 999.
+poutcome == 'nonexistent': 86.31 % (coherente con previous == 0)
+  Filas con previous == 0 y poutcome != 'nonexistent': 0
+
+==============================================================================
+3. BALANCE DE CLASES
+==============================================================================
+   no: 29,229  (88.73 %)
+  yes:  3,711  (11.27 %)
+  Ratio no/yes: 7.9 : 1
+  -> desbalanceado: accuracy engaña (predecir siempre 'no' da 88.7 %). Usar métricas como recall/precision/F1/AUC-PR
+     y StratifiedKFold barajado: folds() de src/validacion.py (D-06), nunca cv=5.
+
+==============================================================================
+4. VARIABLES NUMÉRICAS
+==============================================================================
+                  count      mean      std       min       25%       50%       75%       max  asimetria  n_unicos
+age             32940.0    40.017   10.453    17.000    32.000    38.000    47.000    98.000      0.797        77
+duration        32940.0   257.743  257.498     0.000   102.000   179.000   319.000  4199.000      3.191      1468
+campaign        32940.0     2.562    2.770     1.000     1.000     2.000     3.000    56.000      4.886        41
+pdays           32940.0   962.617  186.555     0.000   999.000   999.000   999.000   999.000     -4.933        27
+previous        32940.0     0.174    0.499     0.000     0.000     0.000     0.000     7.000      3.890         8
+emp.var.rate    32940.0     0.080    1.572    -3.400    -1.800     1.100     1.400     1.400     -0.721        10
+cons.price.idx  32940.0    93.576    0.579    92.201    93.075    93.749    93.994    94.767     -0.231        26
+cons.conf.idx   32940.0   -40.510    4.629   -50.800   -42.700   -41.800   -36.400   -26.900      0.305        26
+euribor3m       32940.0     3.618    1.736     0.634     1.344     4.857     4.961     5.045     -0.705       312
+nr.employed     32940.0  5166.906   72.398  4963.600  5099.100  5191.000  5228.100  5228.100     -1.042        11
+
+Medias y medianas por clase:
+y                     no                 yes          
+                    mean    median      mean    median
+age               39.889    38.000    41.030    37.000
+duration         220.545   164.000   550.725   449.000
+campaign           2.627     2.000     2.053     2.000
+pdays            984.498   999.000   790.276   999.000
+previous           0.133     0.000     0.494     0.000
+emp.var.rate       0.245     1.100    -1.215    -1.800
+cons.price.idx    93.603    93.918    93.361    93.200
+cons.conf.idx    -40.599   -41.800   -39.810   -40.400
+euribor3m          3.806     4.857     2.140     1.266
+nr.employed     5175.939  5195.800  5095.756  5099.100
+
+Correlación punto-biserial con y (Pearson contra y_bin), ordenada por |r|:
+duration          0.405
+nr.employed      -0.350
+pdays            -0.329
+euribor3m        -0.303
+emp.var.rate     -0.294
+previous          0.229
+cons.price.idx   -0.132
+campaign         -0.066
+cons.conf.idx     0.054
+age               0.035
+
+Escalas: rango (max - min) de cada numérica:
+age                 81.00
+duration          4199.00
+campaign            55.00
+pdays              999.00
+previous             7.00
+emp.var.rate         4.80
+cons.price.idx       2.57
+cons.conf.idx       23.90
+euribor3m            4.41
+nr.employed        264.50
+  -> escalas muy distintas: KNN y SVM necesitan escalado; RF y NB no.
+
+==============================================================================
+5. OUTLIERS (1.5 IQR)
+==============================================================================
+age                1.16
+duration           7.13
+campaign           5.80
+pdays              3.66
+previous          13.69
+emp.var.rate       0.00
+cons.price.idx     0.00
+cons.conf.idx      1.08
+euribor3m          0.00
+nr.employed        0.00
+
+==============================================================================
+6. CORRELACIÓN ENTRE NUMÉRICAS
+==============================================================================
+Pares con |r| > 0.5:
+       level_0        level_1      r
+  emp.var.rate      euribor3m  0.972
+     euribor3m    nr.employed  0.945
+  emp.var.rate    nr.employed  0.906
+  emp.var.rate cons.price.idx  0.774
+cons.price.idx      euribor3m  0.686
+         pdays       previous -0.588
+cons.price.idx    nr.employed  0.519
+      previous    nr.employed -0.502
+  -> los indicadores macro (emp.var.rate, euribor3m, nr.employed) están casi
+     colineales: viola la independencia condicional de Naive Bayes y es redundante.
+
+==============================================================================
+7. VARIABLES CATEGÓRICAS
+==============================================================================
+Tasa global de 'yes': 11.27 %
+
+--- job  (12 categorías, V de Cramér con y = 0.155)
+                  n    pct  tasa_yes
+job                                 
+admin.         8269  25.10     12.92
+blue-collar    7440  22.59      6.94
+technician     5420  16.45     10.74
+services       3181   9.66      8.14
+management     2340   7.10     11.28
+retired        1388   4.21     25.79
+entrepreneur   1159   3.52      8.63
+self-employed  1114   3.38     10.32
+housemaid       859   2.61     10.36
+unemployed      812   2.47     12.81
+student         691   2.10     32.27
+unknown         267   0.81     12.36
+  Poco frecuentes (< 1 %): unknown
+
+--- marital  (4 categorías, V de Cramér con y = 0.053)
+              n    pct  tasa_yes
+marital                         
+married   19915  60.46     10.23
+single     9257  28.10     13.94
+divorced   3700  11.23     10.05
+unknown      68   0.21     16.18
+  Poco frecuentes (< 1 %): unknown
+
+--- education  (8 categorías, V de Cramér con y = 0.066)
+                        n    pct  tasa_yes
+education                                 
+university.degree    9721  29.51     13.58
+high.school          7605  23.09     10.93
+basic.9y             4831  14.67      7.68
+professional.course  4213  12.79     11.18
+basic.4y             3346  10.16     10.58
+basic.6y             1817   5.52      8.42
+unknown              1389   4.22     14.90
+illiterate             18   0.05     22.22
+  Poco frecuentes (< 1 %): illiterate
+
+--- default  (3 categorías, V de Cramér con y = 0.096)
+             n    pct  tasa_yes
+default                        
+no       26081  79.18     12.83
+unknown   6857  20.82      5.31
+yes          2   0.01      0.00
+  Poco frecuentes (< 1 %): yes
+
+--- housing  (3 categorías, V de Cramér con y = 0.005)
+             n    pct  tasa_yes
+housing                        
+yes      17278  52.45     11.52
+no       14883  45.18     10.95
+unknown    779   2.36     11.68
+
+--- loan  (3 categorías, V de Cramér con y = 0.000)
+             n    pct  tasa_yes
+loan                           
+no       27157  82.44     11.27
+yes       5004  15.19     11.19
+unknown    779   2.36     11.68
+
+--- contact  (2 categorías, V de Cramér con y = 0.145)
+               n    pct  tasa_yes
+contact                          
+cellular   20939  63.57     14.75
+telephone  12001  36.43      5.19
+
+--- month  (10 categorías, V de Cramér con y = 0.271)
+           n    pct  tasa_yes
+month                        
+may    11019  33.45      6.39
+jul     5753  17.47      9.23
+aug     4953  15.04     10.76
+jun     4248  12.90     10.38
+nov     3264   9.91     10.20
+apr     2084   6.33     20.39
+oct      581   1.76     43.55
+sep      461   1.40     44.03
+mar      432   1.31     49.77
+dec      145   0.44     50.34
+  Poco frecuentes (< 1 %): dec
+
+--- day_of_week  (5 categorías, V de Cramér con y = 0.014)
+                n    pct  tasa_yes
+day_of_week                       
+thu          6839  20.76     11.96
+mon          6814  20.69     10.38
+wed          6539  19.85     11.71
+tue          6421  19.49     11.32
+fri          6327  19.21     10.95
+
+--- poutcome  (3 categorías, V de Cramér con y = 0.325)
+                 n    pct  tasa_yes
+poutcome                           
+nonexistent  28431  86.31      8.83
+failure       3415  10.37     14.00
+success       1094   3.32     66.00
+
+Asociación categórica-objetivo (V de Cramér), ordenada:
+poutcome       0.325
+month          0.271
+job            0.155
+contact        0.145
+default        0.096
+education      0.066
+marital        0.053
+day_of_week    0.014
+housing        0.005
+loan           0.000
+
+==============================================================================
+8. DATA LEAKAGE: duration
+==============================================================================
+Según bank-additional-names.txt, duration (segundos de la última llamada) no se
+conoce antes de llamar y si duration == 0 entonces y == 'no'. Debe excluirse
+del modelo realista (o usarse solo como benchmark).
+  Filas con duration == 0: 4 -> y: {'no': 4}
+  Tasa de 'yes' por decil de duration:
+duration
+(-0.001, 59.0]      0.00
+(59.0, 89.0]        1.02
+(89.0, 117.0]       2.70
+(117.0, 146.0]      3.82
+(146.0, 179.0]      6.48
+(179.0, 220.0]      8.59
+(220.0, 279.3]     10.85
+(279.3, 368.0]     13.18
+(368.0, 551.0]     20.15
+(551.0, 4199.0]    46.05
+  Correlación duration-y: 0.405 (la mayor de las numéricas)
+
+==============================================================================
+9. ORDEN TEMPORAL
+==============================================================================
+El archivo está ordenado cronológicamente. La tasa de 'yes' cambia a lo largo
+del archivo, así que un split sin mezclar (shuffle=False) no es representativo.
+Los bloques se arman por la columna 'fila' (posición en el CSV original).
+Tasa de 'yes' por bloque de 2000 filas del CSV original (sólo las de train):
+fila
+0      1.9
+1      3.4
+2      3.6
+3      3.2
+4      4.4
+5      4.5
+6      6.2
+7      7.6
+8      5.5
+9      5.6
+10     6.2
+11     4.0
+12     6.9
+13    11.7
+14    12.5
+15    16.8
+16     6.0
+17    10.0
+18    33.2
+19    48.1
+20    50.9
+
+==============================================================================
+10. CONSECUENCIAS PARA EL PIPELINE (a discutir)
+==============================================================================
+  - HECHO (D-01): duplicados exactos eliminados antes del split.
+  - HECHO (D-02, D-03): split 80/20 estratificado y con shuffle antes de cualquier transformación.
+  - HECHO (D-05): duration fuera del modelo (leakage); a lo sumo, un modelo con duration como techo.
+  - HECHO (D-06): la CV usa folds() = StratifiedKFold barajado; nunca cv=5 (no baraja).
+  - Métricas acordes al desbalance (no accuracy sola).
+  - pdays: el 999 es un centinela; 'contactado antes' sale de previous > 0 (y/o descartar pdays).
+  - 'unknown': mantener como categoría (su tasa de 'yes' difiere) o imputar dentro del pipeline.
+  - default: casi no tiene 'yes' conocidos; evaluar descartarla (ver tabla de la sección 7).
+  - Agrupar categorías < 1 % (p. ej. education 'illiterate', default 'yes') en 'otros'.
+  - One-hot para categóricas nominales; month y day_of_week también (no son lineales).
+  - Escalado (StandardScaler) para KNN y SVM, dentro del Pipeline.
+  - Macro colineales: considerar quedarse con una o dos (euribor3m, nr.employed), sobre todo para NB.

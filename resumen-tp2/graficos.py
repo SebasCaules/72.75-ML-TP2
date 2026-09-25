@@ -1,6 +1,6 @@
 """Gráficos del documento. Uso: python3 graficos.py (escribe en fig/).
 
-Todos los datos se leen del CSV del TP2 (../bank-marketing/bank-additional-full.csv, sep=";"),
+Todos los datos se leen del CSV del TP2 (../data/raw/bank-additional-full.csv, sep=";"),
 el mismo archivo contra el que se calcularon las cifras de la wiki
 (wiki/fuentes/dataset-bank-marketing.md). Nada se copia a mano.
 """
@@ -16,7 +16,7 @@ from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 
 from estilo_graficos import P, SERIES, barras_h, figura, guardar, num, pct  # noqa: E402
 
-CSV = Path(__file__).resolve().parent.parent / "bank-marketing" / "bank-additional-full.csv"
+CSV = Path(__file__).resolve().parent.parent / "data" / "raw" / "bank-additional-full.csv"
 DF = pd.read_csv(CSV, sep=";")
 Y = DF["y"].eq("yes")
 GLOBAL = Y.mean() * 100
