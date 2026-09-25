@@ -341,6 +341,13 @@ def test_linea_de_comandos():
 
 
 def main():
+    # La regla se prueba con tablas sintéticas medidas con la referencia de cada modelo, así que
+    # la configuración vigente se fija a esa referencia: si no, un hiperparámetro elegido en la
+    # ola 4 (por ejemplo max_depth) aparecería como «declarado» y no medido.
+    import src.seleccion as modulo
+    modulo.HIPERPARAMETROS_FINALES = {m: dict(v) for m, v in REFERENCIA.items()}
+    HIPERPARAMETROS_FINALES.clear()
+    HIPERPARAMETROS_FINALES.update(modulo.HIPERPARAMETROS_FINALES)
     test_sin_empate_gana_el_mayor_auc()
     test_empate_dentro_de_1_es_se_resuelve_por_recall()
     test_sin_modelo_no_puede_ganar()
