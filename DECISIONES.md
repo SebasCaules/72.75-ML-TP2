@@ -29,6 +29,41 @@ verifica que train + test reconstruyan el dataset sin duplicados, celda por celd
 |---|---|---|
 | **D-05** | **`duration` queda fuera del modelo.** Se conserva en los archivos de la partición para poder reportar, como mucho, un modelo con `duration` como techo de referencia | Es la duración de la última llamada: no se conoce antes de llamar, y cuando termina la llamada `y` ya se sabe. El propio `bank-additional-names.txt` (atributo 11) dice que sólo sirve como referencia y que hay que descartarla para un modelo predictivo realista. En train, el decil más corto (≤ 59 s) tiene 0 % de «yes» y el más largo (> 551 s), 46 %. El enunciado pide analizar críticamente las variables con *data leakage* (p. 1) |
 
+| **D-07** | **El modelo opera antes de cada llamada a un cliente en la campaña actual.** En ese momento se conocen sus datos personales y crediticios (`bank-additional-names.txt`, en adelante names.txt, atributos 1 a 7), su historial de campañas previas (atributos 13 a 15), el contexto económico del período (atributos 16 a 20), el canal y la fecha, mes y día de la semana, de la llamada que se va a hacer (atributos 8 a 10) y qué número de llamada es en esta campaña, `campaign` (atributo 12). No se conoce la duración (atributo 11; D-05). De las 20 predictoras, 19 están disponibles, `campaign` con una reserva, y `duration` no (tabla siguiente). `contact`, `month`, `day_of_week` y `campaign` quedan sujetas a la consulta 2: si la cátedra no responde, se usan como se indica aquí; si responde que no están disponibles, salen del modelo y D-07 se revisa. D-07 decide sólo qué existe antes de llamar; qué variables entran por desempeño lo deciden D-08 a D-17 | El enunciado llama fuga de datos (*data leakage*) a la información que «no debería estar disponible antes de realizar la llamada», y dice que ese es el momento en que operaría el modelo; como insumo admite información de antes o de durante la campaña (TP2, p. 1). El criterio es, entonces, qué existe antes de marcar, no en qué bloque lo pone el diccionario: names.txt agrupa `contact`, `month`, `day_of_week` y `duration` como datos del último contacto (atributos 8 a 11), pero sólo `duration` se produce en la llamada; el canal y la fecha se eligen antes (inferencia). `campaign` «includes last contact» (atributo 12): antes de cada llamada ya se sabe qué número de llamada es. **Limitación:** cada fila guarda el último contacto del cliente en la campaña, y tras un «yes» no se vuelve a llamar (inferencia), así que el valor final de `campaign` depende de `y`. En train, su media es 2,053 en los «yes» y 2,627 en los «no», con la misma mediana, 2 (`resultados/eda/reporte.txt`, §4): es compatible con esa inferencia, aunque no la prueba, porque también es compatible con que los clientes menos interesados requieran más llamadas. Lo mismo vale, en menor grado, para el canal y la fecha, que también son los de la última llamada (inferencia) |
+
+**Las 20 predictoras antes de llamar (D-07).** Es la prueba de terminado del paso 1.3 del plan.
+
+| Variable | Disponible antes de llamar | Motivo |
+|---|---|---|
+| `age` | sí | Dato del cliente (names.txt, atributo 1) |
+| `job` | sí | Dato del cliente (names.txt, atributo 2) |
+| `marital` | sí | Dato del cliente (names.txt, atributo 3) |
+| `education` | sí | Dato del cliente (names.txt, atributo 4) |
+| `default` | sí | Dato crediticio que el banco ya tiene (names.txt, atributo 5). El «unknown» del 20,82 % de train (reporte.txt, §2) también se conoce antes de llamar: es falta de dato, no fuga (D-08, D-09) |
+| `housing` | sí | Dato crediticio del cliente (names.txt, atributo 6) |
+| `loan` | sí | Dato crediticio del cliente (names.txt, atributo 7) |
+| `contact` | sí | Canal de la última llamada, celular o fijo (names.txt, atributo 8). Que se elija antes de marcar es inferencia, y por eso queda sujeta a la consulta 2 |
+| `month` | sí | Mes de la última llamada (names.txt, atributo 9). Que se conozca antes de marcar es inferencia; sujeta a la consulta 2. Si además delata la época, es un problema de robustez temporal (D-25), no de fuga |
+| `day_of_week` | sí | Día de la semana de la última llamada (names.txt, atributo 10). Misma inferencia; sujeta a la consulta 2 |
+| `duration` | **no** | Se conoce sólo cuando la llamada termina, y entonces `y` ya se sabe (names.txt, atributo 11). En train, las 4 filas con `duration` = 0 son «no», y la tasa de «yes» va de 0 % en el decil más corto (≤ 59 s) a 46,05 % en el más largo (reporte.txt, §8). Fuera del modelo (D-05) |
+| `campaign` | sí (con reserva) | Antes de cada llamada ya se sabe qué número de llamada es: cuenta las llamadas de esta campaña, incluida la última (names.txt, atributo 12). La reserva es un sesgo de selección: cada fila guarda el total al cierre de la campaña, y tras un «yes» no se vuelve a llamar (inferencia), así que su valor final depende de `y`. Se usa con esa limitación; sujeta a la consulta 2 |
+| `pdays` | sí | Días desde el último contacto de una campaña anterior (names.txt, atributo 13). El 999 (96,34 % de train) es un centinela, y 3 302 filas con 999 tienen `previous` ≥ 1 (reporte.txt, §2): es un problema de codificación, no de momento (D-10) |
+| `previous` | sí | Contactos anteriores a esta campaña (names.txt, atributo 14) |
+| `poutcome` | sí | Resultado de la campaña anterior, no de la actual (names.txt, atributo 15). Es coherente con `previous`: ninguna fila tiene `previous` = 0 y `poutcome` distinto de «nonexistent» (reporte.txt, §2) |
+| `emp.var.rate` | sí | Tasa de variación del empleo, indicador trimestral publicado por el Banco de Portugal (names.txt, atributo 16 y §4). El enunciado incluye el contexto económico entre los datos de entrada (TP2, p. 1). names.txt no dice con qué rezago se asignó el valor a cada fila; se supone el último publicado al llamar (inferencia). Como `month`, delata la época: es un problema de robustez temporal (D-03, D-25), no de fuga |
+| `cons.price.idx` | sí | Índice de precios al consumidor, indicador mensual (names.txt, atributo 17). Mismas dos observaciones que `emp.var.rate` |
+| `cons.conf.idx` | sí | Índice de confianza del consumidor, indicador mensual (names.txt, atributo 18). Mismas dos observaciones |
+| `euribor3m` | sí | Tasa Euribor a 3 meses, indicador diario (names.txt, atributo 19). Mismas dos observaciones |
+| `nr.employed` | sí | Número de empleados, indicador trimestral (names.txt, atributo 20). Mismas dos observaciones |
+
+> **Para el guion de la defensa.** Antes de cada llamada, el modelo ordena a quién llamar a
+> continuación, así que sólo puede usar lo que el banco sabe antes de marcar: los datos del
+> cliente, cómo respondió en campañas anteriores, la situación económica y los datos de la llamada
+> que va a hacer (por qué medio, en qué mes y qué día de la semana, y qué número de llamada es en
+> esta campaña). Lo que no conoce es la duración, y cuando la conoce ya sabe si el cliente aceptó:
+> por eso sale `duration`. La reserva es `campaign`: los datos guardan sólo la última llamada y, es
+> de suponer, a quien acepta ya no se lo llama, así que ese número depende en parte del resultado.
+
 ## 3. Validación cruzada
 
 | # | Decisión | Por qué |

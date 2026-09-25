@@ -11,3 +11,7 @@ Un solo lugar para lo que no bloquea la ola en curso. Cada fila dice dónde se r
 | S-05 | Informe de respaldo, como el del TP1 | `informe/` | Paso 7.7 | Si sobra un día |
 | S-06 | Wiki: cerrar los avisos de copia a `raw/TP2/` y propagar los resultados del TP2 | `wiki/` | Pedido del usuario del 25/09 | Después de la entrega |
 | S-07 | `python` o `python3` en los comandos del README | README | G-04 | Ola 7 |
+| S-08 | `--rapido` acepta una `--salida` dentro de `resultados/` si se escribe con otras mayúsculas (macOS no distingue): comparar con `samefile` en ablaciones, experimentos, robustez y seleccion | `src/*.py` | Verificador de la ola A | Ola 8, transversal |
+| S-09 | Tests que no fijan lo que sostienen: la tolerancia de `verificar_oof` (experimentos), el paso de `rapido` a `medir` (robustez), el IC del bootstrap y la conexión guarda-evaluación (evaluar_test) | `tests/` | Verificadores de la ola A | Ola 8, transversal |
+| S-10 | `leer_largo` no conserva el último ulp de algunos flotantes; usar `float_precision="round_trip"` si hace falta un ida y vuelta exacto | `src/resultados.py` | Constructor de ablaciones | Si aparece una diferencia real |
+| S-11 | Variante A13, «sin las variables del último contacto» (`contact`, `month`, `day_of_week`, `campaign`), por si la cátedra responde que no están disponibles (consulta 2). `Opciones` hoy no puede sacar `contact` ni `campaign` | `src/preproceso.py`, `src/ablaciones.py` | Redactor y verificador de D-07 | Cuando responda la cátedra |
