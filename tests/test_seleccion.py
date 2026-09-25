@@ -159,8 +159,10 @@ def test_linea_base_desde_el_cv_si_falta_el_archivo():
 
 def test_hiperparametros_del_json_o_los_vigentes():
     # Sin hiperparametros.json valen los de src/configuracion.py sobre la referencia. Con el
-    # archivo, con la forma que escribe src/curvas.py --elegir, los de "modelos" van encima, un
-    # modelo que no nombra (knn) conserva los vigentes y sus "avisos" pasan a la salida.
+    # archivo, con la forma que escribe src/curvas.py --elegir, los de "modelos" completan lo que
+    # la configuración vigente no fija, pero la vigente gana donde los dos hablan (N0-11, N0-12);
+    # un modelo que el archivo no nombra (knn) conserva los vigentes y sus "avisos" pasan a la
+    # salida.
     vigentes_rf = {**REFERENCIA["rf"], **HIPERPARAMETROS_FINALES["rf"]}
     with tempfile.TemporaryDirectory() as d:
         _escribir_cv(d, _tabla("rf", AUC_MEJOR, 0.60), _tabla("knn", [0.78] * K, 0.70))
@@ -172,7 +174,7 @@ def test_hiperparametros_del_json_o_los_vigentes():
                  "curvas": {"rf_max_depth": {"modelo": "rf", "parametro": "max_depth"}},
                  "avisos": ["rf_n_estimators se midió con otra max_depth"]}
     with tempfile.TemporaryDirectory() as d:
-        _escribir_cv(d, _tabla("rf", AUC_MEJOR, 0.60, hiper={**vigentes_rf, **de_la_ola_4}),
+        _escribir_cv(d, _tabla("rf", AUC_MEJOR, 0.60, hiper={**de_la_ola_4, **vigentes_rf}),
                      _tabla("knn", [0.78] * K, 0.70))
         _escribir_linea_base(d)
         (Path(d) / "hiperparametros.json").write_text(json.dumps(de_curvas))
@@ -182,13 +184,14 @@ def test_hiperparametros_del_json_o_los_vigentes():
 
     assert sin_json["hiperparametros"] == vigentes_rf
     assert sin_json["fuentes"]["hiperparametros"] == "src/configuracion.py"
-    assert con_json["hiperparametros"] == {**vigentes_rf, **de_la_ola_4}
+    assert con_json["hiperparametros"] == {**de_la_ola_4, **vigentes_rf}
+    assert con_json["hiperparametros"]["n_estimators"] == vigentes_rf["n_estimators"]
     assert con_json["hiperparametros"]["max_depth"] is None
     assert '"max_depth": null' in json.dumps(con_json["hiperparametros"])
     assert con_json["avisos"] == ["hiperparametros.json: rf_n_estimators se midió con otra "
                                   "max_depth"]
     print("ok  hiperparámetros: los vigentes sin hiperparametros.json; con el de src/curvas.py, "
-          "los de \"modelos\" encima y sus avisos en la salida")
+          "los de \"modelos\" completan y los vigentes ganan; sus avisos en la salida")
 
 
 def test_configuracion_medida_distinta_de_la_declarada_es_error():

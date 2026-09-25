@@ -20,7 +20,7 @@ HIPERPARAMETROS_FINALES = {
     "nb_categorico": {"n_cortes": 10, "alpha": 1.0},
     "svm": {"kernel": "linear", "implementacion": "liblinear", "C": 0.001, "pesos_clase": "balanced"},
     "knn": {"n_neighbors": 801, "weights": "uniform"},
-    "rf": {"n_estimators": 200, "max_depth": 8},
+    "rf": {"n_estimators": 200, "max_depth": 8, "pesos_clase": None},
 }
 
 # Los clasificadores del enunciado (punto 2.1). D-18 eligió el Naive Bayes categórico; el gaussiano

@@ -167,11 +167,13 @@ def leer_hiperparametros(ruta):
 
 
 def hiperparametros_de(modelo, de_la_ola_4=None):
-    """Los hiperparámetros efectivos: la referencia, la configuración vigente y, encima, los de
-    hiperparametros.json. `crear_modelo` también parte de la referencia, así que son exactamente
-    los que usaría."""
-    return {**REFERENCIA.get(modelo, {}), **HIPERPARAMETROS_FINALES.get(modelo, {}),
-            **(de_la_ola_4 or {}).get(modelo, {})}
+    """Los hiperparámetros efectivos: la referencia, los de hiperparametros.json (la propuesta
+    mecánica de D-22) y, encima, la configuración vigente de src/configuracion.py, que es la que
+    entrena los modelos y puede apartarse de la propuesta con un desvío registrado (N0-11, N0-12
+    en DECISIONES.md). `crear_modelo` también parte de la referencia, así que son exactamente los
+    que usaría."""
+    return {**REFERENCIA.get(modelo, {}), **(de_la_ola_4 or {}).get(modelo, {}),
+            **HIPERPARAMETROS_FINALES.get(modelo, {})}
 
 
 def _normalizar(valor):
