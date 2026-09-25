@@ -3,7 +3,7 @@
 1. ESTRUCTURA
 ==============================================================================
 Archivo: data/particion/train.csv  (train: 80 % del dataset sin duplicados)
-El test (data/particion/test.csv) no se abre hasta el punto 4.
+El conjunto de test no se abre hasta el punto 4 (D-04).
 Filas: 32,940   Columnas: 20 predictoras + y
 Numéricas (10): age, duration, campaign, pdays, previous, emp.var.rate, cons.price.idx, cons.conf.idx, euribor3m, nr.employed
 Categóricas (10): job, marital, education, default, housing, loan, contact, month, day_of_week, poutcome

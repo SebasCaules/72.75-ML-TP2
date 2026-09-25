@@ -79,7 +79,7 @@ categoricas = [c for c in df.select_dtypes(exclude="number").columns if c != OBJ
 
 titulo("1. ESTRUCTURA")
 log(f"Archivo: {RUTA_TRAIN.relative_to(RAIZ)}  (train: 80 % del dataset sin duplicados)")
-log("El test (data/particion/test.csv) no se abre hasta el punto 4.")
+log("El conjunto de test no se abre hasta el punto 4 (D-04).")
 log(f"Filas: {len(df):,}   Columnas: {len(numericas) + len(categoricas)} predictoras + y")
 log(f"Numéricas ({len(numericas)}): {', '.join(numericas)}")
 log(f"Categóricas ({len(categoricas)}): {', '.join(categoricas)}")

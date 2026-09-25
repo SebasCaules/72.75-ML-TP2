@@ -64,6 +64,16 @@ def test_cantidad_de_llamadas():
     print("ok  llamadas: 1318 por fold de validación, 1647 en test, al menos 1 siempre")
 
 
+class _NaiveBayesFalsoNB:
+    """Un NB de juguete: la probabilidad satura en 1,0 para dos filas, el log-odds no."""
+
+    def predict_proba(self, X):
+        return np.array([[0.0, 1.0], [0.0, 1.0], [0.6, 0.4]])
+
+    def predict_log_proba(self, X):
+        return np.array([[-50.0, 0.0], [-20.0, 0.0], [np.log(0.6), np.log(0.4)]])
+
+
 class _ConDecision:
     def decision_function(self, X):
         return np.array([2.0, -1.0])
@@ -83,6 +93,18 @@ def test_puntajes_elige_la_salida_correcta():
     print("ok  puntajes usa decision_function si existe y, si no, la probabilidad de «yes»")
 
 
+def test_naive_bayes_puntua_por_log_odds():
+    s = puntajes(_NaiveBayesFalsoNB(), None)
+    assert s[0] > s[1] > s[2] and np.isfinite(s).all()
+    print("ok  en Naive Bayes el puntaje es el log-odds, que desempata donde la probabilidad satura")
+
+
+def test_sin_positivos_el_recall_es_nan():
+    r = en_presupuesto([0, 0, 0, 0, 0], [5, 4, 3, 2, 1], 0.4)
+    assert np.isnan(r["recall_q"]) and np.isnan(r["f1_q"]) and r["precision_q"] == 0.0
+    print("ok  sin «yes» en el conjunto, recall y F1 son NaN y no 0")
+
+
 def test_scoring_devuelve_las_cinco_metricas():
     r = scoring(0.5)(_ConProbabilidad(), None, np.array([1, 0]))
     assert tuple(r) == METRICAS
@@ -98,6 +120,8 @@ def main():
     test_auc_en_los_extremos()
     test_cantidad_de_llamadas()
     test_puntajes_elige_la_salida_correcta()
+    test_naive_bayes_puntua_por_log_odds()
+    test_sin_positivos_el_recall_es_nan()
     test_scoring_devuelve_las_cinco_metricas()
     print("TODOS LOS TESTS OK")
 

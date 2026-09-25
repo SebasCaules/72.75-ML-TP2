@@ -46,7 +46,7 @@ def test_columnas_de_referencia(X, y, tr, va):
 def test_cada_opcion_cambia_lo_que_dice(X, y, tr, va):
     casos = {
         Opciones(duration=True): lambda n, c, b: "duration" in n,
-        Opciones(pdays="indicadora"): lambda n, c, b: "pdays" not in n and b == ["contactado_antes"],
+        Opciones(pdays="sin"): lambda n, c, b: "pdays" not in n and "previous" in n and not b,
         Opciones(default="indicadora"): lambda n, c, b: "default" not in c and b == ["default_unknown"],
         Opciones(macro="reducido"): lambda n, c, b: [m for m in MACRO if m in n] == ["euribor3m", "nr.employed"],
         Opciones(macro="sin"): lambda n, c, b: not set(MACRO) & set(n),
@@ -71,18 +71,18 @@ def test_reglas_fijas_de_derivadas(X, y, tr, va):
         "contact": ["cellular"] * 6, "month": ["may"] * 6, "day_of_week": ["mon"] * 6,
         "poutcome": ["nonexistent", "failure", "failure", "nonexistent", "nonexistent", "nonexistent"],
     })
-    d = Derivadas(Opciones(pdays="indicadora", default="indicadora", raras=True,
+    d = Derivadas(Opciones(pdays="sin", default="indicadora", raras=True,
                            campaign_log=True, edad_tramos=True)).transform(muestra)
-    assert list(d["edad_tramo"]) == ["<25", "25-29", "25-29", "30-39", "60+", "60+"]
-    assert list(d["contactado_antes"]) == [0, 1, 1, 0, 0, 0]
+    assert list(d["edad_tramo"]) == ["<25", "25-29", "25-29", "30-34", "60+", "60+"]
+    assert "pdays" not in d.columns and "contactado_antes" not in d.columns
     assert list(d["default_unknown"]) == [0, 1, 0, 0, 0, 0]
     assert d["marital"].iloc[0] == "married" and d["education"].iloc[0] == "basic.4y"
     assert np.allclose(d["campaign"], np.log1p([1, 2, 3, 4, 5, 6]))
-    print("ok  tramos de edad, contacto previo, default, fusión de raras y log1p, contra valores a mano")
+    print("ok  tramos de edad, pdays fuera, default, fusión de raras y log1p, contra valores a mano")
 
 
 def test_derivadas_no_aprende(X, y, tr, va):
-    op = Opciones(pdays="indicadora", raras=True, edad_tramos=True, unknown="moda")
+    op = Opciones(pdays="sin", raras=True, edad_tramos=True, unknown="moda")
     a = Derivadas(op).fit(X.iloc[tr]).transform(X.iloc[va])
     b = Derivadas(op).fit(X.iloc[va]).transform(X.iloc[va])
     pd.testing.assert_frame_equal(a, b)
@@ -101,25 +101,39 @@ def test_el_escalado_sale_solo_del_fold_de_entrenamiento(X, y, tr, va):
 def test_la_discretizacion_sale_solo_del_fold_de_entrenamiento(X, y, tr, va):
     modelo = crear_modelo("nb_categorico").fit(X.iloc[tr], y[tr])
     disc = modelo.named_steps["columnas"].named_transformers_["num"]
-    edad_tr = np.unique(np.quantile(X.iloc[tr]["age"], np.linspace(0, 1, 11)[1:-1]))
-    edad_va = np.unique(np.quantile(X.iloc[va]["age"], np.linspace(0, 1, 11)[1:-1]))
-    assert np.allclose(disc.cortes_[0], edad_tr)
-    assert not np.array_equal(edad_tr, edad_va)
-    print("ok  los cortes de la discretización son los cuantiles del fold de entrenamiento")
+    numericas = columnas(Opciones())[0]
+    cuantiles = np.linspace(0, 1, 11)[1:-1]
+    distintas = 0
+    for j, c in enumerate(numericas):
+        del_fold = np.unique(np.quantile(X.iloc[tr][c], cuantiles))
+        de_todo_train = np.unique(np.quantile(X[c], cuantiles))
+        assert np.allclose(disc.cortes_[j], del_fold), c
+        distintas += not np.array_equal(del_fold, de_todo_train)
+    # Si ninguna columna tuviera cortes distintos de los de todo train, la prueba no probaría nada.
+    assert distintas >= 1
+    print(f"ok  los cortes de la discretización son los del fold de entrenamiento ({distintas} columnas "
+          "difieren de los de todo train)")
 
 
 def test_la_imputacion_sale_solo_del_fold_de_entrenamiento(X, y, tr, va):
+    # En train las modas de cada columna coinciden en cualquier fold, así que comparar contra
+    # ellas no distingue una fuga. Se arma una muestra donde la moda de `job` del bloque de
+    # entrenamiento (student) es distinta de la global (retired).
     op = Opciones(unknown="moda")
-    modelo = crear_modelo("rf", op, n_estimators=5).fit(X.iloc[tr], y[tr])
+    muestra = pd.concat([X.iloc[tr[:60]], X.iloc[va[:100]]]).reset_index(drop=True)
+    muestra.loc[:59, "job"] = "student"
+    muestra.loc[60:, "job"] = "retired"
+    etiquetas = np.array([0, 1] * 30 + [0] * 100)
+    assert muestra["job"].mode()[0] == "retired"
+    modelo = crear_modelo("rf", op, n_estimators=5).fit(muestra.iloc[:60], etiquetas[:60])
     imputador = modelo.named_steps["columnas"].named_transformers_["cat"].named_steps["imputar"]
     categoricas = columnas(op)[1]
-    modas = [X.iloc[tr][c].replace("unknown", np.nan).mode()[0] for c in categoricas]
-    assert list(imputador.statistics_) == modas
-    print("ok  la imputación por la moda usa la moda del fold de entrenamiento")
+    assert imputador.statistics_[categoricas.index("job")] == "student"
+    print("ok  la imputación por la moda usa la moda del fold de entrenamiento, no la global")
 
 
 def test_codigos_dentro_de_las_categorias_minimas(X, y, tr, va):
-    for op in (Opciones(), Opciones(pdays="indicadora", edad_tramos=True, raras=True)):
+    for op in (Opciones(), Opciones(pdays="sin", edad_tramos=True, raras=True)):
         modelo = crear_modelo("nb_categorico", op).fit(X.iloc[tr], y[tr])
         codigos = modelo[:-1].transform(X.iloc[va])
         assert (codigos.max(axis=0) < categorias_minimas(op, 10)).all()

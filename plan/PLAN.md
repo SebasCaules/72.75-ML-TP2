@@ -19,7 +19,7 @@ semana extra es margen para ensayar y pulir, no para agregar alcance.
 
 | Ola | Qué resuelve | Punto del enunciado | Fecha | Lo que la cierra |
 |---|---|---|---|---|
-| 0 | Arranque: estado, consultas a la cátedra, infraestructura común, presupuesto de cómputo | — | sáb 26/09 | `plan/EXEC_STATE.md`, mensaje a la cátedra, `src/preproceso.py`, `src/modelos.py`, `src/metricas.py`, `src/estilo.py`, con sus tests |
+| 0 | Inicio: estado, consultas a la cátedra, infraestructura común, presupuesto de cómputo | — | sáb 26/09 | `plan/EXEC_STATE.md`, mensaje a la cátedra, `src/preproceso.py`, `src/modelos.py`, `src/metricas.py`, `src/estilo.py`, con sus tests |
 | 1 | EDA con consecuencias: cada observación del EDA termina en una decisión medida | 1 | sáb 26 – dom 27/09 | `resultados/linea_base.csv`, `resultados/ablaciones.csv`, D-07 a D-17 |
 | 2 | Métricas, presupuesto de llamadas y desbalance | 2.3 | dom 27/09 | D-19 a D-21 |
 | 3 | Los cuatro clasificadores con validación cruzada | 2.1, 2.2 | dom 27/09 | `resultados/cv_modelos.csv`, D-18 |
@@ -70,7 +70,7 @@ sostuvo el nivel:
 - un README de entrega con el mapa enunciado → código;
 - verificación independiente de las cifras.
 
-**Lo que el TP1 dejó como deuda se corrige desde el arranque:**
+**Lo que el TP1 dejó como deuda se corrige desde el inicio:**
 - **Todos** los números proyectados salen de macros generados por código (guía C7); en el TP1, sólo
   los de test. Los del guion se comprueban contra `informe/numeros.md`.
 - `slides-y-guion.pdf` se genera desde el fuente; en el TP1 se armó a mano el día de la defensa.
@@ -112,7 +112,7 @@ corrige puede ver cada número sin volver a correr nada.
 ### Reservadas para las olas 1 a 5
 
 Los números son fijos: cada paso escribe **sólo** las suyas. Una propuesta que no cambia nada se
-registra igual, con su número (guía D3).
+registra de todos modos, con su número (guía D3).
 
 | ID | Tema | Propuesta por defecto | Evidencia que la cierra | Ola |
 |---|---|---|---|---|
@@ -210,7 +210,7 @@ El parámetro `cv=` recibe siempre `folds()` (D-06).
 Cada paso tiene una prueba de terminado ejecutable. Un paso está hecho cuando pasa esa prueba, no
 cuando alguien dice que lo terminó.
 
-### Ola 0 — Arranque (sáb 26/09)
+### Ola 0 — Inicio (sáb 26/09)
 
 | Paso | Qué | Archivos | Terminado cuando |
 |---|---|---|---|
@@ -322,7 +322,7 @@ silencio.
 
 ### Ola 5 — Modelo final y la única evaluación del test (punto 4)
 
-**Esta ola arranca después de la clase del 30/09**, con las respuestas de la cátedra ya recibidas.
+**Esta ola comienza después de la clase del 30/09**, con las respuestas de la cátedra ya recibidas.
 Evaluar el test y después cambiar la métrica obligaría a evaluarlo de nuevo. El TP1 lo hizo tres
 veces, y cada reevaluación le resta independencia al test (decisiones D-26 y D-29 del TP1).
 
@@ -384,7 +384,7 @@ Mejoras:
 
 ### Ola 7 — Presentación y guion
 
-El deck arranca el 29/09 con los números de test en modo marcador, como en el TP1, que ya tenía ese
+El deck comienza el 29/09 con los números de test en modo marcador, como en el TP1, que ya tenía ese
 interruptor en `resultados-test.tex`. Se completa cuando existe `evaluacion_test.json`.
 
 | Paso | Qué | Terminado cuando |
@@ -475,7 +475,7 @@ va atrasado, se recorta el segundo paso del hallazgo, nunca las limitaciones.
 | Fecha | Qué | Quién |
 |---|---|---|
 | vie 25/09 | Plan y EDA en HTML | Claude |
-| sáb 26/09 | Ola 0 y envío de las consultas; arranca la ola 1 | Claude; el grupo envía el mensaje |
+| sáb 26/09 | Ola 0 y envío de las consultas; comienza la ola 1 | Claude; el grupo envía el mensaje |
 | dom 27/09 | Cierre de la ola 1; olas 2 y 3 | Claude; el grupo revisa D-07 a D-21 |
 | lun 28/09 | Ola 4, con las curvas de la SVM en segundo plano | Claude |
 | mar 29/09 | Cierre de la ola 4. Borrador de la ola 6 sin test; esqueleto del deck con marcadores | Claude y el grupo |

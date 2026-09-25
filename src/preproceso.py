@@ -5,7 +5,7 @@ escalado, cortes de la discretización, la moda de la imputación) se ajusta en 
 parte de entrenamiento (TP2, p. 1; D-06). `Derivadas` no aprende nada: aplica reglas fijas,
 decididas con el EDA de train.
 
-Las opciones reproducen las decisiones D-07 a D-17 y las ablaciones A1 a A12 de `plan/PLAN.md`.
+Las opciones reproducen las decisiones D-08 a D-16 y las ablaciones A1 a A12 de `plan/PLAN.md`.
 Los valores por defecto son la configuración de referencia de las ablaciones, no las decisiones
 finales: esas quedan en DECISIONES.md cuando la ola 1 las mida.
 """
@@ -50,20 +50,21 @@ VOCABULARIO = {
 # es raro, pero no se toca: su tasa de «yes» es de las más altas.
 FUSION_RARAS = {"education": {"illiterate": "basic.4y"}, "marital": {"unknown": "married"}}
 
-# D-16: los tramos de edad del EDA. Cada uno incluye su borde inferior.
-TRAMOS_EDAD = [0, 25, 30, 40, 50, 60, np.inf]
-ROTULOS_EDAD = ["<25", "25-29", "30-39", "40-49", "50-59", "60+"]
+# D-16: los mismos tramos de edad del EDA (src/eda_html.py, CORTES_EDAD). Cada uno incluye su
+# borde inferior.
+TRAMOS_EDAD = [0, 25, 30, 35, 40, 45, 50, 55, 60, np.inf]
+ROTULOS_EDAD = ["<25", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60+"]
 
 
 @dataclass(frozen=True)
 class Opciones:
     duration: bool = False       # A1: sólo como techo de referencia (D-05)
-    pdays: str = "crudo"         # A2: "crudo" | "indicadora" (previous > 0 en lugar de pdays), D-10
+    pdays: str = "crudo"         # A2: "crudo" | "sin" (saca pdays; ver D-10), D-10
     default: str = "categorica"  # A3: "categorica" | "indicadora" (unknown contra el resto), D-09
     raras: bool = False          # A4: funde los niveles de FUSION_RARAS, D-11
     campaign_log: bool = False   # A5: log1p(campaign), D-13
     macro: str = "completo"      # A6 y A7: "completo" | "reducido" | "sin", D-14
-    month: bool = True           # A8: False saca `month`, D-15
+    month: bool = True           # A8: False saca `month` (junto con macro="sin"), D-15
     day_of_week: bool = True     # A9: False saca `day_of_week`, D-15
     edad_tramos: bool = False    # A10: la edad en tramos en lugar de años, D-16
     unknown: str = "categoria"   # A11: "categoria" | "moda", D-08
@@ -74,7 +75,7 @@ def columnas(op):
     """Las columnas que salen de `Derivadas`, agrupadas por cómo se codifican."""
     macro = {"completo": MACRO, "reducido": MACRO_REDUCIDO, "sin": []}[op.macro]
     numericas = [c for c in NUMERICAS_CLIENTE if not (
-        (c == "pdays" and op.pdays == "indicadora") or (c == "age" and op.edad_tramos))]
+        (c == "pdays" and op.pdays == "sin") or (c == "age" and op.edad_tramos))]
     numericas += macro + (["duration"] if op.duration else [])
 
     categoricas = [c for c in CATEGORICAS if not (
@@ -84,8 +85,10 @@ def columnas(op):
     if op.edad_tramos:
         categoricas.append("edad_tramo")
 
-    binarias = (["contactado_antes"] if op.pdays == "indicadora" else []) + (
-        ["default_unknown"] if op.default == "indicadora" else [])
+    # D-10: «contactado antes» no se agrega como columna: es previous > 0, que ya está en el
+    # one-hot de poutcome (nonexistent equivale a previous == 0). Agregarla la duplicaría y pesaría
+    # doble en GaussianNB y en las distancias de KNN. Sacar pdays deja esa información en poutcome.
+    binarias = ["default_unknown"] if op.default == "indicadora" else []
     return numericas, categoricas, binarias
 
 
@@ -112,8 +115,6 @@ class Derivadas(BaseEstimator, TransformerMixin):
     def transform(self, X):
         op = self.opciones
         X = X.copy()
-        if op.pdays == "indicadora":
-            X["contactado_antes"] = (X["previous"] > 0).astype(int)
         if op.default == "indicadora":
             X["default_unknown"] = (X["default"] == "unknown").astype(int)
         if op.raras:

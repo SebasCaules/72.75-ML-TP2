@@ -1,7 +1,7 @@
 """Correr con: python -m src.metricas
 
-Las métricas del TP2 (DECISIONES.md, D-19 y D-20). Se calculan siempre las cinco candidatas, para
-que una respuesta de la cátedra cambie qué columna se lee y no qué hay que volver a correr:
+Las métricas del TP2 (plan/PLAN.md, D-19 y D-20; DECISIONES.md cuando la ola 2 las escriba). Se
+calculan siempre las cinco candidatas, para que una respuesta de la cátedra cambie qué columna se lee y no qué hay que volver a correr:
 
 - auc: área bajo la curva ROC (Clase 4, slides 45-51). Compara y elige modelos.
 - ap: precisión promedio, el área bajo la curva de precisión y recall.
@@ -16,15 +16,30 @@ PRESUPUESTO = 0.20
 METRICAS = ("auc", "ap", "recall_q", "precision_q", "f1_q")
 
 
+def _es_naive_bayes(modelo):
+    ultimo = modelo[-1] if hasattr(modelo, "steps") else modelo
+    return type(ultimo).__name__.endswith("NB")
+
+
 def puntajes(modelo, X):
     """Puntaje de «yes»: `decision_function` si el modelo la tiene (la SVM), si no la probabilidad.
 
     La SVM no da probabilidades sin el escalado de Platt (Alpaydin §13.9), y para ordenar clientes
-    no hace falta: el AUC y el presupuesto sólo usan el orden.
+    no hace falta: el AUC y el presupuesto sólo usan el orden. En Naive Bayes se usa el logaritmo
+    del cociente de probabilidades: la probabilidad satura en 1,0 exacto para el 7 % de las filas y
+    esos empates bajan el AUC; el log-odds ordena igual y no satura.
     """
     if hasattr(modelo, "decision_function"):
-        return np.asarray(modelo.decision_function(X), dtype=float)
-    return np.asarray(modelo.predict_proba(X)[:, 1], dtype=float)
+        s = modelo.decision_function(X)
+    elif _es_naive_bayes(modelo):
+        lp = modelo.predict_log_proba(X)
+        s = lp[:, 1] - lp[:, 0]
+    else:
+        s = modelo.predict_proba(X)[:, 1]
+    s = np.asarray(s, dtype=float)
+    if not np.isfinite(s).all():
+        raise ValueError("hay puntajes no finitos")
+    return s
 
 
 def llamadas(n, q=PRESUPUESTO):
@@ -35,8 +50,8 @@ def en_presupuesto(y, s, q=PRESUPUESTO):
     """Recall, precisión y F1 si se llama a los k = q·n clientes de mayor puntaje.
 
     Los empates en el corte se reparten en proporción, que es el valor esperado de desempatar al
-    azar. Así, un modelo que les da el mismo puntaje a todos alcanza exactamente el q % de los «yes»,
-    sin depender del orden de las filas, que en este dataset es el orden temporal.
+    azar. Así, un modelo que les da el mismo puntaje a todos alcanza k/n de los «yes» (q salvo el
+    redondeo de k), sin depender del orden de las filas, que en este dataset es el orden temporal.
     """
     y = np.asarray(y).astype(int)
     s = np.asarray(s, dtype=float)
@@ -48,8 +63,11 @@ def en_presupuesto(y, s, q=PRESUPUESTO):
     aciertos = y[arriba].sum() + fraccion * y[en_corte].sum()
 
     positivos = y.sum()
-    recall = aciertos / positivos if positivos else float("nan")
     precision = aciertos / k
+    if not positivos:
+        return {"llamadas": k, "recall_q": float("nan"), "precision_q": float(precision),
+                "f1_q": float("nan")}
+    recall = aciertos / positivos
     f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
     return {"llamadas": k, "recall_q": float(recall), "precision_q": float(precision),
             "f1_q": float(f1)}
