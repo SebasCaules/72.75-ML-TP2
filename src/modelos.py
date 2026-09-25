@@ -35,7 +35,9 @@ REFERENCIA = {
 GRILLAS = {
     ("rf", "max_depth"): [2, 4, 6, 8, 10, 12, 15, 20, 25, None],
     ("rf", "n_estimators"): [10, 25, 50, 100, 200, 400, 800],
-    ("knn", "n_neighbors"): [1, 3, 5, 9, 15, 25, 41, 61, 101, 151, 201],
+    # La grilla llegaba hasta 201 y el máximo de validación quedó en el borde (ola 4), así que se
+    # extendió hasta 801 para ver la meseta.
+    ("knn", "n_neighbors"): [1, 3, 5, 9, 15, 25, 41, 61, 101, 151, 201, 301, 401, 601, 801],
     ("svm", "C"): [0.001, 0.01, 0.1, 0.3, 1, 3, 10, 30, 100],
 }
 

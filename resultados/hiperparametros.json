@@ -1,0 +1,280 @@
+{
+  "criterio": "D-22: el punto de mayor AUC medio de validación; si otros quedan dentro de 1 error estándar del mejor, el más simple entre ellos. Sin orden de simplicidad (kernel, weights, pesos_clase), el de mayor media. Entre curvas del mismo eje que difieren en un valor fijo, la de mayor media en su punto elegido",
+  "modelos": {
+    "knn": {
+      "n_neighbors": 201,
+      "weights": "uniform"
+    },
+    "rf": {
+      "max_depth": 8,
+      "n_estimators": 200,
+      "pesos_clase": "balanced"
+    },
+    "svm": {
+      "C": 0.01,
+      "pesos_clase": "balanced"
+    }
+  },
+  "curvas": {
+    "knn_n_neighbors_distance": {
+      "modelo": "knn",
+      "parametro": "n_neighbors",
+      "valor": 201,
+      "punto": "201",
+      "criterio": "dentro de 1 ES del mejor, el más simple: más vecinos, una frontera más suave",
+      "auc_validacion_media": 0.7685266314550061,
+      "auc_train_media": 0.9999205649080023,
+      "brecha": 0.2313939334529962,
+      "error_estandar": 0.002838336636923831,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "151",
+        "201"
+      ],
+      "mejor": "201",
+      "auc_validacion_mejor": 0.7685266314550061,
+      "error_estandar_mejor": 0.002838336636923831,
+      "umbral_1es": 0.7656882948180823,
+      "puntos": [
+        "1",
+        "3",
+        "5",
+        "9",
+        "15",
+        "25",
+        "41",
+        "61",
+        "101",
+        "151",
+        "201"
+      ],
+      "configuracion": {
+        "n_neighbors": 201,
+        "weights": "distance"
+      },
+      "omitidos": [],
+      "adoptada": false
+    },
+    "knn_n_neighbors_uniform": {
+      "modelo": "knn",
+      "parametro": "n_neighbors",
+      "valor": 201,
+      "punto": "201",
+      "criterio": "dentro de 1 ES del mejor, el más simple: más vecinos, una frontera más suave",
+      "auc_validacion_media": 0.7829677598307623,
+      "auc_train_media": 0.8033802197669868,
+      "brecha": 0.020412459936224536,
+      "error_estandar": 0.0030515783838854183,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "151",
+        "201"
+      ],
+      "mejor": "201",
+      "auc_validacion_mejor": 0.7829677598307623,
+      "error_estandar_mejor": 0.0030515783838854183,
+      "umbral_1es": 0.7799161814468769,
+      "puntos": [
+        "1",
+        "3",
+        "5",
+        "9",
+        "15",
+        "25",
+        "41",
+        "61",
+        "101",
+        "151",
+        "201"
+      ],
+      "configuracion": {
+        "n_neighbors": 201,
+        "weights": "uniform"
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "rf_max_depth": {
+      "modelo": "rf",
+      "parametro": "max_depth",
+      "valor": 8,
+      "punto": "8",
+      "criterio": "dentro de 1 ES del mejor, el más simple: árboles menos profundos",
+      "auc_validacion_media": 0.7954442737611808,
+      "auc_train_media": 0.8254945866527443,
+      "brecha": 0.03005031289156357,
+      "error_estandar": 0.002463038991866734,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "8",
+        "10",
+        "12"
+      ],
+      "mejor": "10",
+      "auc_validacion_mejor": 0.7968432886460323,
+      "error_estandar_mejor": 0.0029428265578712583,
+      "umbral_1es": 0.793900462088161,
+      "puntos": [
+        "2",
+        "4",
+        "6",
+        "8",
+        "10",
+        "12",
+        "15",
+        "20",
+        "25",
+        "None"
+      ],
+      "configuracion": {
+        "max_depth": 8,
+        "n_estimators": 300
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "rf_n_estimators": {
+      "modelo": "rf",
+      "parametro": "n_estimators",
+      "valor": 200,
+      "punto": "200",
+      "criterio": "dentro de 1 ES del mejor, el más simple: menos árboles",
+      "auc_validacion_media": 0.7716710895450587,
+      "auc_train_media": 0.999888834120175,
+      "brecha": 0.22821774457511634,
+      "error_estandar": 0.0028986928074749745,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "200",
+        "400",
+        "800"
+      ],
+      "mejor": "800",
+      "auc_validacion_mejor": 0.7726498218943357,
+      "error_estandar_mejor": 0.002624663547095773,
+      "umbral_1es": 0.77002515834724,
+      "puntos": [
+        "10",
+        "25",
+        "50",
+        "100",
+        "200",
+        "400",
+        "800"
+      ],
+      "configuracion": {
+        "n_estimators": 200
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "rf_pesos_clase": {
+      "modelo": "rf",
+      "parametro": "pesos_clase",
+      "valor": "balanced",
+      "punto": "balanced",
+      "criterio": "sin orden de simplicidad: el de mayor AUC medio de validación",
+      "auc_validacion_media": 0.7727183017471655,
+      "auc_train_media": 0.9999205620263121,
+      "brecha": 0.22720226027914658,
+      "error_estandar": 0.0030383186348974973,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "None",
+        "balanced"
+      ],
+      "mejor": "balanced",
+      "auc_validacion_mejor": 0.7727183017471655,
+      "error_estandar_mejor": 0.0030383186348974973,
+      "umbral_1es": 0.769679983112268,
+      "puntos": [
+        "None",
+        "balanced"
+      ],
+      "configuracion": {
+        "n_estimators": 300,
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "svm_C": {
+      "modelo": "svm",
+      "parametro": "C",
+      "valor": 0.01,
+      "punto": "0.01",
+      "criterio": "dentro de 1 ES del mejor, el más simple: más regularización",
+      "auc_validacion_media": 0.7032211866565079,
+      "auc_train_media": 0.7983318276752772,
+      "brecha": 0.09511064101876932,
+      "error_estandar": 0.005588470096365226,
+      "curva_plana": true,
+      "puntos_dentro_1es": [
+        "0.01",
+        "0.1",
+        "0.3",
+        "3"
+      ],
+      "mejor": "0.1",
+      "auc_validacion_mejor": 0.7059704024388584,
+      "error_estandar_mejor": 0.003896601210697955,
+      "umbral_1es": 0.7020738012281605,
+      "puntos": [
+        "0.001",
+        "0.01",
+        "0.1",
+        "0.3",
+        "1",
+        "3",
+        "10",
+        "30",
+        "100"
+      ],
+      "configuracion": {
+        "C": 0.01,
+        "gamma": "scale",
+        "kernel": "rbf"
+      },
+      "omitidos": [],
+      "adoptada": true
+    },
+    "svm_pesos_clase": {
+      "modelo": "svm",
+      "parametro": "pesos_clase",
+      "valor": "balanced",
+      "punto": "balanced",
+      "criterio": "sin orden de simplicidad: el de mayor AUC medio de validación",
+      "auc_validacion_media": 0.7700573969567769,
+      "auc_train_media": 0.876072496171315,
+      "brecha": 0.10601509921453811,
+      "error_estandar": 0.0041054917427161474,
+      "curva_plana": false,
+      "puntos_dentro_1es": [
+        "balanced"
+      ],
+      "mejor": "balanced",
+      "auc_validacion_mejor": 0.7700573969567769,
+      "error_estandar_mejor": 0.0041054917427161474,
+      "umbral_1es": 0.7659519052140608,
+      "puntos": [
+        "None",
+        "balanced"
+      ],
+      "configuracion": {
+        "C": 1.0,
+        "gamma": "scale",
+        "kernel": "rbf",
+        "pesos_clase": "balanced"
+      },
+      "omitidos": [],
+      "adoptada": true
+    }
+  },
+  "avisos": [
+    "rf_max_depth se midió con n_estimators=300, pesos_clase=None, pero la configuración final de rf tiene n_estimators=200, pesos_clase=balanced",
+    "rf_n_estimators se midió con max_depth=None, pesos_clase=None, pero la configuración final de rf tiene max_depth=8, pesos_clase=balanced",
+    "rf_pesos_clase se midió con max_depth=None, n_estimators=300, pero la configuración final de rf tiene max_depth=8, n_estimators=200",
+    "svm_C se midió con pesos_clase=None, pero la configuración final de svm tiene pesos_clase=balanced",
+    "svm_pesos_clase se midió con C=1.0, pero la configuración final de svm tiene C=0.01"
+  ]
+}
