@@ -95,3 +95,4 @@ if __name__ == "__main__":
     test_estratificado_por_y(*datos)
     test_orden_temporal_preservado(*datos)
     test_la_particion_es_reproducible(*datos)
+    print("TODOS LOS TESTS OK")

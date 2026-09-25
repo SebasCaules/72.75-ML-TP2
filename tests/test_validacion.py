@@ -31,3 +31,4 @@ if __name__ == "__main__":
     test_folds_mezclan_todas_las_epocas(train)
     test_folds_estratificados(train)
     test_folds_reproducibles(train)
+    print("TODOS LOS TESTS OK")
