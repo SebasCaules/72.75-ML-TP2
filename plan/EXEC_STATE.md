@@ -25,24 +25,24 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 2.2 D-20, presupuesto de llamadas | DONE (texto); tabla de sensibilidad en curso | 9a6347f | `experimentos --sensibilidad-q` corre tras el 3.3 (N0-10) |
 | 2.3 D-21, desbalance | DONE (texto); `pesos_clase` en curso | 9a6347f | Curvas rf/svm `pesos_clase` corriendo |
 | 3.1 Pipelines definitivos | DONE | 2ecee39 | `OPCIONES_FINALES = Opciones(default="indicadora", raras=True)`, 58 columnas |
-| 3.2 D-18, variante de Naive Bayes | TODO | | |
-| 3.3 CV de los cuatro modelos | DOING | e66ee0f | Corriendo `experimentos --etiqueta referencia` (5 modelos) |
+| 3.2 D-18, variante de Naive Bayes | DONE | 2519d9b | Categórico: +0,0132 ± 0,0024 sobre el gaussiano |
+| 3.3 CV de los cuatro modelos | DONE | 2519d9b, 0be05cb | `cv_referencia_*` (5 modelos) y `cv_final_*` (4 modelos con los hiperparámetros elegidos) |
 | 3.4 Figura de los cuatro modelos | DOING | | Workflow `graficos` |
-| 4.1 Curvas de RF | DOING | 39284ce | Corriendo |
-| 4.2 Curvas de KNN | DOING | 39284ce | Corriendo (uniform y distance) |
-| 4.3 Curvas de la SVM | DOING | 39284ce | Corriendo C; kernels después de elegir C |
-| 4.4 D-22, hiperparámetros | TODO | | |
+| 4.1 Curvas de RF | DONE | f476258, d694d40 | max_depth (a 300 árboles), n_estimators y pesos (a profundidad 8) |
+| 4.2 Curvas de KNN | DONE | d694d40 | Grilla extendida a 801; uniform y distance |
+| 4.3 Curvas de la SVM | DONE | d694d40 | C con RBF (sin y con pesos), kernels, C con lineal |
+| 4.4 D-22, hiperparámetros | DONE | d694d40 | Con los desvíos N0-11 (200 árboles) y N0-12 (RF sin pesos) |
 | 4.5 Figuras de las curvas | TODO | | |
-| 4.6 Grilla C × γ (opcional) | TODO | | S-04 |
-| 5.1 D-23, modelo final | TODO | 060f7ff | Módulo listo (no toca el test); se corre con `cv_final` |
-| 5.2 D-25, robustez temporal | TODO | 96a955c | Módulo listo |
+| 4.6 Grilla C × γ (opcional) | TODO | | S-04; el kernel final es lineal, así que γ no aplica |
+| 5.1 D-23, modelo final | DONE | 0be05cb | RF 0,7952 ± ES 0,0025; sin empate |
+| 5.2 D-25, robustez temporal | DONE | 42f5aba | Hacia adelante, RF 0,558 ± 0,123; sin macro no lo arregla |
 | 5.3 D-24, evaluación única del test | TODO | 9df4545 | Módulo construido y probado sin abrir el test; NO se ejecuta (N0-1). `informe/resultados-test.tex` con marcadores |
-| 5.4 Análisis de errores | TODO | | |
-| 6.1 Tabla por modelo | TODO | | |
-| 6.2 Hallazgo | TODO | | |
-| 6.3 Limitaciones y mejoras | TODO | | |
+| 5.4 Análisis de errores | DOING | | Sobre validación (OOF), en `resultados/conclusiones.md`; sobre test, después del 30/09 |
+| 6.1 Tabla por modelo | DOING | | Workflow `conclusiones` |
+| 6.2 Hallazgo | DOING | | Workflow `conclusiones`; la evidencia favorece H1 |
+| 6.3 Limitaciones y mejoras | DOING | | Workflow `conclusiones` |
 | 7.1 Deck | TODO | | |
-| 7.2 `numeros.py` | TODO | | |
+| 7.2 `numeros.py` | DOING | | Workflow `numeros` |
 | 7.3 Figuras de proyección | TODO | | |
 | 7.4 Guion | TODO | | |
 | 7.5 Cuadernillo de ensayo | TODO | | |
@@ -84,6 +84,9 @@ Cada decisión de contrato que no estaba en el plan, con su porqué.
 | N0-8 | Los OOF de la referencia de las ablaciones se llaman `oof_ablacion_A0_<modelo>.csv`, no `oof_referencia_<modelo>.csv`: ese nombre es de `experimentos --etiqueta referencia`, que mide con `OPCIONES_FINALES`, y se pisaban. `ablaciones_resumen.csv` no trae filas A0: el AUC de A0 está en `auc_referencia` | Hallazgo del verificador de la ola A |
 | N0-9 | Las ablaciones miden siempre contra `Opciones()` y `REFERENCIA`, sin leer `configuracion.py`: la base no se mueve después de la ola 1, y una corrida posterior reproduce D-08 a D-17 | Constructor de ablaciones; N0 lo confirma |
 | N0-10 | El paso 2.2 (sensibilidad a q) pasa a después del 3.3: `experimentos --sensibilidad-q` exige `cv_referencia_<modelo>.csv` para no leer un OOF de otra corrida | Hallazgo del verificador de experimentos |
+| N0-11 | RF con 200 árboles, no los 25 que daba la regla de 1 ES (DECISIONES.md §6) | El número de árboles es un eje de estabilidad, no de complejidad |
+| N0-12 | RF sin pesos de clase (la regla daba «balanced» por +0,0007) | D-21: sólo si mejora más que el ruido |
+| N0-13 | En `seleccion.py`, la configuración vigente (`src/configuracion.py`) prevalece sobre la propuesta mecánica de `hiperparametros.json`; el JSON sólo completa lo que la vigente no fija | Sin esto, N0-11 y N0-12 no se podían aplicar |
 
 ## Veredicto final
 
