@@ -1,0 +1,394 @@
+% dossier.sty — estilo de los documentos de lectura de la skill /dossier, de una hoja a
+% documentos largos.
+%
+% Se copia junto a cada documento, así el PDF se puede regenerar aunque la skill cambie.
+% Compilar con lualatex (usa fontspec y las fuentes del sistema). El catálogo de
+% componentes, con ejemplos, está en referencias/componentes.md de la skill.
+%
+% Opción: \usepackage[impresion]{dossier} para papel: enlaces del color del texto, las
+% direcciones de \enlace al pie, número de página en \ver y en el índice, y el PDF abre
+% sin el panel de marcadores. Sin opción (o con «digital»), para pantalla.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{dossier}[2026/09/25 v0.3 documentos de lectura]
+
+\newif\ifdossier@impresion
+\DeclareOption{impresion}{\dossier@impresiontrue}
+\DeclareOption{pantalla}{\dossier@impresionfalse}
+\DeclareOption{digital}{\dossier@impresionfalse}
+\ProcessOptions\relax
+
+\RequirePackage{iftex}
+\RequireLuaTeX
+
+\RequirePackage[a4paper,top=16mm,bottom=16mm,left=18mm,right=18mm,
+  headheight=12pt,headsep=6mm,footskip=8mm]{geometry}
+
+% ---------------------------------------------------------------- tipografía
+% La del sistema si está (macOS); si no, una libre del mismo tipo.
+\RequirePackage{fontspec}
+\IfFontExistsTF{Avenir Next}{%
+  \setmainfont{Avenir Next}[UprightFont=* Regular,BoldFont=* Demi Bold,
+    ItalicFont=* Italic,BoldItalicFont=* Demi Bold Italic]}{%
+  \IfFontExistsTF{Helvetica Neue}{\setmainfont{Helvetica Neue}}{\setmainfont{TeX Gyre Heros}}}
+\IfFontExistsTF{Menlo}{\setmonofont{Menlo}[Scale=0.82]}{\setmonofont{Latin Modern Mono}}
+
+% ---------------------------------------------------------------- paleta
+% Para usar la identidad de un proyecto, redefinir estos nombres en el preámbulo del
+% documento, después de \usepackage{dossier}. estilo_graficos.py lee los mismos valores.
+\RequirePackage{xcolor}
+\definecolor{tinta}{HTML}{16233A}    % texto y cifras
+\definecolor{rotulo}{HTML}{3D4D66}   % rótulos y ejes
+\definecolor{apagado}{HTML}{5F6779}  % texto secundario, pies, fuentes
+\definecolor{acento}{HTML}{22456F}   % títulos, énfasis y enlaces
+\definecolor{acento2}{HTML}{B8433A}  % números de sección, avisos, «hoy»
+\definecolor{suave}{HTML}{D7E2EC}    % relleno de lo que está en curso
+\definecolor{suave2}{HTML}{F6E6E3}   % relleno de avisos y etiquetas
+\definecolor{fondo}{HTML}{F2F1EE}    % paneles, cajas y cifras
+\definecolor{linea}{HTML}{B9C0CC}    % filetes y lo pendiente
+\AtBeginDocument{\color{tinta}}
+
+% ---------------------------------------------------------------- paquetes
+\RequirePackage{graphicx}
+\RequirePackage[export]{adjustbox}
+\RequirePackage{booktabs,tabularx,array,enumitem,microtype,multicol,needspace}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.symbols,fit,backgrounds}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{fancyhdr,titlesec,titletoc}
+\RequirePackage[font={small,color=apagado},labelformat=empty,skip=3pt,hypcap=false]{caption}
+\RequirePackage{lastpage}
+\RequirePackage{xurl}
+\RequirePackage{hyperref}
+\RequirePackage{bookmark}
+\hypersetup{linktoc=all,bookmarksnumbered=true,bookmarksopen=true,bookmarksdepth=2,
+  pdfdisplaydoctitle=true,pdfstartview=FitH}
+\ifdossier@impresion
+  % En papel los enlaces no se ven: siguen andando en el PDF, pero del color del texto.
+  \hypersetup{colorlinks=false,pdfborder={0 0 0},pdfpagemode=UseNone}
+\else
+  \hypersetup{colorlinks=true,linkcolor=acento,urlcolor=acento,filecolor=acento,
+    pdfpagemode=UseOutlines}
+\fi
+
+% ---------------------------------------------------------------- párrafo y listas
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4.5pt}
+\setlength{\emergencystretch}{1em}
+\linespread{1.08}
+\widowpenalty=10000
+\clubpenalty=10000
+\setlist{nosep,leftmargin=12pt,itemsep=2pt}
+\setlist[itemize,1]{label={\color{acento2}\textbullet}}
+\setlist[itemize,2]{label={\color{apagado}--}}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+% encabezado de columna: \enc{Qué}
+\newcommand{\enc}[1]{{\scriptsize\ttfamily\MakeUppercase{#1}}}
+
+% ---------------------------------------------------------------- títulos
+\newcommand{\dossier@dos}[1]{\ifnum#1<10 0\fi\number#1}
+% «01» en el título, en el índice, en los marcadores del PDF y en \ref.
+\renewcommand{\thesection}{\dossier@dos{\value{section}}}
+\setcounter{secnumdepth}{1}
+\setcounter{tocdepth}{1}
+\titleformat{\section}{\color{acento}\bfseries\fontsize{15}{18}\selectfont}
+  {\color{acento2}\fontsize{10}{12}\selectfont\ttfamily\bfseries\dossier@dos{\value{section}}\hspace{8pt}}{0pt}{}
+\titlespacing*{\section}{0pt}{4pt}{5pt}
+% \phantomsection: sin ella, una subsección que abre página deja su marcador y sus
+% enlaces al pie de la página anterior (titlesec ancla antes del salto).
+\titleformat{\subsection}{\color{acento}\bfseries\normalsize}{}{0pt}{\phantomsection}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
+% ---------------------------------------------------------------- encabezado y pie
+% \documento{título corto (encabezado)}{título completo (PDF)}{autor}, en el preámbulo.
+\newcommand{\dossier@corto}{}
+\newcommand{\documento}[3]{%
+  \renewcommand{\dossier@corto}{#1}%
+  \hypersetup{pdftitle={#2},pdfauthor={#3}}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+% El título corto del encabezado vuelve al índice (o a la portada si no hay índice).
+% \dossier@hayindice lo define el .aux cuando el documento usa \indice o \indicelista.
+\fancyhead[L]{\footnotesize\ifdefined\dossier@hayindice
+  \hyperlink{dossier-indice}{\color{apagado}\dossier@corto}\else
+  \hyperlink{page.1}{\color{apagado}\dossier@corto}\fi}
+\fancyhead[R]{\footnotesize\color{apagado}\ttfamily\thepage\,/\,\pageref*{LastPage}}
+\fancypagestyle{portada}{\fancyhf{}}
+
+% ---------------------------------------------------------------- portada
+% \portada{contexto}{título}{subtítulo}{para quién, fecha y cómo leer las cifras}
+\newcommand{\portada}[4]{%
+  \thispagestyle{portada}%
+  \pdfbookmark[1]{Portada}{dossier-portada}%
+  {\ttfamily\small\color{acento2}\MakeUppercase{#1}\par}\vspace{3pt}
+  {\fontsize{27}{31}\selectfont\bfseries\color{acento}#2\par}\vspace{5pt}
+  {\large\color{rotulo}#3\par}\vspace{4pt}
+  {\small\color{apagado}#4\par}\vspace{4pt}}
+
+% Sección sin número que igual aparece en los marcadores del PDF: \resumen[En una página]
+\newcommand{\resumen}[1][En una página]{%
+  \section*{#1}\pdfbookmark[1]{#1}{dossier-resumen}}
+
+% Sección sin número que entra en el índice y en los marcadores: \anexo{Glosario}
+% \needspace: seguido de un glosario (multicols) el título podía quedar solo al pie.
+\newcommand{\anexo}[1]{%
+  \needspace{8\baselineskip}%
+  \section*{#1}\phantomsection\addcontentsline{toc}{section}{#1}}
+
+% ---------------------------------------------------------------- índice cliqueable
+% \indice: una línea corrida con las secciones (documentos de hasta ~6 páginas).
+% \indicelista: una lista en dos columnas con número de página (documentos más largos).
+% Cada entrada es un enlace. Usar uno solo, una sola vez, y no combinarlo con
+% \tableofcontents: todos abren el mismo archivo .toc.
+\newcommand{\dossier@marcaindice}{%
+  \hypertarget{dossier-indice}{}%
+  \if@filesw\immediate\write\@auxout{\gdef\string\dossier@hayindice{}}\fi}
+\titlecontents*{section}[0pt]{\small}
+  {\color{acento2}\ttfamily\bfseries\dossier@dos{\thecontentslabel}\enspace\rmfamily\mdseries\color{acento}}
+  {\color{acento}}
+  {\ifdossier@impresion\enspace{\footnotesize\color{apagado}p.\,\thecontentspage}\fi}
+  [\quad\textcolor{linea}{|}\quad]
+\newcommand{\indicelista}[1][En este documento]{%
+  \par\vspace{3pt}\noindent\dossier@marcaindice
+  {\scriptsize\ttfamily\color{rotulo}\MakeUppercase{#1}}\par\vspace{2pt}
+  \begingroup
+  \setlength{\multicolsep}{2pt plus 1pt}%
+  \titlecontents{section}[0pt]{\small\addvspace{1.5pt}}
+    {\color{acento2}\ttfamily\bfseries\dossier@dos{\thecontentslabel}\enspace\rmfamily\mdseries\color{acento}}
+    {\color{acento}}
+    {\titlerule*[5pt]{\textcolor{linea}{.}}\textcolor{apagado}{\thecontentspage}}
+  \begin{multicols}{2}\raggedright\@starttoc{toc}\end{multicols}%
+  \endgroup
+  \vspace{2pt}}
+\newcommand{\indice}[1][En este documento]{%
+  \par\vspace{3pt}\noindent\dossier@marcaindice
+  \begin{tcolorbox}[enhanced,frame hidden,colback=white,sharp corners,boxrule=0pt,
+      left=0pt,right=0pt,top=4pt,bottom=4pt,borderline north={0.5pt}{0pt}{linea},
+      borderline south={0.5pt}{0pt}{linea},before skip=4pt,after skip=4pt]
+    {\scriptsize\ttfamily\color{rotulo}\MakeUppercase{#1}}\par\vspace{2pt}
+    \@starttoc{toc}%
+  \end{tcolorbox}}
+
+% ---------------------------------------------------------------- cifras
+% \begin{cifras}[4] \cifra{rótulo}{valor}{nota} ... \end{cifras}
+\newenvironment{cifras}[1][4]{%
+  \par\begin{tcbraster}[raster columns=#1,raster equal height,raster column skip=8pt,
+    raster before skip=6pt,raster after skip=8pt]}{\end{tcbraster}}
+\newcommand{\cifra}[3]{%
+  \begin{tcolorbox}[enhanced,colback=fondo,frame hidden,sharp corners,boxrule=0pt,
+      left=7pt,right=7pt,top=6pt,bottom=6pt,borderline north={1.6pt}{0pt}{acento},
+      before upper={\parskip=0pt\raggedright}]
+    {\scriptsize\ttfamily\color{rotulo}\strut\smash{\MakeUppercase{#1}}}\par\vspace{1pt}
+    {\fontsize{19}{22}\selectfont\bfseries\color{tinta}#2}\par\vspace{1pt}
+    {\scriptsize\color{apagado}#3\par}%
+  \end{tcolorbox}}
+
+% ---------------------------------------------------------------- avisos
+% \ojo[Antes del 29/09]{lo que el lector tiene que hacer o no puede pasar por alto}
+% \nota[Cómo se midió]{contexto que ayuda pero no urge}
+\newtcolorbox{dossier@aviso}[1]{enhanced,breakable,frame hidden,colback=white,sharp corners,
+  boxrule=0pt,left=8pt,right=0pt,top=1pt,bottom=1pt,borderline west={2pt}{0pt}{#1},
+  fontupper=\small,before skip=6pt,after skip=4pt,before upper={\parskip=3pt}}
+\newcommand{\ojo}[2][]{\begin{dossier@aviso}{acento2}%
+  \if\relax\detokenize{#1}\relax\else\textbf{#1.}\ \fi#2\end{dossier@aviso}}
+\newcommand{\nota}[2][]{\begin{dossier@aviso}{acento}%
+  \if\relax\detokenize{#1}\relax\else\textbf{#1.}\ \fi#2\end{dossier@aviso}}
+
+% ---------------------------------------------------------------- texto
+% \fuente{D22}: de dónde sale una cifra (fila del registro, archivo, página).
+% \leavevmode: sin él, al principio de una celda p{} el color abre una línea vacía.
+\newcommand{\fuente}[1]{\leavevmode{\ttfamily\footnotesize\color{apagado}#1}}
+% \ver{sec:modelo}: referencia cliqueable a una sección, con su título (y la página, en
+% papel). \ver[Fitts]{ley:fitts}: con un texto propio, cuando el título es largo.
+\newcommand{\ver}[2][]{\hyperref[#2]{$\rightarrow$\,%
+  \if\relax\detokenize{#1}\relax\nameref*{#2}\else#1\fi
+  \ifdossier@impresion, p.\,\pageref*{#2}\fi}}
+% \enlace{https://...}{texto}: enlace externo, marcado como tal; en papel, la dirección al pie.
+\newcommand{\enlace}[2]{\ifdossier@impresion
+  \href{#1}{#2}\footnote{\url{#1}}%
+  \else\href{#1}{#2\,\raisebox{.1ex}{\scalebox{.75}{$\nearrow$}}}\fi}
+% \chip{propuesta}: rótulo corto dentro del texto.
+\newcommand{\chip}[1]{\tcbox[on line,colback=suave2,colframe=suave2,boxrule=0pt,arc=2pt,
+  left=2pt,right=2pt,top=0.5pt,bottom=0.5pt,
+  fontupper=\scriptsize\ttfamily\color{acento2}]{\MakeUppercase{#1}}}
+
+% ---------------------------------------------------------------- figuras
+% Sin flotantes: la figura queda donde se escribe y nunca se separa de su pie.
+% \figura[fracción del ancho]{archivo}{pie}: sin fracción, tamaño natural (hasta el ancho).
+\newcommand{\dossier@incluir}[3]{%
+  \if\relax\detokenize{#1}\relax
+    \includegraphics[max width=\linewidth]{#2}%
+  \else
+    \includegraphics[width=#1\linewidth]{#2}%
+  \fi}
+\newcommand{\figura}[3][]{%
+  \par\vspace{3pt}\noindent\begin{minipage}{\linewidth}\centering
+    \dossier@incluir{#1}{#2}{}\par
+    \captionof{figure}{#3}%
+  \end{minipage}\par\vspace{2pt}}
+% \captura: igual, con un filete fino que separa la imagen de la página.
+\newcommand{\captura}[3][]{%
+  \par\vspace{3pt}\noindent\begin{minipage}{\linewidth}\centering
+    {\setlength{\fboxsep}{0pt}\setlength{\fboxrule}{0.4pt}%
+     \fcolorbox{linea}{white}{\dossier@incluir{#1}{#2}{}}}\par
+    \captionof{figure}{#3}%
+  \end{minipage}\par\vspace{2pt}}
+
+% \begin{bloque}[pie] ... \end{bloque}: un diagrama o una tabla con su pie, centrado y sin
+% cortarse entre páginas. Para lo que no es un archivo de imagen (\figura ya lo hace).
+\newenvironment{bloque}[1][]{%
+  \par\vspace{3pt}\noindent\begin{minipage}{\linewidth}\centering
+  \def\dossier@pie{#1}}{%
+  \if\relax\detokenize\expandafter{\dossier@pie}\relax\else\par\captionof{figure}{\dossier@pie}\fi
+  \end{minipage}\par\vspace{4pt}}
+
+% \begin{repaso} \item ¿...? \end{repaso}: preguntas «Para repasar» cuya respuesta está
+% en el texto. Es una caja, no una sección: no repite «Para repasar» en los marcadores.
+\newenvironment{repaso}[1][Para repasar]{%
+  \begin{tcolorbox}[enhanced,breakable,colback=fondo,frame hidden,sharp corners,boxrule=0pt,
+      left=8pt,right=8pt,top=5pt,bottom=5pt,before skip=6pt,after skip=6pt,
+      fontupper=\small,before upper={\parskip=2pt}]
+  {\scriptsize\ttfamily\color{rotulo}\MakeUppercase{#1}}\par\vspace{2pt}
+  \begin{enumerate}[label={\color{acento2}\bfseries\arabic*.},leftmargin=16pt,itemsep=2pt]}{%
+  \end{enumerate}\end{tcolorbox}}
+
+% ---------------------------------------------------------------- glosario
+% \begin{glosario} \termino{Lift}{definición copiada de la fuente} ... \end{glosario}
+\newenvironment{glosario}{\par\begin{multicols}{2}\footnotesize\raggedright}{\end{multicols}}
+\newcommand{\termino}[2]{\textbf{#1.} #2\par}
+
+% ---------------------------------------------------------------- diagramas
+\tikzset{
+  caja/.style={draw=none,fill=fondo,rounded corners=2pt,align=left,inner sep=5pt,
+    font={\scriptsize\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  cajag/.style={caja,inner sep=6pt,font={\footnotesize\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  cajaa/.style={caja,fill=acento,text=white},
+  cajas/.style={caja,fill=suave},
+  cajao/.style={caja,fill=suave2},
+  flecha/.style={-{Stealth[length=5pt]},line width=0.8pt,color=rotulo},
+  % rótulo suelto (sin caja) que nunca parte palabras con guion; con text width, align=left
+  etiqueta/.style={inner sep=1pt,text=tinta,
+    font={\scriptsize\hyphenpenalty=10000\exhyphenpenalty=10000}},
+}
+
+% ---------------------------------------------------------------- diagramas de relaciones
+% Guía de cuándo usar cada uno: referencias/diagramas.md. Ejemplos: referencias/componentes.md.
+\tikzset{
+  % grupo: caja de fondo para \grupo (fichas agrupadas); se ancla por la esquina de arriba
+  grupo/.style={draw=none,fill=fondo,rounded corners=3pt,inner sep=6pt,anchor=north west},
+  % mapa conceptual: nodos redondeados, flechas con verbo en el medio
+  concepto/.style={draw=linea,line width=0.6pt,fill=white,rounded corners=8pt,align=center,
+    inner xsep=6pt,inner ysep=4pt,text=tinta,
+    font={\footnotesize\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  concepto central/.style={concepto,draw=none,fill=acento,text=white,
+    font={\footnotesize\bfseries\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  concepto marcado/.style={concepto,draw=acento2,line width=0.9pt},
+  rel/.style={-{Stealth[length=4.5pt]},line width=0.7pt,color=rotulo},
+  relacion/.style={font=\scriptsize\itshape,text=apagado,fill=white,inner sep=1.5pt},
+  % conectores ortogonales que juntan varias cajas en una sola línea («bus»)
+  bus/.style={line width=0.8pt,color=rotulo},
+  rotulo carril/.style={font=\scriptsize\ttfamily,text=rotulo,rotate=90,anchor=center},
+}
+
+% \arriba{alto}{ancho}{contenido}: texto arriba en una caja de alto fijo, para que los
+% títulos de cajas vecinas queden a la misma altura. Si el contenido no entra, la caja
+% crece y el log avisa (medir.py lo marca como problema): nunca se desborda en silencio.
+\newsavebox{\dossier@caja}
+\newlength{\dossier@alto}
+\newcommand{\arriba}[3]{%
+  \sbox{\dossier@caja}{\parbox[t]{#2}{\raggedright #3}}%
+  \setlength{\dossier@alto}{\ht\dossier@caja}%
+  \addtolength{\dossier@alto}{\dp\dossier@caja}%
+  \ifdim\dossier@alto>#1\relax
+    \PackageWarning{dossier}{Caja más alta que el alto fijado (#1): mide \dossier@encm{\dossier@alto}cm y se agrandó}%
+  \else\setlength{\dossier@alto}{#1}\fi
+  \parbox[t][\dossier@alto][t]{#2}{\raggedright #3}}
+
+\ExplSyntaxOn
+\cs_new:Npn \dossier@encm #1 { \fp_eval:n { round( \dim_to_decimal_in_unit:nn {#1} {1cm}, 2 ) } }
+\ExplSyntaxOff
+
+% Fichas: \fichas{age, job, !duration}. Con «!» delante, la ficha va destacada. Sirven
+% para variables, conceptos cortos o etiquetas dentro de un grupo.
+\newcommand{\ficha}[1]{{\setlength{\fboxsep}{1.6pt}\colorbox{white}{\strut\scriptsize\ttfamily\color{tinta}#1}}}
+\newcommand{\fichadestacada}[1]{{\setlength{\fboxsep}{1.6pt}\colorbox{suave2}{\strut\scriptsize\ttfamily\bfseries\color{acento2}#1}}}
+\ExplSyntaxOn
+\NewDocumentCommand{\fichas}{m}{
+  \clist_map_inline:nn {#1} {
+    \tl_if_head_eq_charcode:nNTF {##1} ! { \fichadestacada{\tl_tail:n {##1}} } { \ficha{##1} }
+    \hspace{2pt~plus~1pt}\allowbreak
+  }
+}
+\ExplSyntaxOff
+
+% \grupo[alto]{ancho}{título}{fichas}: el contenido de un nodo «grupo». Sin alto, el
+% natural; con alto, todos los grupos de una fila con los títulos alineados.
+\NewDocumentCommand{\grupo}{O{0pt}mmm}{%
+  \arriba{#1}{#2}{{\footnotesize\bfseries\color{tinta}\strut\smash{#3}}\par\vspace{3pt}%
+    {\linespread{1.25}\selectfont\fichas{#4}\par}}}
+
+% \carril{y}{alto}{rótulo}: franja de fondo a todo el ancho con su rótulo a la izquierda,
+% para separar dos mundos en un mismo diagrama (entrenamiento y test, cliente y banco).
+% Dentro de un tikzpicture; y y alto en cm.
+\newcommand{\carril}[3]{%
+  \fill[fondo,rounded corners=2pt] (0,#1) rectangle (\linewidth,{#1+#2});
+  \node[rotulo carril] at (0.28,{#1+#2/2}) {#3};}
+
+% \hitos[hoy]{pos/nombre/fecha/estado, ...}
+%   pos: de 0 a 1 sobre el ancho; estado: hecho o pendiente; hoy: posición de la marca.
+\def\dossier@hecho{hecho}
+\newcommand{\hitos}[2][]{%
+  \par\vspace{2pt}\noindent
+  \begin{tikzpicture}
+    \path[use as bounding box] (0,-0.62) rectangle (\linewidth,0.95);
+    \draw[linea,line width=2pt] (7mm,0) -- ({\linewidth-7mm},0);
+    \if\relax\detokenize{#1}\relax\else
+      \draw[acento,line width=2pt] (7mm,0) -- ({7mm+#1*(\linewidth-14mm)},0);
+    \fi
+    \foreach \dossier@p/\dossier@n/\dossier@f/\dossier@e in {#2}{%
+      \coordinate (h) at ({7mm+\dossier@p*(\linewidth-14mm)},0);
+      \fill[white] (h) circle (3.6pt);
+      \draw[acento,line width=1.2pt] (h) circle (3.6pt);
+      \edef\dossier@tmp{\dossier@e}%
+      \ifx\dossier@tmp\dossier@hecho\fill[acento] (h) circle (3.6pt);\fi
+      \node[above=4pt,font=\footnotesize\bfseries,text=tinta] at (h) {\dossier@n};
+      \node[below=4pt,font=\scriptsize\ttfamily,text=apagado] at (h) {\dossier@f};
+    }
+    \if\relax\detokenize{#1}\relax\else
+      \coordinate (hoy) at ({7mm+#1*(\linewidth-14mm)},0);
+      \draw[acento2,line width=1.2pt] ($(hoy)+(0,-0.3)$) -- ($(hoy)+(0,0.55)$);
+      \node[acento2,font=\scriptsize\bfseries,above=0pt,inner sep=1pt] at ($(hoy)+(0,0.55)$) {hoy};
+    \fi
+  \end{tikzpicture}\par\vspace{2pt}}
+
+% \proceso[hoy]{texto/etiqueta/estado, ...}
+%   estado: hecho (relleno fuerte), actual (suave) o futuro (fondo);
+%   hoy: número de etapas ya pasadas (admite decimales) donde va la marca.
+\def\dossier@actual{actual}
+\newcommand{\proceso}[2][]{%
+  \par\vspace{2pt}\noindent
+  \begin{tikzpicture}
+    \def\dossier@k{0}%
+    \foreach \dossier@x in {#2}{\pgfmathtruncatemacro{\dossier@t}{\dossier@k+1}\global\let\dossier@k\dossier@t}%
+    \pgfmathsetlengthmacro{\dossier@w}{\linewidth/\dossier@k}%
+    \path[use as bounding box] (0,-0.95) rectangle (\linewidth,1.05);
+    \foreach \dossier@t/\dossier@l/\dossier@e [count=\dossier@i from 0] in {#2}{%
+      \edef\dossier@tmp{\dossier@e}%
+      \ifx\dossier@tmp\dossier@hecho\def\dossier@f{acento}\def\dossier@c{white}%
+      \else\ifx\dossier@tmp\dossier@actual\def\dossier@f{suave}\def\dossier@c{tinta}%
+      \else\def\dossier@f{fondo}\def\dossier@c{apagado}\fi\fi
+      \node[shape=signal,signal to=east,signal from=west,signal pointer angle=110,
+        minimum height=1.3cm,minimum width=\dossier@w+2pt,text width=\dossier@w-9mm,
+        align=center,font={\scriptsize\hyphenpenalty=10000},inner xsep=2pt,
+        fill=\dossier@f,text=\dossier@c] (s\dossier@i) at ({(\dossier@i+0.5)*\dossier@w},0) {\dossier@t};
+      \node[font=\scriptsize\ttfamily\bfseries,text=acento2,above=1pt] at (s\dossier@i.north) {\dossier@l};
+    }
+    \if\relax\detokenize{#1}\relax\else
+      \draw[acento2,line width=1pt] ({#1*\dossier@w},-0.75) -- ({#1*\dossier@w},0.8);
+      \node[font=\scriptsize\bfseries,text=acento2,below=0pt,inner sep=1pt] at ({#1*\dossier@w},-0.75) {hoy};
+    \fi
+  \end{tikzpicture}\par\vspace{2pt}}
+
+\endinput

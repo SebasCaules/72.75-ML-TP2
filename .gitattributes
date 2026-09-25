@@ -1,0 +1,3 @@
+# Los datos se guardan byte a byte: el CSV original usa CRLF y no hay que normalizarlo.
+*.csv -text
+*.txt -text

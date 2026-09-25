@@ -1,0 +1,261 @@
+% TP2 — resumen del enunciado y del dataset Bank Marketing (skill /dossier). Para el grupo: qué pide
+% el TP2, qué trae el dataset y qué hay que decidir antes del envío del 06/10.
+% Perfil: breve — texto normal — imágenes más — lector equipo — formato digital
+% Medir:  python3 ~/.claude/skills/dossier/scripts/medir.py resumen-tp2.tex --paginas 6 --paginas-texto 1.8 --densa 550 --visuales-min 9
+% Regenerar:  python3 graficos.py && latexmk -lualatex resumen-tp2.tex
+\documentclass[10pt,a4paper]{article}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage{dossier}
+\documento{72.75 · TP2 · Clasificación supervisada}{TP2: quién contrata un plazo fijo}{2C 2026}
+
+\begin{document}
+
+% ============================ PÁGINA 1 ============================
+\portada{72.75 Aprendizaje Automático · TP2 · 2C 2026}
+  {TP2: predecir quién contrata un plazo fijo}
+  {Qué pide el enunciado, qué trae el dataset Bank Marketing y qué hay que decidir antes del envío}
+  {Documento de lectura para el grupo, 25/09/2026. Fuentes en gris: \textit{TP2} = enunciado;
+  \textit{CSV} = bank-additional-full.csv, cálculo propio; \textit{names} = bank-additional-names.txt.}
+
+\hitos[0.07]{0/Enunciado/25-09/hecho,0.25/Clase KNN?/30-09/pendiente,0.5/Envío/06-10/pendiente,0.75/1.ª defensa/07-10/pendiente,1/2.ª defensa/14-10/pendiente}
+{\footnotesize\color{apagado} Fechas: \fuente{TP2, p. 1 · cronograma de la Clase 1}. KNN el 30/09 es \chip{inferencia}; el envío es el 06/10 si el grupo defiende el 07/10.}
+
+\begin{cifras}[4]
+  \cifra{Llamadas}{41.188}{20 predictoras + $y$ \fuente{CSV}}
+  \cifra{Contratan}{11,27\%}{4.640; decir siempre «no» acierta 88,73\% \fuente{CSV}}
+  \cifra{Clasificadores}{4}{Naive Bayes, SVM, KNN, RF \fuente{TP2, p. 2}}
+  \cifra{Defensa}{10 + 10}{minutos; envío 24 h antes \fuente{TP2, p. 1}}
+\end{cifras}
+
+\resumen
+\textbf{Qué pide.} Predecir si un cliente contrata un depósito a plazo fijo ($y$ = yes/no) con
+Naive Bayes, SVM, KNN y Random Forest en scikit-learn \fuente{TP2, pp. 1–2}. Se evalúa con
+\textit{k-fold} sólo sobre entrenamiento, dos métricas justificadas y curvas de validación para al
+menos un hiperparámetro de SVM, KNN y RF; el modelo final estima su desempeño en datos nuevos. El
+EDA puede ser básico, pero sus observaciones tienen que tener consecuencias en el pipeline.
+
+\textbf{Qué trae el dato.} Una llamada de cada nueve termina en «sí», así que la exactitud sola
+no sirve. Hay tres trampas: \texttt{duration}
+mira el futuro, hay faltantes disfrazados (\texttt{unknown}, \texttt{pdays = 999}) y el archivo está
+ordenado por fecha: la tasa de «sí» pasa de 4,84\% (2008) a 52,14\% (2010, año inferido) \fuente{names §4 · CSV}.
+
+\textbf{Qué sigue.} Seis decisiones antes del envío (\ver{sec:pasos}). Tres conviene consultarlas
+con la cátedra: \texttt{duration}, partir al azar o por fecha, y si $F_1$ está entre las métricas vistas.
+
+\ojo[Antes de entrenar]{\texttt{duration} no existe antes de llamar. Los autores piden descartarla
+para un modelo realista \fuente{names §7}, y sola separa las clases con AUC 0,818 \fuente{CSV}. Un
+modelo que la usa parece excelente y no sirve.}
+
+\indice
+
+\begin{bloque}[La consigna, en el orden del enunciado. Azul oscuro: hecho; celeste: en curso \fuente{TP2, pp. 1–2}.]
+\proceso[1]{Dataset/0/hecho,EDA con decisiones/1/actual,Clasificar con CV/2/futuro,Curvas de validación/3/futuro,Modelo final/4/futuro,Conclusiones/5/futuro}
+\end{bloque}
+
+% ============================ PÁGINA 2 ============================
+\newpage
+\section{El enunciado evalúa cómo se valida, más que qué modelo gana}\label{sec:enunciado}
+
+El objetivo declarado es «aprender a entrenar y evaluar modelos utilizando validación cruzada»
+\fuente{TP2, p. 1}: el test se separa primero y toda transformación aprendida se ajusta sólo con
+entrenamiento.
+
+\begin{bloque}[Nada pasa del carril del test al de entrenamiento. Separar antes de transformar lo pide el enunciado \fuente{TP2, p. 1}; usar el test una vez y reentrenar con todo el train es \chip{inferencia}.]
+\begin{tikzpicture}[node distance=5mm]
+  \carril{0}{1.95}{ENTRENAMIENTO}
+  \carril{-1.8}{1.5}{TEST}
+  \node[cajag,fill=white,text width=2.25cm] (csv) at (1.95,0.08) {\textbf{CSV}\\41.188 filas \fuente{CSV}};
+  \node[cajag,fill=white,text width=2.75cm,right=11mm of csv,yshift=0.9cm] (kf) {\textbf{k-fold sobre train}\\pipeline ajustado en cada pliegue};
+  \node[cajag,fill=white,text width=3.1cm,right=of kf] (cv) {\textbf{Curvas de validación}\\SVM, KNN y RF: uno o más hiperparámetros};
+  \node[cajag,fill=white,text width=2.8cm,right=of cv] (mf) {\textbf{Modelo final}\\reentrenado con todo el train};
+  \node[cajag,fill=white,text width=2.35cm] (te) at (5.85,-1.05) {\textbf{Test apartado}\\antes de transformar};
+  \node[cajaa,text width=2.35cm] (ev) at (15.95,-1.05) {\textbf{Test, una vez}\\desempeño esperado};
+  \draw[rel] (csv.east) -- ++(0.4,0) |- (kf.west);
+  \draw[rel] (csv.east) -- ++(0.4,0) |- (te.west);
+  \draw[rel] (kf) -- (cv); \draw[rel] (cv) -- (mf);
+  \draw[rel] (mf.east) -| (ev.north);
+  \draw[rel,dashed] (te.east) -- node[relacion,above] {no se toca hasta el final} (ev.west);
+\end{tikzpicture}
+\end{bloque}
+
+\begin{tabularx}{\linewidth}{@{}P{2.4cm}P{4.2cm}L@{}}
+\toprule
+\enc{Modelo} & \enc{Qué pide evaluar} & \enc{Qué mirar en este dataset} \\
+\midrule
+\textbf{Naive Bayes} & ningún hiperparámetro \fuente{TP2, p. 2} & el enunciado no dice qué variante; hay 10 numéricas y 10 categóricas \fuente{CSV} \\
+\textbf{SVM} & C o kernel \fuente{TP2, p. 2} & escalar es obligatorio; con 41.188 filas es el más caro de entrenar \chip{inferencia} \\
+\textbf{KNN} & número de vecinos, ponderación \fuente{TP2, p. 2} & escalar; con 11,27\% de «sí», un $k$ grande vota «no» casi siempre \chip{inferencia} \\
+\textbf{Random Forest} & número de árboles, profundidad máxima \fuente{TP2, p. 2} & no necesita escalar; con \texttt{duration} adentro, los cortes la eligen a ella \chip{inferencia} \\
+\bottomrule
+\end{tabularx}
+\medskip
+
+\textbf{Lo que el enunciado no dice, y queda a criterio del grupo:}
+\begin{itemize}
+\item \textbf{Qué Naive Bayes} para datos mixtos.
+\item \textbf{Cuántos pliegues y si se estratifica.}
+\item \textbf{Si se trata el desbalance.} Pide mirar «el balance de clases» \fuente{TP2, p. 1}, no corregirlo.
+\item \textbf{Qué variable filtra.} Advierte sobre la fuga sin nombrar ninguna \fuente{TP2, p. 1}.
+\item \textbf{El tamaño del test y el umbral de decisión.}
+\end{itemize}
+Del TP1 arrastra tres consejos \fuente{TP2, pp. 2–3}: decir qué datos se usan en cada etapa, preferir
+gráficos a tablas y no pasar de 10 minutos, con los números en las slides. El objetivo dice
+«regresión»: copia del TP1 \fuente{TP1, p. 1}.
+
+% ============================ PÁGINA 3 ============================
+\newpage
+\section{El dataset: 20 predictoras en cuatro grupos y una clase de cada nueve}\label{sec:dataset}
+
+Cada fila es un contacto telefónico de un banco portugués entre mayo de 2008 y noviembre de 2010
+\fuente{names §4}. Sólo uno de los cuatro grupos describe la llamada misma.
+
+\begin{bloque}[Los grupos de names §7. \texttt{duration} es del último contacto, pero se conoce recién al colgar: va tras la línea.]
+\begin{tikzpicture}
+  \node[grupo] (a) at (0,0)     {\grupo[3.2cm]{3.1cm}{Cliente · 7}{age, job, marital, education, default, housing, loan}};
+  \node[grupo] (c) at (3.65,0)  {\grupo[3.2cm]{2.6cm}{Otros atributos · 4}{campaign, pdays, previous, poutcome}};
+  \node[grupo] (d) at (6.8,0)   {\grupo[3.2cm]{3.2cm}{Contexto económico · 5}{emp.var.rate, cons.price.idx, cons.conf.idx, euribor3m, nr.employed}};
+  \node[grupo] (b) at (10.55,0) {\grupo[3.2cm]{2.75cm}{Último contacto · 3}{contact, month, day\_of\_week}};
+  \node[grupo] (e) at (14.45,0) {\grupo[3.2cm]{2.3cm}{Al colgar · 1}{!duration}};
+  \draw[acento2,dashed,line width=0.9pt] (14.1,0.3) -- (14.1,-3.85);
+  \node[font=\scriptsize\bfseries,text=acento2,anchor=south east] at (14.0,0.02) {momento de predecir};
+  \coordinate (bus) at (0,-3.95);
+  \foreach \g in {a,c,d,b,e} \draw[bus] (\g.south) -- (\g.south |- bus);
+  \draw[bus] (a.south |- bus) -- (e.south |- bus);
+  \coordinate (medio) at ($(a.south |- bus)!0.5!(e.south |- bus)$);
+  \node[concepto central,minimum width=5.2cm] (y) at ($(medio)+(0,-0.75)$) {$y$: ¿contrató el depósito? (yes/no)};
+  \draw[rel] (medio) -- (y);
+\end{tikzpicture}
+\end{bloque}
+
+\noindent\begin{minipage}[t]{0.48\linewidth}\vspace{0pt}
+\figura{fig/f01_balance.pdf}{Decir siempre «no» acierta el 88,73\%: es la línea de base de cualquier exactitud \fuente{CSV}.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}\vspace{0pt}
+\figura{fig/f02_unknown.pdf}{Ningún NaN: los faltantes vienen como la categoría \texttt{unknown} \fuente{names §8 · CSV}.}
+\end{minipage}
+
+\begin{itemize}
+\item \textbf{10 numéricas y 10 categóricas.} Las categóricas suman 53 niveles: \textit{one-hot} sin descartar da 53 columnas \fuente{CSV}.
+\item \textbf{Un cuarto de las filas tiene algún \texttt{unknown}} (25,98\%); en \texttt{default}, 8.597 contra sólo 3 «yes» \fuente{CSV}.
+\item \textbf{Categorías raras.} \texttt{default = yes} (3 filas, ninguna con «sí») e \texttt{illiterate} (18): sin Laplace, Naive Bayes puede darles probabilidad cero \fuente{CSV}.
+\item \textbf{12 filas duplicadas exactas}: al partir, una copia puede quedar en cada lado \fuente{CSV}.
+\end{itemize}
+
+\figura{fig/f09_categorias.pdf}{Porcentaje de «sí» por nivel; la línea punteada es el 11,27\% global y el gris marca categorías con menos del 1\% de las filas. \texttt{month} lleva la época adentro: marzo, abril y septiembre no tienen filas de 2008, y octubre y diciembre casi ninguna \fuente{CSV}.}
+
+
+\subsection{\texttt{pdays = 999} no siempre significa «nunca contactado»}
+\noindent\begin{minipage}[t]{0.52\linewidth}\vspace{0pt}
+\figura{fig/f04_pdays.pdf}{El 96,32\% de las filas tiene 999; 4.110 de ellas sí tuvieron contacto previo \fuente{CSV}.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.44\linewidth}\vspace{4pt}
+El diccionario define el 999 como «no contactado antes» \fuente{names §7}, pero 4.110 filas con 999
+tienen \texttt{previous}~$\geq$~1 \fuente{CSV}. El indicador fiable es \texttt{previous = 0}. Como
+número, el 999 aplasta las distancias de KNN y SVM \chip{inferencia}: mejor una indicadora más los
+días reales \chip{propuesta}.
+\end{minipage}
+
+% ============================ PÁGINA 4 ============================
+\newpage
+\section{Dos trampas que cambian lo que mide la evaluación}\label{sec:trampas}
+
+\subsection{\texttt{duration} predice porque mira el futuro}
+\noindent\begin{minipage}[t]{0.52\linewidth}\vspace{0pt}
+\figura{fig/f03_duration.pdf}{Ninguna llamada de menos de 30 segundos terminó en «sí»; las 4 de 0 segundos, en «no» \fuente{CSV}.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.44\linewidth}\vspace{4pt}
+La duración se conoce cuando la llamada termina, que es cuando ya se sabe la respuesta. Encaja con
+la advertencia del enunciado sobre información que no está «antes de realizar la llamada»
+\fuente{TP2, p. 1} \chip{inferencia}. Entre las decisiones del EDA, el enunciado nombra «la exclusión
+de alguna variable» y comparar el modelo «con y sin ciertas variables problemáticas» \fuente{TP2, p. 1}.
+\end{minipage}
+
+\subsection{El archivo está ordenado por fecha, y la tasa de «sí» cambia con ella}
+\figura{fig/f06_orden_temporal.pdf}{Sin barajar, cada pliegue es otra época: de 3,1\% a 30,8\% de «sí» \fuente{CSV}.}
+
+\noindent\begin{minipage}[t]{0.3\linewidth}\vspace{0pt}
+\figura{fig/f05_por_anio.pdf}{El año no está en el archivo: se infiere del ciclo de meses \fuente{names §4 · CSV}.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.66\linewidth}\vspace{6pt}
+\texttt{train\_test\_split} baraja por defecto (documentación de scikit-learn) y los pliegues dejan
+de ser épocas. Pero la estimación mide el desempeño dentro de las mismas épocas; partir por fecha se
+parece más a usar el modelo en campañas futuras \chip{inferencia}. La cátedra no dijo cuál espera.
+\end{minipage}
+
+% ============================ PÁGINA 5 ============================
+\newpage
+\section{Qué le hace este dataset a cada uno de los cuatro modelos}\label{sec:modelos}
+
+El punto 5 pide mencionar si los datos se ajustan a los supuestos de los modelos, con cuatro
+ejemplos: variables correlacionadas, distribuciones no gaussianas, diferencias de escala y relaciones
+no lineales \fuente{TP2, p. 2}. Los cuatro están en el dataset.
+
+\noindent\begin{minipage}[t]{0.58\linewidth}\vspace{0pt}
+\figura{fig/f07_correlacion.pdf}{Recuadro: tres indicadores macro con $r$ entre 0,91 y 0,97. Para Naive Bayes, la misma evidencia contada tres veces \fuente{CSV}.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.39\linewidth}\vspace{0pt}
+\figura{fig/f08_varianza.pdf}{Sin escalar, \texttt{duration} y \texttt{pdays} son el 95\% de la varianza: una distancia de KNN o un núcleo de SVM mira casi sólo esas dos \fuente{CSV} \chip{inferencia}.}
+\medskip
+\figura{fig/f10_edad.pdf}{El «sí» sube en los dos extremos de edad: una relación no lineal \fuente{CSV}.}
+\end{minipage}
+
+\begin{tabularx}{\linewidth}{@{}P{2.4cm}L@{}}
+\toprule
+\enc{Modelo} & \enc{Qué le pasa con estos datos} \\
+\midrule
+\textbf{Naive Bayes} & el bloque macro rompe la independencia condicional; las numéricas son asimétricas y \texttt{pdays} es bimodal, mala forma para una normal por clase \chip{inferencia} \\
+\textbf{SVM} & sin escalar, la frontera la deciden \texttt{duration} y \texttt{pdays} \chip{inferencia}; los desvíos van de 0,5 a 259 \fuente{CSV} \\
+\textbf{KNN} & la misma escala, más 53 columnas \textit{one-hot} \fuente{CSV} mezcladas con numéricas en una sola distancia \\
+\textbf{Random Forest} & inmune a la escala; reparte los cortes entre tres variables macro casi iguales y diluye su importancia \chip{inferencia} \\
+\bottomrule
+\end{tabularx}
+
+% ============================ PÁGINA 6 ============================
+\newpage
+\section{Próximos pasos: seis decisiones antes del envío}\label{sec:pasos}
+
+Las fechas intermedias son propuesta. La fija es el envío, 24 h antes de la clase en que se
+presenta \fuente{TP2, p. 1}: 06/10 si el grupo defiende el 07/10, 13/10 si defiende el 14/10.
+
+\begin{tabularx}{\linewidth}{@{}LP{3.3cm}P{1.7cm}@{}}
+\toprule
+\enc{Qué} & \enc{Quién} & \enc{Para} \\
+\midrule
+\textbf{\texttt{duration}:} excluirla o comparar el modelo con y sin ella & grupo; consultar a la cátedra & 30/09 \chip{propuesta} \\
+\textbf{Partición:} barajar y estratificar, o partir por fecha & grupo; consultar a la cátedra & 30/09 \chip{propuesta} \\
+\textbf{Faltantes:} \texttt{unknown} como categoría; indicadora \texttt{previous > 0} en lugar del 999 & grupo & 30/09 \chip{propuesta} \\
+\textbf{Métricas:} dos que no premien decir siempre «no»; ¿$F_1$ está entre «las vistas en clase»? & grupo; consultar a la cátedra & 02/10 \chip{propuesta} \\
+\textbf{Naive Bayes:} qué variante para 10 numéricas y 10 categóricas & grupo & 02/10 \chip{propuesta} \\
+\textbf{Escala y colinealidad:} escalar dentro del pipeline para SVM y KNN; decidir si queda una sola variable macro & grupo & 02/10 \chip{propuesta} \\
+\textbf{Enviar} presentación y código & grupo & 06/10 o 13/10 \fuente{TP2, p. 1} \\
+\bottomrule
+\end{tabularx}
+\medskip
+
+\subsection{Cifras para tener a mano}
+\begin{tabularx}{\linewidth}{@{}LP{4.2cm}P{2.6cm}@{}}
+\toprule
+\enc{Qué} & \enc{Valor} & \enc{Fuente} \\
+\midrule
+Filas × columnas & 41.188 × 21 & \fuente{CSV} \\
+«yes» / «no» & 4.640 (11,27\%) / 36.548 & \fuente{CSV} \\
+Exactitud de decir siempre «no» & 88,73\% & \fuente{CSV} \\
+AUC de \texttt{duration} sola & 0,818 & \fuente{CSV} \\
+Filas con algún \texttt{unknown} & 10.700 (25,98\%) & \fuente{CSV} \\
+\texttt{pdays = 999} / con contacto previo & 39.673 (96,32\%) / 4.110 & \fuente{CSV} \\
+«yes» por año inferido & 4,84\% · 19,48\% · 52,14\% & \fuente{names §4 · CSV} \\
+Correlación del bloque macro & 0,91 a 0,97 & \fuente{CSV} \\
+Varianza de \texttt{duration} + \texttt{pdays} & 95,0\% del total & \fuente{CSV} \\
+Duplicados exactos & 12 & \fuente{CSV} \\
+\bottomrule
+\end{tabularx}
+
+\anexo{Glosario}
+\begin{glosario}
+\termino{Depósito a plazo fijo}{\textit{Term deposit}: el producto que se ofrece en la llamada; $y$ dice si el cliente lo contrató.}
+\termino{Fuga de datos}{\textit{Data leakage}: información que debería estar sólo del lado de la evaluación entra al entrenamiento, y las métricas mienten hacia arriba. En el TP2, también una variable que no existe antes de llamar.}
+\termino{Centinela}{Un valor que no es un número sino una marca, como el 999 de \texttt{pdays}.}
+\termino{Curva de validación}{\textit{Validation curve}: cómo varía el rendimiento al cambiar un hiperparámetro \fuente{Clase 7, slide 50}; el TP2 pide usarlas «para elegir el mejor valor» \fuente{TP2, p. 2}.}
+\end{glosario}
+
+\end{document}
