@@ -43,17 +43,19 @@ def _un_fold(modelo, X, y, tr, va, numero):
     return numero, evaluar(y[tr], s_tr), evaluar(y[va], s_va), s_va
 
 
-def validacion_cruzada(modelo, X, y, filas=None, n_jobs=N_JOBS):
+def validacion_cruzada(modelo, X, y, filas=None, n_jobs=N_JOBS, particionador=None):
     """Ajusta `modelo` (un Pipeline sin ajustar) en los K folds de `folds()`.
 
     Devuelve dos DataFrames: `tabla`, con las columnas fold, conjunto, metrica y valor (sin modelo
     ni configuracion, que agrega quien llama), y `oof`, con fila, fold y puntaje de validación.
     `filas` son las filas del CSV original de cada X (la columna `fila` de train); si no se pasan,
-    se usa el índice de X.
+    se usa el índice de X. `particionador` reemplaza a `folds()` cuando el esquema no es el
+    barajado (la validación hacia adelante de D-25 usa `TimeSeriesSplit`); en ese caso los folds
+    se numeran en el orden en que el particionador los produce y pueden tener tamaños distintos.
     """
     y = np.asarray(y).astype(int)
     filas = np.asarray(X.index if filas is None else filas)
-    particiones = list(folds().split(X, y))
+    particiones = list((particionador or folds()).split(X, y))
     salidas = Parallel(n_jobs=n_jobs)(
         delayed(_un_fold)(modelo, X, y, tr, va, numero)
         for numero, (tr, va) in enumerate(particiones, start=1))
