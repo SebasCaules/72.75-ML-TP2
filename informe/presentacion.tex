@@ -16,8 +16,9 @@
 %  validación salen de numeros.tex (src/numeros.py) y los de test, de resultados-test.tex
 %  (src/evaluar_test.py). Lo comprueba, desde la raíz del repo:
 %    python3 -m src.numeros --verificar informe/presentacion.tex
-%  Los macros de numeros.tex llevan la coma entre llaves y se pueden usar dentro de $…$; los de
-%  resultados-test.tex no (S-12): van sólo en modo texto.
+%  Los macros de los dos archivos llevan la coma entre llaves y los miles con espacio fino, y se
+%  pueden usar dentro de $…$, salvo los intervalos de test (\aucic, \recallic): su «--» es una
+%  raya sólo en modo texto.
 %
 %  ESTADO DEL TEST. El test todavía no se evaluó (N0-1): resultados-test.tex declara
 %  \testpendientetrue y sus macros valen «?». Las dos slides que dependen del test (14 y 15)
@@ -393,9 +394,10 @@
     \textbf{Si preguntan.} ¿Cuántos son? \yesTrain{} «yes» de \filasTrain{} clientes de train.
     ¿Por qué \predictorasDisponibles{} predictoras y no \predictoras? Sale \texttt{duration},
     que es fuga (slide 4; D-05). ¿\texttt{campaign} existe antes de llamar? Sí: es el número de
-    llamada que se va a hacer, contando esa (D-07). La reserva es que, tras un «yes», no se
-    vuelve a llamar, así que su valor final depende del resultado: media \mediaCampaignYes{} en
-    los «yes» y \mediaCampaignNo{} en los «no», con la misma mediana; queda como limitación. ¿Y
+    llamada que se va a hacer, contando esa (D-07). La reserva: es de suponer que, tras un «yes»,
+    no se vuelve a llamar, y entonces su valor final depende del resultado; D-07 lo registra como
+    inferencia. Media \mediaCampaignYes{} en los «yes» y \mediaCampaignNo{} en los «no», con la
+    misma mediana: es compatible, pero no lo prueba; queda como limitación. ¿Y
     \texttt{month}, \texttt{day\_of\_week} y \texttt{contact}? Son de la llamada que se va a
     hacer, y se eligen antes de marcar (inferencia; va en la consulta a la cátedra).}
 \end{frame}
@@ -457,9 +459,13 @@
     \textbf{Si preguntan.} ¿Por qué estratificar, si no se vio en clase? Sin estratificar, la
     proporción de «yes» del test cambia con la semilla; estratificando, train y test quedan con
     el mismo \pctYesTrain{} (D-02). ¿Cómo se garantiza que nada mire el test? Todo lo anterior
-    al punto 4 lee sólo train con \texttt{cargar\_train()}; el único módulo que abre el test es
-    \texttt{src/evaluar\_test.py}, y \texttt{tests/test\_aislamiento.py} falla si otro archivo
-    lo nombra (D-04). ¿Cuánto mide cada fold? \filasFoldEntrenamiento{} filas para ajustar y
+    al punto 4 lee sólo train con \texttt{cargar\_train()}. El único módulo que usa el test para
+    evaluar un modelo es \texttt{src/evaluar\_test.py}. También lo nombran
+    \texttt{src/datos.py}, que lo define; \texttt{tests/test\_datos.py}, que sólo verifica la
+    partición (por ejemplo, que train y test sean disjuntos), y
+    \texttt{src/evidencia\_particion.py}, que mide la partición misma sin ajustar ningún modelo
+    (D-02, D-03). \texttt{tests/test\_aislamiento.py} falla si lo nombra cualquier otro archivo
+    \texttt{.py} (D-04). ¿Cuánto mide cada fold? \filasFoldEntrenamiento{} filas para ajustar y
     \filasFoldValidacion{} para validar.}
 \end{frame}
 
@@ -470,7 +476,9 @@
 % G12): cada slide termina en un veredicto que nombra un efecto, no un método.
 %
 % 4 · La fuga. La figura es la ablación A1 (ΔAUC con duration) con la configuración de
-% referencia, contra «sin modelo»; el veredicto es D-05.
+% referencia, contra «sin modelo»; el veredicto es D-05. Es la primera slide con una métrica, y
+% la sección Métricas viene después (slide 8): por eso la nota nombra aquí, en una pasada, el AUC
+% de validación y su «sin modelo», y la 8 empieza por la métrica que el EDA ya usó (guía A2).
 \begin{frame}{La duración predice el «yes», pero no existe antes de llamar}
   \renewcommand{\figgrandealto}{0.68}
   \centrado{\figgrande[0.97]{duration-techo.png}}
@@ -479,16 +487,20 @@
   \note{Primera decisión del análisis exploratorio: la fuga. \texttt{duration} es la duración
     de la última llamada, y se conoce al colgar, cuando el resultado ya se sabe. En train, el
     decil más corto, hasta \durationDecilCorto{} segundos, tiene \pctYesDurationDecilCorto{} de
-    «yes»; el más largo, \pctYesDurationDecilLargo. Medimos cuánto pesa: con \texttt{duration},
-    los cuatro saltan; Random Forest pasa de \aucReferenciaAblacionRf{} a \aucRfConDuration. Es
-    un techo que no existe antes de llamar, y el propio diccionario del dataset pide descartarla.
+    «yes»; el más largo, \pctYesDurationDecilLargo. Medimos cuánto pesa con el AUC de
+    validación, la métrica con la que se compara todo el trabajo: \aucAzar{} es
+    \rotuloLineaBase. Con \texttt{duration}, los cuatro saltan; Random Forest pasa de
+    \aucReferenciaAblacionRf{} a \aucRfConDuration. Es un techo que no existe antes de llamar, y
+    el propio diccionario del dataset pide descartarla.
     \avanza Consecuencia: \texttt{duration} queda fuera del modelo.\\[0.4em]
     \textbf{Si preguntan.} ¿Con qué modelos? Con la configuración de referencia de las
-    ablaciones, en los mismos folds (ablación A1). ¿Sola, cuánto da? Como puntaje,
-    \texttt{duration} sola da AUC \aucDurationSola. ¿Qué otras variables se revisaron por fuga?
-    Las \predictoras, una por una: \predictorasDisponibles{} existen antes de marcar, y
-    \texttt{campaign} con una reserva (D-07). ¿Por qué medirla si sale? Porque el enunciado
-    sugiere comparar con y sin las variables problemáticas.}
+    ablaciones, en los mismos folds (ablación A1). ¿Por qué el AUC antes de la slide de
+    métricas? Porque ya es la métrica que decide (D-19): aquí se nombra, y en la slide 8 se
+    justifica junto con el recall. ¿Sola, cuánto da? Como puntaje, \texttt{duration} sola da AUC
+    \aucDurationSola. ¿Qué otras variables se revisaron por fuga? Las \predictoras, una por una:
+    \predictorasDisponibles{} existen antes de marcar, y \texttt{campaign} con una reserva
+    (D-07). ¿Por qué medirla si sale? Porque el enunciado sugiere comparar con y sin las
+    variables problemáticas.}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -592,7 +604,8 @@
     \textbf{Si preguntan.} ¿Por qué \texttt{default} como indicadora? En train sólo
     \filasDefaultYes{} filas dicen «yes» (D-09). ¿Y Random Forest? One-hot sin escalar (D-12).
     ¿Cómo se decidió cada paso? Con doce ablaciones, con y sin cada decisión, en los mismos
-    folds; se adopta si sube el AUC más que su desvío, o si es neutra y simplifica (respaldo R3).
+    folds; se adopta si sube el AUC más que su desvío, o si es neutra y simplifica (respaldo R3;
+    la de \texttt{duration}, A1, es la de la slide 4).
     ¿Por qué no borrar los atípicos? \filasAtipicasIqr{} filas, el \pctAtipicasIqr, tienen algún
     valor fuera de \factorIqr{}~IQR; entre los de \texttt{pdays} el «yes» es
     \pctYesAtipicosPdays{} y entre los de edad \pctYesAtipicosAge, contra \pctYesTrain{} (D-17).
@@ -605,7 +618,10 @@
 \section{Métricas}
 % =====================================================================
 % 8 · Las dos métricas (D-19, D-20), cada una con su «sin modelo» debajo. El veredicto dice por
-% qué no se usa la exactitud.
+% qué no se usa la exactitud. El AUC ya se usó en el EDA (en la figura de la slide 4 y en lo que
+% se dice en la 6), así que la nota no lo presenta como nuevo: empieza por la métrica que ya se
+% vio y la justifica. La sección no se adelanta al EDA porque renumeraría las slides 4 a 8, a las
+% que remiten el guion y el README de entrega.
 \newcommand{\indicador}[4]{%
   \centrado{%
     \cab{#1}\\[0.5em]
@@ -628,9 +644,10 @@
   \vspace{1.5em}
   \onslide<3->{\veredicto{La exactitud no se usa: decir siempre «no» ya da
     \exactitudSiempreNo}}
-  \note{Elegimos dos métricas de la Clase 4. El AUC mide si el modelo ordena bien a los
-    clientes, que es justo priorizar a quién llamar; no depende de un umbral ni premia decir
-    siempre «no»: sin modelo vale \aucAzar. Con ella comparamos y elegimos.
+  \note{Las dos métricas son de la Clase 4, y la primera ya la usamos en el análisis
+    exploratorio. El AUC mide si el modelo ordena bien a los clientes, que es justo priorizar a
+    quién llamar; no depende de un umbral ni premia decir siempre «no»: sin modelo vale
+    \aucAzar. Con ella comparamos y elegimos.
     \avanza La segunda es el uso real: si el banco llama al 20~\% de la lista con mayor puntaje,
     ¿qué parte de los que contratarían alcanza? Cuenta el error caro, el cliente perdido; sin
     modelo vale \recallSinModelo.
@@ -656,9 +673,10 @@
   \note{Primero, los modelos con valores de referencia, sin ajustar, en los mismos 5 folds:
     todos quedan muy por encima de sin modelo. El mejor es Naive Bayes, en su versión
     categórica: discretizar las numéricas en deciles le suma \deltaAucNbCategorico{} sobre el
-    gaussiano, porque ninguna numérica es normal. Y dos modelos muestran sobreajuste: la SVM
-    con RBF, con \brechaSvmRbfReferencia{} de brecha entre train y validación, y Random Forest
-    sin límite de profundidad, con \brechaRfReferencia. Eso es lo que corrigen las curvas.\\[0.4em]
+    gaussiano, porque ninguna numérica es normal. Y tres muestran sobreajuste, con brechas entre
+    train y validación de \brechaRfReferencia{} en Random Forest sin límite de profundidad,
+    \brechaSvmRbfReferencia{} en la SVM con RBF y \brechaKnnReferencia{} en KNN con
+    k = \vecinosKnnReferencia. Eso es lo que corrigen las curvas.\\[0.4em]
     \textbf{Si preguntan.} ¿Cuál es la referencia? Random Forest con \arbolesRfReferencia{}
     árboles sin límite de profundidad; KNN con k = \vecinosKnnReferencia; SVM con RBF y
     C = \cSvmReferencia; Naive Bayes con \cortesNb{} cortes y Laplace $\alpha = \alfaNb$
@@ -714,8 +732,8 @@
     \filasFoldEntrenamiento{} filas por fold y \pctYesTrain{} de «yes», estimar bien una
     proporción baja pide muchos vecinos (inferencia). ¿Y por distancia? Con
     \texttt{weights = distance}, train da \aucTrainKnnDistancia, porque cada punto de train se
-    encuentra a sí mismo, y validación \aucKnnDistancia{} con k = \vecinosKnnDistancia{}
-    (Mitchell §8.2.1).}
+    encuentra a sí mismo, y validación \aucKnnDistancia{} con k = \vecinosKnnDistancia, el que
+    elige la misma regla (Mitchell §8.2.1).}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -736,8 +754,10 @@
     \textbf{Si preguntan.} ¿Qué es C? La convención de scikit-learn: un C grande castiga más
     los errores y regulariza menos (Clase 8, slide 49). ¿Por qué \texttt{LinearSVC}? La SVM
     lineal de libsvm con C = \cSvmCostoExcedido{} no terminó en \segundosLimiteCosto{}
-    segundos; \texttt{LinearSVC} con pérdida \textit{hinge} es el mismo modelo con otro
-    optimizador. ¿Y $\gamma$? No se ajustó: el kernel final es lineal.}
+    segundos. \texttt{LinearSVC} con pérdida \textit{hinge} es la misma SVM lineal de margen
+    blando, sin kernel, resuelta con liblinear en lugar de libsvm; lo único que cambia es que
+    liblinear también regulariza el término independiente. ¿Y $\gamma$? No se ajustó: el
+    kernel final es lineal.}
 \end{frame}
 
 % =====================================================================
@@ -760,9 +780,9 @@
 
 % ---------------------------------------------------------------------
 % 14 · El número de test, solo (guía C2, C3): la única slide del deck que no compara nada. Con
-% el test pendiente, el hueco dibujado como tal; evaluado, el AUC con su intervalo. Los macros
-% de resultados-test.tex van en modo texto (S-12). La comparación con validación se dice, no se
-% proyecta (C6): está en la nota.
+% el test pendiente, el hueco dibujado como tal; evaluado, el AUC con su intervalo. El intervalo
+% (\aucic) va en modo texto: su «--» es una raya sólo ahí. La comparación con validación se dice,
+% no se proyecta (C6): está en la nota.
 \begin{frame}{¿Qué AUC esperar en clientes nuevos de la misma época?}
   \vspace{0.8em}
   \iftestpendiente
@@ -793,18 +813,23 @@
 % dos opciones del plan: la matriz de test con «?» no diría nada, y el análisis de errores de
 % conclusiones.md (§3) se hizo sobre validación.
 %
-% Ojo, para el guion: esta matriz corta la lista fuera de fold completa en su 20 %
-% (\llamadasTrain llamadas), como la curva de ganancia y como se corta el test; la de
-% conclusiones.md, §3, corta el 20 % de cada fold y suma (6 590 llamadas), y difiere en pocas
-% filas. Los números del guion son los de numeros.md.
+% La matriz de validación corta en su 20 % la lista completa fuera de fold, con los 5 folds
+% juntos (\llamadasTrain llamadas), como la curva de ganancia y como se corta el test; la de
+% conclusiones.md, §3, usa el mismo corte y da las mismas cuatro celdas. Los números del guion
+% son los de numeros.md.
+%
+% Los dos ítems van en dos líneas con el corte elegido: la cifra arriba y, debajo, su lectura (en
+% gris, la de «sin modelo»). Con un separador en la misma línea, la columna cortaba el segundo
+% justo antes del «sin modelo», y el primero dejaba «caro» solo en su línea.
 \newcommand{\matrizVP}{\iftestpendiente\vpRfVal\else\vptest\fi}
 \newcommand{\matrizFP}{\iftestpendiente\fpRfVal\else\fptest\fi}
 \newcommand{\matrizFN}{\iftestpendiente\fnRfVal\else\fntest\fi}
 \newcommand{\matrizVN}{\iftestpendiente\vnRfVal\else\vntest\fi}
 \newcommand{\matrizLlamadas}{\iftestpendiente\llamadasTrain\else\llamadastest\fi}
-\newcommand{\matrizConjunto}{\iftestpendiente validación (OOF)\else test\fi}
-\newcommand{\lecturaCosto}{\iftestpendiente cada «yes» cuesta \dato{\llamadasPorYesRf}
-  llamadas\sepdato\rotuloLineaBase: \llamadasPorYesSinModelo\else recall de test:
+\newcommand{\matrizConjunto}{\iftestpendiente validación (OOF): los 5 folds juntos\else test\fi}
+\newcommand{\matrizLista}{\iftestpendiente la lista completa\else la lista\fi}
+\newcommand{\lecturaCosto}{\iftestpendiente\dato{\llamadasPorYesRf} llamadas por cada «yes»\\
+  {\small\color{apagado}\rotuloLineaBase: \llamadasPorYesSinModelo}\else recall de test:
   \dato{\recallmatriztest}\fi}
 \begin{frame}{El error caro es el «yes» que no se llama}
   \vspace{0.3em}
@@ -815,7 +840,7 @@
           celda/.style={minimum width=2.95cm, minimum height=1.3cm, align=center,
                         rounded corners=2pt, inner sep=2pt}]
         \node[anchor=south, font=\footnotesize, text=tintasec, inner sep=1pt, align=center]
-          at (3.05,1.95) {\textbf{\matrizConjunto}\\llamando al 20~\% de la lista:
+          at (3.05,1.95) {\textbf{\matrizConjunto}\\llamando al 20~\% de \matrizLista:
           \matrizLlamadas{} llamadas};
         \node[inner sep=0pt] at (1.5,1.6) {\cab{llamado}};
         \node[inner sep=0pt] at (4.6,1.6) {\cab{no llamado}};
@@ -833,44 +858,49 @@
     \end{column}
     \begin{column}{0.40\textwidth}
       \begin{itemize}\setlength\itemsep{1.1em}
-        \item<2-> \ojo{\matrizFN{} «yes» sin llamar}: el error caro
+        \item<2-> \ojo{\matrizFN{} «yes» sin llamar}:\\ el error caro
         \item<3-> \lecturaCosto
       \end{itemize}
     \end{column}
   \end{columns}
   \note{¿Qué errores comete? \iftestpendiente Con el test cerrado, la matriz es la de
-    validación: los puntajes fuera de fold, llamando al 20~\% de la lista.\else Es la matriz de
-    test, llamando al 20~\% de la lista.\fi{} Un falso positivo es una llamada de más; un falso
-    negativo, un cliente que habría contratado y no se llama: ese es el caro.
+    validación: los puntajes fuera de fold, sobre la lista completa de validación (los 5 folds
+    juntos), llamando al 20~\%.\else Es la matriz de test, llamando al 20~\% de la
+    lista.\fi{} Un falso positivo es una llamada de más; un falso negativo, un cliente que
+    habría contratado y no se llama: ese es el caro.
     \avanza \iftestpendiente Quedan \fnRfVal{} «yes» sin llamar, sobre todo de 2008 y sin
     historial.\else Quedan \fntest{} «yes» de test sin llamar.\fi
     \avanza \iftestpendiente Aun así, cada «yes» cuesta \llamadasPorYesRf{} llamadas, contra
     \llamadasPorYesSinModelo{} sin modelo.\else El recall de test, llamando al 20~\%, es
     \recallmatriztest.\fi\\[0.4em]
     \textbf{Si preguntan.} ¿Qué es OOF? Cada fila puntuada por el modelo del fold en que no
-    entrenó: toda train, sin fuga. ¿Por qué esta matriz? Corta la lista completa en su
-    \presupuesto, \llamadasTrain{} llamadas, como la curva de ganancia y como se corta el test.
-    ¿Cuántos «yes» hay? \yesTrain{} en train. ¿Quiénes son los perdidos? Tres de cada cuatro son
-    de 2008, un año en el que el modelo casi no llama, y casi todos no tienen campaña previa
-    (conclusiones.md, §3).}
+    entrenó: toda train, sin fuga. ¿Por qué la lista completa y no fold por fold? Es el corte de
+    la curva de ganancia y el del test: el \presupuesto{} de toda la lista, \llamadasTrain{}
+    llamadas; \texttt{conclusiones.md}, §3, usa el mismo. ¿Cuántos «yes» hay? \yesTrain{} en
+    train. ¿Quiénes son los perdidos? Tres de cada cuatro son de 2008, un año en el que el
+    modelo casi no llama, y casi todos no tienen campaña previa (\texttt{conclusiones.md}, §3).}
 \end{frame}
 
 % =====================================================================
 \section{Conclusiones}
 % =====================================================================
 % 16 · Por qué rindió cada uno (punto 5): una ficha por modelo, en el orden del ranking, con su
-% AUC de validación en el color de su figura y el supuesto que explica el resultado. Son los
+% AUC de validación en el color de su figura, el supuesto del modelo y un efecto medido. Son los
 % cuatro ejemplos del enunciado: correlación y no normalidad (NB), escala (KNN, SVM) y relaciones
-% no lineales (RF, SVM).
+% no lineales (RF, SVM). El título pregunta y ninguna ficha da una causa del orden, porque ninguna
+% medición la sostiene: la U de la edad se mezcla con la época (conclusiones.md, §1), el RBF, que
+% podría doblarla, no mejora al lineal (D-22), y no se midió qué pierde cada modelo sin la edad.
+% Lo que es inferencia lo dice la nota.
 \tikzset{tarjeta/.style={fill=rejilla!45, filete=#1, text width=6.35cm, minimum height=1.75cm,
   inner xsep=0.85em, inner ysep=0.5em, align=flush left, font=\normalsize}}
-\begin{frame}{Por qué ganó \modeloFinal{} y quedó última la \modeloUltimoFinal}
+\begin{frame}{¿Por qué ganó \modeloFinal{} y quedó última la \modeloUltimoFinal?}
   \vspace{0.5em}
   \centrado{%
   \begin{tikzpicture}[x=1cm, y=1cm]
     \node[tarjeta=colorrf, visible on=<1->] at (0,1.0)
       {\textbf{Random Forest}\sepdato\textcolor{colorrf}{\textbf{\aucRfVal}}\\[3pt]
-       {\small no supone escala ni forma: capta la U de la edad}};
+       {\small no supone escala ni forma; es el que más pierde sin macro ni \texttt{month}:
+        \deltaAucSinMacroNiMonthRf{} (A8)}};
     \node[tarjeta=colorknn, visible on=<2->] at (7.45,1.0)
       {\textbf{KNN}\sepdato\textcolor{colorknn}{\textbf{\aucKnnVal}}\\[3pt]
        {\small mide distancias: sin escalar, \texttt{pdays} es el \pctVarianzaPdays{} de
@@ -881,28 +911,30 @@
         \correlacionMacroMaxima}};
     \node[tarjeta=colorsvm, visible on=<4->] at (7.45,-1.0)
       {\textbf{SVM}\sepdato\textcolor{colorsvm}{\textbf{\aucSvmVal}}\\[3pt]
-       {\small quedó lineal: no puede doblar la U de la edad}};
+       {\small quedó lineal: el RBF no la mejora (\aucSvmBalanceadaMejor{} en su mejor C)}};
   \end{tikzpicture}}
   \vspace{0.6em}
   \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo}
-  \note{¿Por qué rindió cada uno? Con los supuestos que pide el enunciado. Random Forest no supone
-    escala ni forma, y sus cortes captan relaciones no lineales, como la U de la edad: contratan
-    más los más jóvenes y los mayores.
+  \note{¿Por qué rindió cada uno? Con los supuestos que pide el enunciado, y con lo que medimos.
+    Random Forest no supone escala ni forma, y es el que más pierde sin las variables que fechan
+    las filas: sin macro ni \texttt{month}, \deltaAucSinMacroNiMonthRf{} (A8). Que gane por
+    reconocer la época es inferencia; es lo que retoma el hallazgo.
     \avanza KNN mide distancias y necesita escalar: sin escalar, \texttt{pdays} tiene el
     \pctVarianzaPdays{} de la varianza.
     \avanza Naive Bayes supone independencia, y el bloque macro la viola, con correlaciones de
     \correlacionMacroMinima{} a \correlacionMacroMaxima; como las numéricas no son normales, el
     categórico le gana al gaussiano.
-    \avanza La SVM quedó lineal, y un puntaje lineal no dobla la U. Aun así, entre los cuatro hay
-    sólo \rangoAucFinal.\\[0.4em]
+    \avanza La SVM quedó lineal porque el RBF no la mejora: en su mejor C da
+    \aucSvmBalanceadaMejor. Por qué queda última no lo medimos, y entre los cuatro hay sólo
+    \rangoAucFinal.\\[0.4em]
     \textbf{Si preguntan.} ¿Por qué el bloque macro ayuda a Naive Bayes si viola la
-    independencia? Sacarlo cuesta \deltaAucSinMacroNbGaussiano{} en el gaussiano (D-14): es un
-    resultado contra la intuición, probablemente porque fecha a los clientes (inferencia). ¿La U
-    de la edad es real? Se mezcla con la época: casi todos los mayores de sesenta son de
-    2009--2010, y Random Forest es el que más pierde sin macro ni \texttt{month},
-    \deltaAucSinMacroNiMonthRf{} (A8). ¿La SVM con RBF no capta la U? Podría, pero con $\gamma$
-    sin ajustar no la aprovechó: \aucSvmKernelRbf{} contra \aucSvmKernelLineal{} lineal
-    (inferencia).}
+    independencia? Sacarlo cuesta \deltaAucSinMacroNbGaussiano{} en el gaussiano (D-14),
+    probablemente porque fecha a los clientes (inferencia). ¿Qué variables usa Random Forest? No
+    medimos importancias; sí cuánto cambia su AUC sin cada bloque: \deltaAucSinMacroRf{} sin
+    macro (A7) y \deltaAucSinMacroNiMonthRf{} sin macro ni \texttt{month} (A8). ¿Y la U de la
+    edad? No la damos como causa del orden: se mezcla con la época (casi todos los mayores de
+    sesenta son de 2009--2010; \texttt{conclusiones.md}, §1), y no se midió qué pierde cada
+    modelo sin la edad.}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -954,18 +986,22 @@
   \renewcommand{\figgrandealto}{0.68}
   \centrado{\figgrande[0.97]{robustez-modelos.png}}
   \vspace{0.2em}
-  \onslide<2->{\veredicto{Barajado, AUC \aucOofEntreAnios{} entre años distintos y
-    \aucOofDentroAnio{} dentro de un mismo año}}
+  \onslide<2->{\veredicto{Barajado, AUC \aucOofEntreAnios{} en pares «yes»–«no» de años
+    distintos y \aucOofDentroAnio{} en los del mismo año}}
   \note{El hallazgo. Validamos hacia adelante dentro de train: cada fold entrena con el pasado y
     valida con el bloque siguiente. Barajados, los cuatro están entre \aucSvmVal{} y \aucRfVal;
     hacia adelante, ninguno pasa de \aucNbAdelante, y Random Forest cae a \aucRfAdelante.
     \avanza ¿Por qué tanto? Parte del \aucRfVal{} es distinguir años: el \pctParesEntreAnios{}
-    de los pares «yes»–«no» son de años distintos, y ahí el AUC es \aucOofEntreAnios; dentro de
-    un mismo año, \aucOofDentroAnio.\\[0.4em]
+    de los pares «yes»–«no» son de años distintos, y ahí el AUC es \aucOofEntreAnios; en los del
+    mismo año, \aucOofDentroAnio.\\[0.4em]
     \textbf{Si preguntan.} ¿Cómo se validó hacia adelante? \texttt{TimeSeriesSplit} con 5 folds
     sobre train ordenado: cada fold valida con \filasBloqueAdelante{} filas y entrena con todo lo
     anterior (D-25). ¿Por qué el desvío es tan grande? Porque los bloques son muy distintos: de
-    \pctYesBloqueUno{} a \pctYesBloqueCinco{} de «yes».}
+    \pctYesBloqueUno{} a \pctYesBloqueCinco{} de «yes». ¿Qué dice el veredicto? El AUC es la
+    proporción de pares «yes»–«no» bien ordenados; con los puntajes fuera de fold, barajados, es
+    \aucOofEntreAnios{} en los pares de años distintos, que son el \pctParesEntreAnios, y
+    \aucOofDentroAnio{} en los del mismo año (\texttt{conclusiones.md}, §2). No es entrenar en un
+    año y validar en otro: eso lo mide la validación hacia adelante.}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -1043,12 +1079,13 @@
     (D-20).}
 \end{frame}
 
-\begin{frame}{Doce ablaciones: se adoptan dos, y dos alimentan el hallazgo}
+\begin{frame}{De las ablaciones se adoptan dos, y dos alimentan el hallazgo}
   \renewcommand{\figgrandealto}{0.72}
   \centrado{\figgrande[0.97]{ablaciones.png}}
   \referencia{\rotuloLineaBase: AUC de validación \aucSinModelo}
-  \note{Cada fila cambia una sola cosa respecto de la referencia A0, en los mismos folds, y el
-    número es el $\Delta$AUC pareado por fold. Se adopta si sube más que su desvío, o si es
+  \note{Cada fila, de A2 a A12, cambia una sola cosa respecto de la referencia A0, en los mismos
+    folds (A1, con \texttt{duration}, es la de la slide 4), y el número es el $\Delta$AUC pareado
+    por fold. Se adopta si sube más que su desvío, o si es
     neutra y simplifica: A3, \texttt{default} como indicadora (Random Forest
     \deltaAucDefaultIndicadoraRf), y A4, fundir las categorías raras (Naive Bayes
     \deltaAucRarasNbGaussiano). A8, sin macro ni \texttt{month}, empeora a los cuatro, y A7,

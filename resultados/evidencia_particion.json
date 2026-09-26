@@ -1,0 +1,12 @@
+{
+  "n_semillas": 400,
+  "sin_estratificar": {
+    "desvio_pp": 0.31104579915100605,
+    "minimo_pct": 10.441962117532782,
+    "maximo_pct": 12.068965517241379
+  },
+  "temporal": {
+    "pct_yes_train": 6.375034151968671,
+    "pct_yes_test": 30.831815421979357
+  }
+}

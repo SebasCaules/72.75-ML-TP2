@@ -1075,6 +1075,7 @@ td:first-child { width: 36%; }
 }
 .estado.hecha { color: var(--acento); border-color: var(--acento); }
 .estado.propuesta { color: var(--tinta-sec); background: var(--panel); }
+.estado.descartada { color: var(--tinta-sec); border-color: var(--tinta-sec); border-style: dotted; }
 .estado.consultar { color: var(--tinta); border-color: var(--tinta-sec); border-style: dashed; }
 .supuestos td:first-child { width: 12%; font-weight: 600; }
 footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rejilla); font-size: 0.9rem; color: var(--tinta-sec); }
@@ -1101,7 +1102,8 @@ def seccion(id_, titulo, contenido):
 
 
 def estado(texto):
-    clase = ("hecha" if texto.startswith("Hecha") else
+    clase = ("hecha" if texto.startswith(("Hecha", "Decidida")) else
+             "descartada" if texto.startswith(("Medida", "Descartada")) else
              "consultar" if texto.startswith("Consultar") else "propuesta")
     return f'<span class="estado {clase}">{texto}</span>'
 
@@ -1135,11 +1137,13 @@ def armar(r, names, G):
             f"una misma columna, y aquí ninguna tiene más de uno. Por sí solo, sólo los "
             f"renombra; para que el agrupamiento tenga efecto hay que decidir con qué nivel se "
             f"funde cada uno.")
+        como_agrupar = "fundiendo cada uno con otro nivel de su columna"
     else:
         frase_minfreq = (f"Hay columnas con hasta {palabra(r.max_raras_col)} niveles raros: "
                          f"{c('min_frequency')} los junta en uno solo.")
         atencion_minfreq = (f"{c('OneHotEncoder(min_frequency=…)')} junta los niveles raros de "
                             f"cada columna en una sola categoría.")
+        como_agrupar = f"(p. ej. {c('OneHotEncoder')} con {c('min_frequency')})"
 
     # ---- claves ------------------------------------------------------------------------
     def cifra(x):
@@ -1170,6 +1174,8 @@ def armar(r, names, G):
     ]
 
     # ---- qué hacer (tabla) -------------------------------------------------------------
+    # Las propuestas son las del EDA, anteriores a las ablaciones de la ola 1; el estado dice qué
+    # se decidió después y en qué fila de DECISIONES.md está el porqué.
     decisiones = [
         (f"{c('duration')} fuera del modelo; a lo sumo, un modelo techo con ella.",
          f'<a href="#fuga">Fuga de datos</a>: AUC {num(r.auc_dur, 3)} por sí sola; 0 «yes» en '
@@ -1185,67 +1191,66 @@ def armar(r, names, G):
          f'<a href="#faltantes">Faltantes</a>: en {c("default")}, {pct(r.def_tu, 1)} de «yes» '
          f"con «unknown» frente a {pct(r.def_tc, 1)} con el valor conocido; en las otras "
          f"{palabra(len(r.dif_resto))} columnas el «unknown» también tiene más «yes».",
-         "Propuesta"),
+         "Hecha (D-08)"),
         (f"{c('default')}: casi no tiene «yes»; tratarla como indicadora «unknown» / «no».",
          f'<a href="#faltantes">Faltantes</a>: el nivel «yes» tiene {num(r.n_default_yes)} filas '
          f"de {num(r.n)}; «unknown», el {pct(r.def_pct, 1)}.",
-         "Propuesta"),
+         "Hecha (D-09)"),
         (f"{c('pdays')} = {PDAYS_CENTINELA} no significa «nunca contactado»: usar "
          f"{c('previous')} &gt; 0 como indicadora de contacto previo y no usar el "
          f"{PDAYS_CENTINELA} como número.",
          f'<a href="#previas">Campañas previas</a>: {num(r.n_contra)} filas con '
          f"{PDAYS_CENTINELA} y {c('previous')} ≥ 1, con {pct(r.t_contra, 1)} de «yes» frente a "
          f"{pct(r.t_sin_previo, 1)} sin contactos previos.",
-         "Propuesta"),
+         "Descartada (D-10)"),
         (f"Niveles con menos del {pct(100 * UMBRAL_RARA, 0)} de las filas: agruparlos dentro del "
-         f"pipeline (p. ej. {c('OneHotEncoder')} con {c('min_frequency')}), salvo los de tasa "
-         f"distintiva como {c('dec')}.",
+         f"pipeline {como_agrupar}, salvo los de tasa distintiva como {c('dec')}.",
          f'<a href="#categorias">Categorías</a>: {palabra(n_raras)} niveles bajo el '
          f"{pct(100 * UMBRAL_RARA, 0)}; {c('dec')} tiene {pct(r.dec['tasa'], 1)} de «yes» con "
          f"{num(r.dec['n'])} filas. {frase_minfreq}",
-         "Propuesta"),
+         "Hecha en parte (D-11)"),
         (f"Escalado ({c('StandardScaler')}) dentro del pipeline para KNN y SVM; RF no lo "
          f"necesita.",
          f'<a href="#escalas">Escalas</a>: los desvíos difieren {num(r.sd_ratio, 0)} veces; '
          f"sin escalar, {c(r.var_share.index[0])} aporta el {pct(r.var_share.iloc[0], 1)} de la "
          f"varianza.",
-         "Propuesta"),
+         "Hecha (D-12)"),
         (f"{c('campaign')} tiene cola larga: probar {c('log1p')} para KNN y SVM.",
          f'<a href="#numericas">Numéricas</a>: asimetría {num(r.asim["campaign"], 2)}; el '
          f"{pct(r.camp_pocos, 1)} tiene {POCOS_CONTACTOS} contactos o menos y el máximo es "
          f"{num(r.camp_max)}.",
-         "Propuesta"),
+         "Medida (D-13)"),
         ("Bloque macro casi colineal: medir con y sin reducirlo a una o dos variables, sobre "
          "todo para Naive Bayes; y medir el modelo sin el bloque para cuantificar cuánto "
          "«aprende la época».",
          f'<a href="#macro">Contexto económico</a>: r entre {rmin} y {rmax} en {trio_txt}; '
          f"{c(a1)} y {c(a2)} son lo que más separa (AUC {num(r.ranking[a1], 3)} y "
          f"{num(r.ranking[a2], 3)}).",
-         "Propuesta"),
+         "Medida (D-14)"),
         (f"{c('month')} codifica en parte la época; {c('day_of_week')} separa poco: candidata "
          f"a descartar tras medir.",
          f'<a href="#tiempo">El tiempo</a>: los meses con más del {pct(TASA_ALTA, 0)} de «yes» '
          f"tienen euribor3m medio {num(r.eur_altos, 2)} (resto: {num(r.eur_resto, 2)}). "
          f'<a href="#categorias">Categorías</a>: V de {c("day_of_week")} = '
          f"{num(r.v['day_of_week'], 3)}.",
-         "Propuesta"),
+         "Medida (D-15)"),
         ("Edad con forma de U: discretizarla en tramos para Naive Bayes; RF y SVM con RBF la "
          "capturan.",
          f'<a href="#numericas">Numéricas</a>: {pct(r.edad["tasa"].iloc[0], 1)} en {edad0}, '
          f"{pct(r.edad.loc[r.edad_min, 'tasa'], 1)} en {r.edad_min} y "
          f"{pct(r.edad['tasa'].iloc[-1], 1)} en {edadN}; AUC de {c('age')} sola: "
          f"{num(r.auc_age, 3)}.",
-         "Propuesta"),
+         "Medida (D-16)"),
         ("Variante de Naive Bayes para datos mixtos: GaussianNB o CategoricalNB con las "
          "numéricas discretizadas.",
          f'<a href="#numericas">Numéricas</a>: ninguna numérica tiene forma de campana por '
          f"clase; {c('campaign')} tiene asimetría {num(r.asim['campaign'], 2)} y {c('pdays')} "
          f"vale {PDAYS_CENTINELA} en el {pct(r.pct999, 1)} de las filas.",
-         "Consultar a la cátedra"),
+         "Decidida (D-18)"),
         ("Tratar o no el desbalance (pesos de clase).",
          f'<a href="#objetivo">El objetivo</a>: {num(r.ratio, 1)} «no» por cada «yes»; decir '
          f"siempre «no» acierta el {pct(r.acc_base, 1)}.",
-         "Consultar a la cátedra"),
+         "Decidida (D-21)"),
     ]
     filas_dec = "\n".join(
         f"      <tr><td>{d}</td><td>{e}</td><td>{estado(s)}</td></tr>" for d, e, s in decisiones)
@@ -1392,7 +1397,12 @@ def armar(r, names, G):
          f"No usar el {PDAYS_CENTINELA} como número: en KNN y SVM dejaría a un cliente sin fecha "
          f"a {PDAYS_CENTINELA} «días» de uno contactado hace {num(r.pdays_mediana)} días (la "
          f"mediana). Si {c('pdays')} se conserva, que sea sólo donde hay días registrados, junto "
-         f"con la indicadora."])
+         f"con la indicadora.",
+         f"Estas dos propuestas se descartaron después (D-10): {c('pdays')} se queda con el "
+         f"{PDAYS_CENTINELA}. Sacarla empeora Naive Bayes y KNN; escalado, el centinela separa a "
+         f"los contactados del resto, y para los árboles es un corte. La indicadora no se agrega: "
+         f"{c('previous')} &gt; 0 ya está en {c('poutcome')} (nonexistent equivale a "
+         f"{c('previous')} = 0)."])
 
     s_unk = bloque(
         G["unknown"],
@@ -1601,10 +1611,10 @@ def armar(r, names, G):
 </section>
 <section id="acciones">
   <h2>Qué hacer con esto</h2>
-  <p>Cada fila remite al gráfico que la respalda. «Hecha» remite a <code>DECISIONES.md</code>; «Propuesta» todavía no se aplicó; «Consultar a la cátedra» depende de lo que se haya visto en clase.</p>
+  <p>Cada fila es una propuesta de este análisis, anterior a las ablaciones de la ola 1, y remite al gráfico que la respalda; los «Qué hacer» de cada gráfico son esas mismas propuestas. El estado dice qué se decidió después, y el porqué está en esa fila de <code>DECISIONES.md</code>. «Hecha»: se aplicó («en parte» si la decisión la acota). «Medida»: se probó en una ablación, y la decisión dice qué quedó. «Descartada»: se decidió lo contrario. «Decidida»: se resolvió con los datos, y la decisión cita la consulta a la cátedra sobre el tema.</p>
   <div class="tabla">
     <table>
-      <thead><tr><th>Decisión sugerida</th><th>Evidencia</th><th>Estado</th></tr></thead>
+      <thead><tr><th>Propuesta del EDA</th><th>Evidencia</th><th>Estado</th></tr></thead>
       <tbody>
 {filas_dec}
       </tbody>

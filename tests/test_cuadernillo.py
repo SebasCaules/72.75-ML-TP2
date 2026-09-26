@@ -1,25 +1,31 @@
 r"""Correr con: python -m tests.test_cuadernillo
 
-Pruebas de src/cuadernillo.py (paso 7.5). Las cuatro primeras no necesitan nada instalado: el
-parser del guion sobre un guion sintético, la conversión de markdown a LaTeX, la elección de la
-página final de cada frame a partir de los números al pie, y el emparejamiento del guion con el
-deck, con sus avisos. Las dos últimas generan el cuadernillo de verdad y se saltan, con un aviso,
-si falta LuaLaTeX o poppler: una sobre un deck beamer sintético que se compila aquí (con overlays
-\pause, un «80/20» en el cuerpo y un frame de respaldo), y otra sobre informe/presentacion.pdf e
-informe/guion.md, si existen. Ninguna escribe en informe/: la salida va a un directorio temporal.
+Pruebas de src/cuadernillo.py (paso 7.5). Las seis primeras no necesitan nada instalado: el parser
+del guion sobre un guion sintético, la conversión de markdown a LaTeX, el párrafo que presenta una
+variante hablada, la elección de la página final de cada frame a partir de los números al pie, el
+emparejamiento del guion con el deck, con sus avisos, y la lectura del .log (cuándo pide otra
+pasada, qué avisos se muestran y cómo quedó cada imagen). Las tres últimas generan el cuadernillo de
+verdad y se saltan, con un aviso, si falta LuaLaTeX o poppler: dos sobre un deck beamer sintético
+que se compila aquí (con overlays \pause, un «80/20» en el cuerpo y un frame de respaldo), la
+segunda con páginas cuyo texto no deja lugar a la imagen y un banco de 40 preguntas; y una sobre
+informe/presentacion.pdf e informe/guion.md, si existen, que exige que el guion y el deck coincidan
+y que el .log salga limpio. Ninguna escribe en informe/: la salida va a un directorio temporal.
 """
 
 import math
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
 from src.cuadernillo import (
+    ANCHO_COMPLETO,
     GUION,
     HERRAMIENTAS,
     MOTOR,
     POR_PAGINA_RESPALDO,
+    PREAMBULO,
     PRESENTACION,
     RESULTADOS_TEST,
     Pregunta,
@@ -33,12 +39,18 @@ from src.cuadernillo import (
     escapar,
     frames_de_rotulos,
     generar,
+    imagenes_del_log,
     latex_de_tabla,
+    latex_slide,
     metadatos_pdf,
     parsear_guion,
+    pide_otra_pasada,
     rangos_del_nav,
+    resumen_de_imagenes,
     revisar_frames,
+    revisar_log,
     rotulo_de_pie,
+    rotulo_de_variante,
     texto_plano,
     variantes,
     _rangos,
@@ -83,7 +95,7 @@ Texto de presentación que no es ninguna sección.
 
 > Da ? de AUC en test.
 
-**Mientras el test siga cerrado**, se dice:
+**Mientras el test siga cerrado** (ensayos hasta el 01/10), en lugar de lo anterior:
 
 > Todavía no lo abrimos.
 
@@ -112,7 +124,7 @@ Un párrafo que no es una pregunta.
 
 ## Reloj de ensayo
 
-| Slide | Título | Arranca |
+| Slide | Título | Empieza |
 | --- | :---: | ---: |
 | 1 | Portada | 0:00 |
 | 2 | Tres pasos | 0:05 |
@@ -127,6 +139,9 @@ Un párrafo que no es una pregunta.
    Sigue el ítem.
 2. Después, lo otro.
 """
+
+VARIANTE_CERRADA = ("**Mientras el test siga cerrado** (ensayos hasta el 01/10), en lugar de lo "
+                    "anterior:")
 
 DECK_SINTETICO = r"""\documentclass[aspectratio=169]{beamer}
 \setbeamertemplate{navigation symbols}{}
@@ -144,6 +159,19 @@ DECK_SINTETICO = r"""\documentclass[aspectratio=169]{beamer}
 """
 
 TEST_PENDIENTE = "\\newif\\iftestpendiente\\testpendientetrue\n"
+
+# Un .log de LuaLaTeX que ya convergió: hyperref carga rerunfilecheck, así que su nombre está en
+# todo .log, pida otra pasada o no.
+LOG_CONVERGIDO = (
+    "(/usr/local/texlive/2025/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty\n"
+    "Package: rerunfilecheck 2022-07-10 v1.10 Rerun checks for auxiliary files (HO)\n"
+    "Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 285.\n"
+    "Package rerunfilecheck Info: File `cuadernillo.out' has not changed.\n"
+    "(rerunfilecheck)             Checksum: 3B24060B4747C4663937AD403A4BC2BC;8315.\n")
+
+# Palabras para rellenar las respuestas del banco largo, con largos distintos.
+RELLENO = ("la respuesta sigue con palabras de relleno para que cada pieza tenga un largo distinto "
+           "y los cortes de columna caigan en lugares variados del banco").split()
 
 
 def _r(texto):
@@ -163,6 +191,74 @@ def _texto_de_pagina(pdf, pagina):
     return subprocess.run(["pdftotext", "-f", str(pagina), "-l", str(pagina), "-layout",
                            "-enc", "UTF-8", str(pdf), "-"], capture_output=True, text=True,
                           check=True, encoding="utf-8").stdout
+
+
+def _compilar_deck(directorio):
+    """Compila DECK_SINTETICO en `directorio`, con el test pendiente, y devuelve la ruta del PDF."""
+    (directorio / "deck.tex").write_text(DECK_SINTETICO, encoding="utf-8")
+    for _ in range(2):   # la segunda pasada fija \insertmainframenumber
+        subprocess.run([MOTOR, "-interaction=nonstopmode", "-halt-on-error", "deck.tex"],
+                       cwd=directorio, capture_output=True, check=True)
+    (directorio / "resultados-test.tex").write_text(TEST_PENDIENTE, encoding="utf-8")
+    return directorio / "deck.pdf"
+
+
+def _palabras(pdf, desde=1):
+    """Cada palabra del PDF, desde la página `desde`: (texto, página, columna, arriba, abajo).
+
+    Sale de pdftotext -tsv, en puntos desde el borde superior (-bbox falla en este poppler con el
+    campo Keywords vacío). La columna es «izq» o «der»: de qué lado de la mitad de la página
+    empieza la palabra.
+    """
+    tsv = subprocess.run(["pdftotext", "-f", str(desde), "-tsv", "-enc", "UTF-8", str(pdf), "-"],
+                         capture_output=True, text=True, check=True, encoding="utf-8").stdout
+    anchos, palabras = {}, []
+    for fila in tsv.splitlines()[1:]:
+        c = fila.split("\t")
+        if c[0] == "1":          # la página: su ancho
+            anchos[int(c[1])] = float(c[8])
+        elif c[0] == "5":        # una palabra
+            pagina, izquierda, arriba = int(c[1]), float(c[6]), float(c[7])
+            columna = "izq" if izquierda < anchos[pagina] / 2 else "der"
+            palabras.append((c[11], pagina, columna, arriba, arriba + float(c[9])))
+    return palabras
+
+
+def _fondo_del_area(pdf):
+    """Dónde termina el área de texto, en puntos desde arriba.
+
+    Es el alto de la página, según pdfinfo, menos el margen inferior del PREAMBULO.
+    """
+    alto = float(re.search(r"x ([\d.]+) pts", metadatos_pdf(pdf)["Page size"]).group(1))
+    margen = float(re.search(r"bottom=([\d.]+)cm", PREAMBULO).group(1))
+    return alto - margen / 2.54 * 72
+
+
+def _con_paginas_llenas(texto, lineas):
+    """El guion con un «A aclarar» de lineas[i] ítems de una línea en la slide i + 1."""
+    partes = re.split(r"#### A aclarar\n(?:- .*\n(?:  .*\n)?)+", texto)
+    assert len(partes) == len(lineas) + 1, len(partes)
+    aclarar = ["#### A aclarar\n" + "".join(f"- **Punto {i}.** Una línea de relleno para medir "
+                                            "el alto.\n" for i in range(1, n + 1))
+               for n in lineas]
+    return "".join(parte + extra for parte, extra in zip(partes, aclarar + [""]))
+
+
+def _con_banco_largo(texto, grupos=(("Alfa", 12), ("Beta", 15), ("Gama", 13))):
+    """El guion con un banco de preguntas de largos variados en lugar del suyo.
+
+    La pregunta k se llama «¿Qué pasa con Tk?» y su respuesta termina en «Fk.»: dos palabras que
+    sólo aparecen ahí, para ubicarlas en el PDF.
+    """
+    banco, k = [], 0
+    for nombre, cuantas in grupos:
+        banco.append(f"### Grupo {nombre}\n")
+        for _ in range(cuantas):
+            k += 1
+            relleno = " ".join(RELLENO[(7 * k + i) % len(RELLENO)] for i in range(8 + 13 * k % 50))
+            banco.append(f"**{k}. ¿Qué pasa con T{k}?** [slide 2 · Ana] — {relleno} F{k}.\n")
+    inicio, fin = texto.index("### Sobre los datos"), texto.index("## Reloj de ensayo")
+    return texto[:inicio] + "\n".join(banco) + "\n" + texto[fin:]
 
 
 # =================================================================================================
@@ -192,9 +288,9 @@ def test_parser_del_guion_sintetico():
                                        "Y al final, lo último."]
     assert dos.dichos[0].avances == 2
 
-    # Dos variantes: el párrafo que presenta la segunda es su etiqueta, no una indicación suelta.
+    # Dos variantes: el párrafo que presenta la segunda es su etiqueta, entero, no una indicación.
     assert [t for t, _ in tres.bloques] == ["dicho", "dicho", "nota"]
-    assert tres.dichos[1].etiqueta == "**Mientras el test siga cerrado**, se dice:"
+    assert tres.dichos[1].etiqueta == VARIANTE_CERRADA
     assert variantes(tres.dichos, True)[0].segmentos == ["Todavía no lo abrimos."]
     assert variantes(tres.dichos, False)[0].segmentos == ["Da ? de AUC en test."]
     assert variantes(tres.dichos, None)[0].segmentos == ["Da ? de AUC en test."]
@@ -245,6 +341,38 @@ def test_markdown_a_latex():
     assert r"\begin{tabular}{@{}lcr@{}}" in tabla and r"\textbf{1} & 2 & 3 \\" in tabla
     assert _rangos([1, 2, 3, 8, 9, 12]) == "1–3, 8–9 y 12" and _rangos([4]) == "4"
     print("ok  markdown a LaTeX: negrita, cursiva, código, [→], miles, %, matemática, escapes y tablas")
+
+
+def test_parrafo_de_la_variante_completo():
+    # El párrafo entero: la negrita, como rótulo, y el resto tal cual. Si la variante se adelanta a
+    # la que reemplaza, su «en lugar de lo anterior» apunta a la de abajo.
+    assert rotulo_de_variante(VARIANTE_CERRADA, adelantada=True) == (
+        r"\etiqueta{Mientras el test siga cerrado} (ensayos hasta el 01/10), en lugar de la "
+        r"variante de abajo, en gris:")
+    assert rotulo_de_variante(VARIANTE_CERRADA) == (
+        r"\etiqueta{Mientras el test siga cerrado} (ensayos hasta el 01/10), en lugar de lo "
+        r"anterior:")
+    assert rotulo_de_variante("**Mientras el test siga cerrado**, la matriz de la slide es la de "
+                              "validación, y se dice:", adelantada=True) == (
+        r"\etiqueta{Mientras el test siga cerrado}, la matriz de la slide es la de validación, "
+        r"y se dice:")
+    assert rotulo_de_variante("Con el test *cerrado*, se dice:") == (
+        r"Con el test \emph{cerrado}, se dice:")
+
+    # En la página: con el test pendiente, el párrafo completo encabeza la variante principal; con
+    # el test evaluado, va completo sobre la variante en gris, donde «lo anterior» sí está arriba.
+    g = parsear_guion(GUION_SINTETICO)
+    pendiente = armar_paginas(g, _frames_sinteticos(), test_pendiente=True)[2]
+    tex = latex_slide(pendiente, 3, g, True)
+    assert (r"\rotulovariante{\etiqueta{Mientras el test siga cerrado} (ensayos hasta el 01/10), "
+            r"en lugar de la variante de abajo, en gris:}") in tex, tex
+    evaluado = armar_paginas(g, _frames_sinteticos(), test_pendiente=False)[2]
+    tex = latex_slide(evaluado, 3, g, False)
+    assert r"\rotulovariante" not in tex, tex
+    assert (r"\variante{\textbf{Mientras el test siga cerrado} (ensayos hasta el 01/10), en lugar "
+            r"de lo anterior:}") in tex, tex
+    print("ok  el párrafo que presenta una variante va completo, con su «lo anterior» bien "
+          "apuntado")
 
 
 def test_pagina_final_de_cada_frame_sobre_un_caso_sintetico():
@@ -302,6 +430,47 @@ def test_emparejamiento_del_guion_con_el_deck():
           "imagen o sin texto y un mapa de páginas viejo")
 
 
+def test_lectura_del_log():
+    # Otra pasada sólo si un aviso la pide: el nombre de rerunfilecheck, solo, no la pide.
+    assert not pide_otra_pasada(LOG_CONVERGIDO)
+    for pedido in ("Package rerunfilecheck Warning: File `cuadernillo.out' has changed.\n"
+                   "(rerunfilecheck)                Rerun to get outlines right\n"
+                   "(rerunfilecheck)                or use package `bookmark'.\n",
+                   "LaTeX Warning: Label(s) may have changed. Rerun to get cross-references "
+                   "right.\n",
+                   "LaTeX Warning: Label(s) may have changed. Rerun to get\ncross-references "
+                   "right.\n",
+                   "Package hyperref Warning: Rerun to get /PageLabels entry.\n",
+                   "Package longtable Warning: Table widths have changed. Rerun LaTeX.\n"):
+        assert pide_otra_pasada(LOG_CONVERGIDO + pedido), pedido
+
+    # Los underfull \hbox, desde badness 10000; los desbordes, siempre; sin repetir.
+    log = ("Underfull \\hbox (badness 10000) in paragraph at lines 250--250\n"
+           "[]\\TU/FiraSans(0)/b/n/9 ¿\n"
+           "Underfull \\hbox (badness 1102) in paragraph at lines 619--619\n"
+           "Overfull \\hbox (1.2pt too wide) in paragraph at lines 3--4\n"
+           "Overfull \\vbox (392.87346pt too high) detected at line 398\n"
+           "Underfull \\hbox (badness 10000) in paragraph at lines 250--250\n")
+    assert revisar_log(log) == ["Underfull \\hbox (badness 10000) in paragraph at lines 250--250",
+                                "Overfull \\hbox (1.2pt too wide) in paragraph at lines 3--4",
+                                "Overfull \\vbox (392.87346pt too high) detected at line 398"]
+
+    # Cómo quedó cada imagen, según las líneas «cuadernillo: slide …» del .log.
+    imagenes = imagenes_del_log("cuadernillo: slide 1, imagen 278.01678pt de 278.01678pt, letra 0\n"
+                                "cuadernillo: slide 7, imagen 271.04382pt de 278.01678pt, letra 0\n"
+                                "cuadernillo: slide 9, imagen 150.0pt de 278.01678pt, letra 1\n")
+    assert imagenes[1] == (1.0, 0) and imagenes[9][1] == 1
+    assert math.isclose(imagenes[7][0], 271.04382 / 278.01678)
+    assert resumen_de_imagenes(imagenes) == (
+        "Imágenes: 1 de 3 a todo el ancho de la caja de texto; por el largo del texto, la de la "
+        "slide 7 va al 97,5 % del ancho y la de la slide 9 va al 54,0 % del ancho, con la letra un "
+        "punto más pequeña.")
+    assert resumen_de_imagenes({1: (1.0, 0), 2: (1.0, 0)}) == (
+        "Imágenes: las 2 a todo el ancho de la caja de texto.")
+    print("ok  el .log: otra pasada sólo si un aviso la pide, underfull desde badness 10000 y el "
+          "ancho de cada imagen")
+
+
 def test_generacion_sobre_un_deck_beamer_sintetico():
     faltan = _faltan_herramientas()
     if faltan:
@@ -309,18 +478,19 @@ def test_generacion_sobre_un_deck_beamer_sintetico():
         return
     with tempfile.TemporaryDirectory() as temporal:
         d = Path(temporal)
-        (d / "deck.tex").write_text(DECK_SINTETICO, encoding="utf-8")
-        for _ in range(2):   # la segunda pasada fija \insertmainframenumber
-            subprocess.run([MOTOR, "-interaction=nonstopmode", "-halt-on-error", "deck.tex"],
-                           cwd=d, capture_output=True, check=True)
+        deck = _compilar_deck(d)
         (d / "guion.md").write_text(GUION_SINTETICO, encoding="utf-8")
-        (d / "resultados-test.tex").write_text(TEST_PENDIENTE, encoding="utf-8")
-        r = generar(presentacion=d / "deck.pdf", guion=d / "guion.md", salida=d / "salida.pdf",
+        r = generar(presentacion=deck, guion=d / "guion.md", salida=d / "salida.pdf",
                     resultados_test=d / "resultados-test.tex", nav=None)
 
         assert [f.final for f in r.frames] == [1, 4, 5, 6], [f.paginas for f in r.frames]
         assert r.avisos == [] and r.avisos_log == [], (r.avisos, r.avisos_log)
         assert r.test_pendiente is True
+        # Converge en dos pasadas: la segunda ya no pide otra.
+        assert r.corridas == 2, r.corridas
+        # Con textos cortos, las tres imágenes van a todo el ancho y en la letra normal.
+        assert sorted(r.imagenes) == [1, 2, 3], r.imagenes
+        assert all(f >= ANCHO_COMPLETO and letra == 0 for f, letra in r.imagenes.values())
         paginas = int(metadatos_pdf(d / "salida.pdf")["Pages"])
         # portada, reloj, las 3 slides, 1 página de respaldo y las preguntas
         assert paginas == r.paginas == r.etiquetas["fin"] == 7, (paginas, r.etiquetas)
@@ -330,8 +500,10 @@ def test_generacion_sobre_un_deck_beamer_sintetico():
         assert "slide 2 de 3" in dos and "Tres pasos" in dos and "Habla: Beto" in dos
         assert "Después esto otro." in dos and dos.count("[→]") >= 2
         tres = _texto_de_pagina(d / "salida.pdf", 5)
-        # Con el test pendiente, primero la variante del test cerrado.
+        # Con el test pendiente, primero la variante del test cerrado, con su párrafo completo.
         assert tres.index("Todavía no lo abrimos.") < tres.index("Da ? de AUC en test.")
+        assert ("MIENTRAS EL TEST SIGA CERRADO (ensayos hasta el 01/10), en lugar de la variante "
+                "de abajo, en gris:") in " ".join(tres.split()), tres
         preguntas = _texto_de_pagina(d / "salida.pdf", 7)
         assert "¿Por qué así?" in preguntas and "[slide 2 · Ana]" in preguntas
 
@@ -341,7 +513,7 @@ def test_generacion_sobre_un_deck_beamer_sintetico():
             "---\n\n## Los 10 minutos", "### 4 · Sin imagen — 0:30 → 0:35 (~3 palabras)\n\n"
             "> Una slide de más.\n\n---\n\n## Los 10 minutos")
         (d / "roto.md").write_text(roto, encoding="utf-8")
-        r = generar(presentacion=d / "deck.pdf", guion=d / "roto.md", salida=d / "roto.pdf",
+        r = generar(presentacion=deck, guion=d / "roto.md", salida=d / "roto.pdf",
                     resultados_test=d / "resultados-test.tex", nav=None)
         assert len(r.avisos) == 2 and r.avisos_log == [], (r.avisos, r.avisos_log)
         assert r.paginas == int(metadatos_pdf(d / "roto.pdf")["Pages"]) == 8
@@ -350,8 +522,59 @@ def test_generacion_sobre_un_deck_beamer_sintetico():
         cuatro = _texto_de_pagina(d / "roto.pdf", r.etiquetas["slide-4"])
         assert "Esta slide no está en el PDF." in cuatro and "slide 4 de 4" in cuatro
     print("ok  sobre un deck beamer sintético: la página final de cada frame, una página por "
-          "slide, el orden de las variantes, 7 páginas según pdfinfo y, con el guion desfasado, "
-          "los avisos")
+          "slide, dos pasadas, el orden de las variantes, 7 páginas según pdfinfo y, con el guion "
+          "desfasado, los avisos")
+
+
+def test_paginas_llenas_y_banco_sin_cortes():
+    faltan = _faltan_herramientas()
+    if faltan:
+        print(f"--  saltado: faltan {', '.join(faltan)} para compilar un deck y el cuadernillo")
+        return
+    with tempfile.TemporaryDirectory() as temporal:
+        d = Path(temporal)
+        deck = _compilar_deck(d)
+        guion = _con_banco_largo(_con_paginas_llenas(GUION_SINTETICO, (34, 36, 80)))
+        (d / "largo.md").write_text(guion, encoding="utf-8")
+        r = generar(presentacion=deck, guion=d / "largo.md", salida=d / "largo.pdf",
+                    resultados_test=d / "resultados-test.tex", nav=None)
+        assert r.avisos == [] and r.corridas == 2, (r.avisos, r.corridas)
+        assert len(r.guion.preguntas) == 40
+
+        # Las tres maneras en que el texto no deja lugar a la imagen: se achica la imagen, con la
+        # letra normal (34 líneas); se achica también la letra (36); y ni así entra (80): la imagen
+        # se queda en el 45 % y el .log lo avisa. Cada slide sigue en su página.
+        (f1, letra1), (f2, letra2), (f3, letra3) = (r.imagenes[n] for n in (1, 2, 3))
+        assert 0.62 <= f1 < ANCHO_COMPLETO and letra1 == 0, r.imagenes
+        assert 0.45 < f2 and letra2 == 1, r.imagenes
+        assert math.isclose(f3, 0.45, abs_tol=1e-3) and letra3 == 1, r.imagenes
+        assert len(r.avisos_log) == 1, r.avisos_log
+        assert r.avisos_log[0].startswith("Overfull \\vbox"), r.avisos_log
+        assert [r.etiquetas[f"slide-{n}"] for n in (1, 2, 3)] == [3, 4, 5], r.etiquetas
+        assert "la de la slide 1 va al" in resumen_de_imagenes(r.imagenes)
+
+        # La imagen se achica exactamente lo que falta: la página llega al fondo del área de texto
+        # sin pasarse. pdftotext cuenta el descendente entero de la letra y TeX sólo el de la «p»
+        # de la última línea: 0,5 pt de diferencia. Con el margen fijo de antes, la página se
+        # pasaba sin aviso: la última línea terminaba 2,5 pt más abajo.
+        fondo = _fondo_del_area(d / "largo.pdf")
+        palabras = _palabras(d / "largo.pdf")
+        for pagina in (3, 4):
+            abajo = max(p[4] for p in palabras if p[1] == pagina and p[3] < fondo + 8)
+            assert abs(abajo - fondo) < 1.5, (pagina, abajo, fondo)
+
+        # El banco: ninguna pregunta partida entre columnas o páginas, y el título de cada grupo en
+        # la columna de su primera pregunta. El banco ocupa varias columnas: los cortes existen.
+        lugar = {}
+        for texto, pagina, columna, _, _ in _palabras(d / "largo.pdf", r.etiquetas["preguntas"]):
+            lugar.setdefault(texto, (pagina, columna))
+        cortadas = [k for k in range(1, 41) if lugar[f"T{k}?"] != lugar[f"F{k}."]]
+        assert not cortadas, [(k, lugar[f"T{k}?"], lugar[f"F{k}."]) for k in cortadas]
+        for grupo, primera in (("ALFA", 1), ("BETA", 13), ("GAMA", 28)):
+            assert lugar[grupo] == lugar[f"T{primera}?"], (grupo, lugar[grupo])
+        assert len({lugar[f"T{k}?"] for k in range(1, 41)}) >= 4, lugar
+    print("ok  con textos largos, la imagen se achica lo justo, después la letra, y un desborde se "
+          "avisa; en el banco de 40 preguntas, ninguna queda partida")
 
 
 def test_generacion_sobre_los_archivos_reales():
@@ -370,6 +593,14 @@ def test_generacion_sobre_los_archivos_reales():
         slides = [e[f"slide-{p.numero}"] for p in r.slides]
         respaldo = [f for f in r.frames if f.rotulo and f.rotulo.respaldo]
 
+        # El guion y el deck tienen que coincidir: un [→] de más o de menos, una slide sin texto o
+        # sin imagen, un número al pie salteado o el mapa de páginas del guion desactualizado hacen
+        # fallar esta prueba (la sintética muestra que cada caso produce su aviso). Hoy no hay
+        # ningún aviso legítimo que tolerar, y el .log tiene que salir tan limpio como ellos.
+        assert not r.avisos, "El guion y el deck no coinciden:\n" + "\n".join(r.avisos)
+        assert not r.avisos_log, "Avisos del .log de LuaLaTeX:\n" + "\n".join(r.avisos_log)
+        assert r.corridas == 2, r.corridas
+
         assert paginas == r.paginas == e["fin"], (paginas, r.paginas, e.get("fin"))
         assert slides == list(range(slides[0], slides[0] + len(slides))), slides
         assert e["portada"] == 1 and slides[0] > e.get("reloj", e["portada"])
@@ -379,23 +610,25 @@ def test_generacion_sobre_los_archivos_reales():
             despues += math.ceil(len(respaldo) / POR_PAGINA_RESPALDO)
         assert e["preguntas"] == despues
         total = len(r.slides)
+        assert sorted(r.imagenes) == [p.numero for p in r.slides], r.imagenes
         for p in r.slides:
             texto = _texto_de_pagina(salida, e[f"slide-{p.numero}"])
             assert f"slide {p.numero} de {total}" in texto, p.numero
-        graves = [a for a in r.avisos_log if a.startswith(("Overfull \\vbox", "Missing character"))]
-        assert not graves, graves
-    for aviso in r.avisos + r.avisos_log:
-        print(f"    aviso: {aviso}")
+    print(f"    {resumen_de_imagenes(r.imagenes)}")
     print(f"ok  sobre los archivos reales: {paginas} páginas según pdfinfo ({total} slides desde la "
-          f"{slides[0]}, preguntas desde la {e['preguntas']}), cada slide en su página")
+          f"{slides[0]}, preguntas desde la {e['preguntas']}), cada slide en su página, sin avisos "
+          "del guion contra el deck ni del .log")
 
 
 def main():
     test_parser_del_guion_sintetico()
     test_markdown_a_latex()
+    test_parrafo_de_la_variante_completo()
     test_pagina_final_de_cada_frame_sobre_un_caso_sintetico()
     test_emparejamiento_del_guion_con_el_deck()
+    test_lectura_del_log()
     test_generacion_sobre_un_deck_beamer_sintetico()
+    test_paginas_llenas_y_banco_sin_cortes()
     test_generacion_sobre_los_archivos_reales()
     print("TODOS LOS TESTS OK")
 

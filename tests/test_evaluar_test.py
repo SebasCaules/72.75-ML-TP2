@@ -9,6 +9,8 @@ import copy
 import io
 import json
 import re
+import shutil
+import subprocess
 import tempfile
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import asdict, replace
@@ -27,13 +29,16 @@ from src.evaluar_test import (
     MACROS,
     RUTA_EVALUACION,
     armar_registro,
+    decimal_tex,
     diferencias_con_configuracion,
     empates_en_el_corte,
+    entero_tex,
     escribir_marcadores,
     evaluar,
     guardia_de_reevaluacion,
     imprimir_resumen,
     intervalo_bootstrap,
+    intervalo_tex,
     leer_eleccion,
     llamados_al_corte,
     matriz_al_corte,
@@ -45,10 +50,14 @@ from src.evaluar_test import (
 )
 from src.metricas import METRICAS, puntajes
 from src.modelos import MODELOS, crear_modelo, separar_X_y
+from src.numeros import a_texto, formatear_decimal, formatear_miles
 from src.preproceso import Opciones
 from src.seleccion import hiperparametros_de
 
-NUEVA = re.compile(r"\\newcommand\{\\([a-zA-Z]+)\}\{([^}]*)\}")
+# Una definición por línea; el valor puede tener llaves adentro (la coma decimal es {,}).
+NUEVA = re.compile(r"^\\newcommand\{\\([a-zA-Z]+)\}\{(.*)\}$", re.M)
+# Los macros que llevan la raya «--» del intervalo y por eso van sólo en modo texto.
+INTERVALOS = ("aucic", "recallic")
 
 
 def _registro_sintetico(n_evaluaciones=1):
@@ -213,6 +222,24 @@ def test_renderizar_tex_sin_resultados():
     print(f"ok  marcadores: las {len(MACROS)} macros con «?» y la bandera testpendiente en verdadero")
 
 
+def test_formato_tex_es_el_de_src_numeros():
+    # El mismo texto que src/numeros.py para los mismos valores: la coma decimal como {,}, los
+    # miles con espacio fino. Los valores cubren el cero, el redondeo hacia arriba en el tercer
+    # decimal (0,9995 -> 1{,}000) y los miles en la parte entera.
+    for x, decimales in ((0.0, 3), (0.5, 3), (0.8234, 3), (0.0005, 3), (0.99951, 3),
+                         (0.54625, 3), (1234.5678, 1), (1234.5678, 3)):
+        assert decimal_tex(x, decimales) == formatear_decimal(x, decimales), (x, decimales)
+    for n in (0, 7, 30, 928, 1000, 1647, 8236, 32940, 1234567):
+        assert entero_tex(n) == formatear_miles(n), n
+    assert decimal_tex(0.8234) == "0{,}823" and entero_tex(8236) == r"8\,236"
+    assert intervalo_tex((0.8121, 0.8339)) == "0{,}812--0{,}834"
+    # En el guion (src/numeros.py, a_texto), como en numeros.md: coma, espacio común y la raya.
+    assert a_texto(intervalo_tex((0.8121, 0.8339))) == "0,812–0,834"
+    assert a_texto(entero_tex(8236)) == "8 236"
+    print("ok  el formato de resultados-test.tex es el de src/numeros.py: 0{,}823, 8\\,236 y "
+          "0{,}812--0{,}834; en el guion, 0,823, 8 236 y 0,812–0,834")
+
+
 def test_renderizar_tex_con_resultados():
     registro = _registro_sintetico()
     antes = copy.deepcopy(registro)
@@ -220,20 +247,72 @@ def test_renderizar_tex_con_resultados():
     assert registro == antes, "renderizar_tex no debe modificar lo que recibe"
     valores = dict(NUEVA.findall(tex))
     assert list(valores) == list(MACROS)
-    assert valores["auctest"] == "0,823" and valores["aucic"] == "0,812–0,834"
-    assert valores["recalltest"] == "0,546" and valores["recallic"] == "0,510–0,577"
-    assert valores["precisiontest"] == "0,308" and valores["fitest"] == "0,394"
-    assert valores["aptest"] == "0,451"
+    assert valores["auctest"] == "0{,}823" and valores["aucic"] == "0{,}812--0{,}834"
+    assert valores["recalltest"] == "0{,}546" and valores["recallic"] == "0{,}510--0{,}577"
+    assert valores["precisiontest"] == "0{,}308" and valores["fitest"] == "0{,}394"
+    assert valores["aptest"] == "0{,}451"
     assert (valores["vptest"], valores["fptest"], valores["fntest"], valores["vntest"]) == (
-        "504", "1.143", "424", "6.165")
-    assert (valores["recallmatriztest"], valores["precisionmatriztest"]) == ("0,543", "0,306")
-    assert (valores["empatadostest"], valores["llamadosempatadostest"]) == ("1.098", "30")
-    assert valores["ntest"] == "8.236" and valores["llamadastest"] == "1.647"
+        "504", r"1\,143", "424", r"6\,165")
+    assert (valores["recallmatriztest"], valores["precisionmatriztest"]) == ("0{,}543", "0{,}306")
+    assert (valores["empatadostest"], valores["llamadosempatadostest"]) == (r"1\,098", "30")
+    assert valores["ntest"] == r"8\,236" and valores["llamadastest"] == r"1\,647"
     assert valores["nevaluaciones"] == "1"
     assert r"\newif\iftestpendiente\testpendientefalse" in tex and "testpendientetrue" not in tex
-    assert "?" not in "".join(valores.values()) and "0.823" not in tex
+    todos = "".join(valores.values())
+    assert "?" not in todos and "0.823" not in tex
+    # Ni la coma decimal suelta, ni el punto de miles, ni la raya Unicode.
+    assert not re.search(r"\d,\d", todos.replace("{,}", "")), valores
+    assert not re.search(r"\d\.\d", todos) and "–" not in todos, valores
     assert renderizar_tex(_registro_sintetico(n_evaluaciones=2)) != tex
-    print("ok  con resultados: coma decimal, tres decimales, punto de miles y la bandera en falso")
+    print("ok  con resultados: coma decimal entre llaves, tres decimales, espacio fino de miles, "
+          "«--» en los intervalos y la bandera en falso")
+
+
+def test_los_macros_de_test_se_leen_igual_en_texto_y_en_modo_matematico():
+    """S-12: con «0,823» sin llaves, $\\auctest$ se imprimía «0, 823». Con el registro sintético,
+    se compila cada macro en texto y, salvo los intervalos, dentro de $…$ (si hay pdflatex): sin
+    avisos, con el mismo ancho en los dos modos, y el intervalo se lee con su raya."""
+    tex = renderizar_tex(_registro_sintetico())
+    valores = dict(NUEVA.findall(tex))
+    if not shutil.which("pdflatex"):
+        print("ok  los macros de test usan {,} y \\, (sin pdflatex: no se compiló)")
+        return
+    en_matematica = [n for n in MACROS if n not in INTERVALOS]
+    anchos = "\n".join(f"\\setbox0\\hbox{{\\{n}}}\\setbox2\\hbox{{$\\{n}$}}"
+                       f"\\typeout{{ANCHO {n} \\the\\wd0 \\space y \\the\\wd2}}" for n in en_matematica)
+    cuerpo = "\n".join(f"\\noindent\\{n}{{}}" + ("" if n in INTERVALOS else f" y ${{\\{n}}}$")
+                       + "\\par" for n in MACROS)
+    documento = ("\\documentclass{article}\n\\usepackage[T1]{fontenc}\n"
+                 "\\usepackage[utf8]{inputenc}\n\\usepackage[spanish,es-noquoting]{babel}\n"
+                 "\\input{resultados-test.tex}\n\\begin{document}\n" + anchos + "\n" + cuerpo + "\n"
+                 "\\noindent PRUEBA \\aucic{} y $\\auctest$ FIN\n\\end{document}\n")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "resultados-test.tex").write_text(tex, encoding="utf-8")
+        (tmp / "prueba.tex").write_text(documento, encoding="utf-8")
+        r = subprocess.run(["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "prueba.tex"],
+                           cwd=tmp, capture_output=True, text=True, timeout=300)
+        log = (tmp / "prueba.log").read_text(encoding="utf-8", errors="replace")
+        if r.returncode != 0 and re.search(r"not found|! Font .* not loadable", log):
+            print("ok  los macros de test usan {,} y \\, (a esta instalación de LaTeX le falta un "
+                  "paquete o una fuente: no se compiló)")
+            return
+        assert r.returncode == 0, log[-3000:]
+        problemas = [l for l in log.splitlines()
+                     if "invalid in math mode" in l or "Missing character" in l or l.startswith("!")]
+        assert not problemas, problemas
+        medidas = re.findall(r"^ANCHO (\w+) ([\d.]+)pt y ([\d.]+)pt$", log, re.M)
+        assert len(medidas) == len(en_matematica), (len(medidas), len(en_matematica))
+        distintos = [(n, a, b) for n, a, b in medidas if abs(float(a) - float(b)) > 0.1]
+        assert not distintos, f"se ven distinto en $…$ que en texto: {distintos}"
+        if shutil.which("pdftotext"):
+            texto = subprocess.run(["pdftotext", str(tmp / "prueba.pdf"), "-"], capture_output=True,
+                                   text=True).stdout
+            prueba = " ".join(texto[texto.index("PRUEBA"):texto.index("FIN")].split())
+            esperado = f"{a_texto(valores['aucic'])} y {a_texto(valores['auctest'])}"
+            assert esperado == prueba.removeprefix("PRUEBA ").strip(), (esperado, prueba)
+    print(f"ok  los {len(MACROS)} macros de test compilan sin avisos; los {len(en_matematica)} que no "
+          "son intervalos miden lo mismo en texto y en $…$, y el intervalo se lee «0,812–0,834»")
 
 
 def test_guardia_sin_evaluacion_previa_continua():
@@ -440,7 +519,9 @@ def main():
     test_empate_en_el_corte_se_desempata_por_fila()
     test_texto_del_corte_distingue_si_el_empate_queda_partido()
     test_renderizar_tex_sin_resultados()
+    test_formato_tex_es_el_de_src_numeros()
     test_renderizar_tex_con_resultados()
+    test_los_macros_de_test_se_leen_igual_en_texto_y_en_modo_matematico()
     test_guardia_sin_evaluacion_previa_continua()
     test_guardia_con_evaluacion_previa_y_no_se_detiene()
     test_guardia_con_si_acumula_las_previas()

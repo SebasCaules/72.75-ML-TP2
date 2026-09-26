@@ -8,7 +8,7 @@
 % texto es \textminus, que dentro de $…$ LaTeX compone mal, y en matemática es «-».
 % Con babel-spanish, \% ya agrega su propio espacio fino y \,\% queda doble: el preámbulo
 % del deck lleva \spanishplainpercent después de \usepackage[spanish]{babel}.
-% Valen «?» porque falta su entrada: resultados/evidencia_particion.json (6); resultados/evaluacion_test.json (4).
+% Valen «?» porque falta su entrada: resultados/evaluacion_test.json (4).
 
 \DeclareRobustCommand{\signoMenos}{\ifmmode-\else\textminus\fi}
 
@@ -35,12 +35,12 @@
 \newcommand{\filasFoldValidacion}{6\,588}                   % resultados/robustez_folds.csv: barajado, fold 1, n_validacion
 \newcommand{\llamadasFoldValidacion}{1\,318}                % src/metricas.py: llamadas(filasFoldValidacion)
 \newcommand{\llamadasTrain}{6\,588}                         % src/metricas.py: llamadas(filasTrain), el corte de la lista fuera de fold
-\newcommand{\semillasSinEstratificar}{?}                    % resultados/evidencia_particion.json: n_semillas, las particiones sin estratificar (D-02)
-\newcommand{\desvioPctYesTestSinEstratificar}{?}            % resultados/evidencia_particion.json: sin_estratificar.desvio_pp, el desvío del % de «yes» del test entre semillas, en puntos porcentuales (D-02)
-\newcommand{\pctYesTestSinEstratificarMinimo}{?}            % resultados/evidencia_particion.json: sin_estratificar.minimo_pct, el menor % de «yes» del test entre semillas (D-02)
-\newcommand{\pctYesTestSinEstratificarMaximo}{?}            % resultados/evidencia_particion.json: sin_estratificar.maximo_pct, el mayor (D-02)
-\newcommand{\pctYesTrainTemporal}{?}                        % resultados/evidencia_particion.json: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03)
-\newcommand{\pctYesTestTemporal}{?}                         % resultados/evidencia_particion.json: temporal.pct_yes_test, el del test (D-03)
+\newcommand{\semillasSinEstratificar}{400}                  % resultados/evidencia_particion.json: n_semillas, las particiones sin estratificar (D-02)
+\newcommand{\desvioPctYesTestSinEstratificar}{0{,}31}       % resultados/evidencia_particion.json: sin_estratificar.desvio_pp, el desvío del % de «yes» del test entre semillas, en puntos porcentuales (D-02)
+\newcommand{\pctYesTestSinEstratificarMinimo}{10{,}4\,\%}   % resultados/evidencia_particion.json: sin_estratificar.minimo_pct, el menor % de «yes» del test entre semillas (D-02)
+\newcommand{\pctYesTestSinEstratificarMaximo}{12{,}1\,\%}   % resultados/evidencia_particion.json: sin_estratificar.maximo_pct, el mayor (D-02)
+\newcommand{\pctYesTrainTemporal}{6{,}4\,\%}                % resultados/evidencia_particion.json: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03)
+\newcommand{\pctYesTestTemporal}{30{,}8\,\%}                % resultados/evidencia_particion.json: temporal.pct_yes_test, el del test (D-03)
 
 % --- Slide 4 · EDA: la duración es fuga ------------------------------------------------------------
 \newcommand{\durationDecilCorto}{59}                        % train (cargar_train()): duration, borde superior del primer decil (s)
@@ -335,10 +335,10 @@
 \newcommand{\aucKnnOchocientosUno}{0{,}784}                 % resultados/curvas/knn_n_neighbors_uniform.csv: punto 801, validacion, auc, media
 \newcommand{\aucTrainKnnUno}{0{,}988}                       % resultados/curvas/knn_n_neighbors_uniform.csv: punto 1, train, auc, media
 \newcommand{\brechaKnnUno}{0{,}369}                         % resultados/curvas/knn_n_neighbors_uniform.csv: punto 1, train − validación
-\newcommand{\vecinosKnnDistancia}{201}                      % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.valor (weights = distance)
-\newcommand{\aucKnnDistancia}{0{,}769}                      % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.auc_validacion_media
-\newcommand{\aucTrainKnnDistancia}{1{,}000}                 % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.auc_train_media
-\newcommand{\brechaKnnDistancia}{0{,}231}                   % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.brecha
+\newcommand{\vecinosKnnDistancia}{801}                      % resultados/curvas/knn_n_neighbors_distance.csv: el punto que elige D-22 sobre la curva (src/curvas.py, elegir_punto; weights = distance), n_neighbors
+\newcommand{\aucKnnDistancia}{0{,}770}                      % resultados/curvas/knn_n_neighbors_distance.csv: el punto que elige D-22 sobre la curva (src/curvas.py, elegir_punto; weights = distance), validacion, auc, media
+\newcommand{\aucTrainKnnDistancia}{1{,}000}                 % resultados/curvas/knn_n_neighbors_distance.csv: el punto que elige D-22 sobre la curva (src/curvas.py, elegir_punto; weights = distance), train, auc, media
+\newcommand{\brechaKnnDistancia}{0{,}230}                   % resultados/curvas/knn_n_neighbors_distance.csv: el punto que elige D-22 sobre la curva (src/curvas.py, elegir_punto; weights = distance), train − validación
 
 % --- Slide 12 · Curva de la SVM --------------------------------------------------------------------
 \newcommand{\cSvm}{0{,}001}                                 % resultados/cv_final_resumen.csv: svm, configuracion, C

@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.configuracion import HIPERPARAMETROS_FINALES
 from src.curvas import main as cli
 from src.curvas import (
     COLUMNAS,
@@ -31,7 +32,7 @@ from src.curvas import (
     registrar_omitidos,
 )
 from src.metricas import METRICAS
-from src.modelos import crear_modelo
+from src.modelos import REFERENCIA, crear_modelo
 from src.resultados import CAMPOS, con_identidad, escribir_largo
 from src.validacion import K
 
@@ -224,8 +225,8 @@ def test_elegir_por_modelo_con_tipos_listos_para_crear_modelo():
     # RF pesos_clase: None 0,793 y balanced 0,790, d = 0,01. Los dos quedan dentro de 1 ES
     # (umbral 0,78593), pero no hay orden de simplicidad: gana None, la mayor media.
     # RF max_depth: 6 con 0,780 y None con 0,795, d = 0,001 (ES = 0,000707); sólo None queda
-    # dentro. Cada curva de RF se midió sin el parámetro de la otra, que vale None por omisión, así
-    # que ninguna genera aviso.
+    # dentro. Cada curva de RF se midió sin el parámetro de la otra, que vale None por omisión con
+    # la vigente fijada a la referencia (main()), así que ninguna genera aviso.
     # SVM: C elige 1 (el caso de «gana el máximo»); kernel lineal 0,795, poly 0,770 y RBF 0,790,
     # d = 0,01: gana el lineal, la mayor media, y el modelo lleva implementacion = liblinear. La
     # curva de C se midió con RBF: es el único aviso.
@@ -285,6 +286,14 @@ def test_ayuda():
 
 
 def main():
+    # Las curvas sintéticas se arman sobre la referencia de cada modelo, así que la configuración
+    # vigente se fija a esa referencia, como en tests/test_seleccion.py. Si no, un hiperparámetro
+    # elegido en la ola 4 (max_depth = 8 en RF) entraría en cada punto por
+    # hiperparametros_del_punto y en la configuración final de --elegir, y el caso de «por modelo»
+    # tendría un aviso que no espera. src.curvas usa este mismo diccionario, así que se cambia su
+    # contenido y no el nombre.
+    HIPERPARAMETROS_FINALES.clear()
+    HIPERPARAMETROS_FINALES.update({m: dict(v) for m, v in REFERENCIA.items()})
     test_interpreta_valores_y_fijos()
     test_kernel_lineal_usa_liblinear()
     test_rapido_recorta_grillas_y_arboles()

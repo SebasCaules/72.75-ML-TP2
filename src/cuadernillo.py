@@ -12,7 +12,9 @@ Lee, sin modificarlos:
   ensayo (los párrafos sueltos), el texto que se dice (las líneas que empiezan con «>», con sus
   [→]) y el bloque «#### A aclarar». También «Los 10 minutos de preguntas» y el «Reloj de ensayo».
 - informe/resultados-test.tex, sólo para saber si el test ya se evaluó (\testpendientetrue): en
-  las slides con dos variantes habladas va primero la que corresponde a la imagen.
+  las slides con dos variantes habladas va primero la que corresponde a la imagen, con el párrafo
+  del guion que la presenta completo (dice hasta cuándo vale y qué muestra la imagen), y la otra
+  debajo, en gris.
 
 CÓMO SE ELIGE LA PÁGINA FINAL DE CADA FRAME. Cada página del deck lleva al pie su número de slide:
 «n/N» en la charla y «Rn/M» en el respaldo (\indicediapo en presentacion.tex, también en la
@@ -27,16 +29,25 @@ un frame con [noframenumbering] repetiría el número del anterior y se fundirí
 usa esa opción.
 
 El PDF se compone con LuaLaTeX, con la tipografía y la paleta del deck (Fira Sans; src/estilo.py),
-en un directorio temporal: el .log se lee, y sus avisos se muestran, antes de borrarlo. Con
---conservar DIR, el .tex, las imágenes y los auxiliares quedan en DIR.
+en un directorio temporal: el .log se lee, y sus avisos se muestran, antes de borrarlo. LuaLaTeX
+corre hasta que el .log deja de pedir otra pasada («Rerun to get…», «Label(s) may have changed»):
+dos veces, si todo converge, y tres como máximo. Con --conservar DIR, el .tex, las imágenes y los
+auxiliares quedan en DIR.
 
 Contenido: una portada con el grupo, la fecha de la defensa y el reloj total; el reloj de ensayo
 del guion (tabla, puntos de control y orden de recorte); una página por slide, con la imagen en su
 estado final, la ventana de reloj, quién habla, las indicaciones en gris cursiva, el texto hablado
-con sus [→] y «A aclarar»; el respaldo; y el banco de preguntas al final. Cada slide ocupa
-exactamente una página: si su texto es largo, la imagen se achica y, si hace falta, la letra. Si
-el guion y el deck no coinciden (una slide sin texto o sin imagen, [→] que no son los pasos del
-PDF, el mapa de páginas del guion desactualizado), se avisa en la salida y en la página afectada.
+con sus [→] y «A aclarar» (sin justificar); el respaldo; y el banco de preguntas al final, a dos
+columnas, con cada pregunta en una pieza que no se corta entre columnas ni entre páginas.
+
+Cada slide ocupa exactamente una página. La imagen va a todo el ancho de la caja de texto mientras
+el texto le deje lugar, aunque para eso haya que cerrar hasta 8 pt las separaciones; si no, se
+achica exactamente lo que falta (el alto de la página se mide, no se estima) y, por debajo del
+62 % de su alto, se achica también la letra. La salida dice qué slides quedaron con la imagen más
+angosta y a qué porcentaje del ancho; una página que ni así entra sale en el .log como «Overfull
+\vbox». Si el guion y el deck no coinciden (una slide sin texto o sin imagen, [→] que no son los
+pasos del PDF, el mapa de páginas del guion desactualizado), se avisa en la salida y en la página
+afectada.
 """
 
 import argparse
@@ -757,10 +768,18 @@ PREAMBULO = r"""\documentclass[11pt,a4paper]{article}
   partopsep=0pt}
 
 % LA PÁGINA DE UNA SLIDE. El encabezado (\cabeza) y el texto (\cuerpo) se componen primero en
-% cajas para medirlos, y la imagen (\laimagen) toma el alto que queda, sin pasar del ancho de la
-% caja de texto. Si le quedaría menos del 62 % del alto que tiene a todo el ancho, el texto se
-% vuelve a componer un punto más pequeño (\tamano = 1); por debajo del 45 %, la página se desborda
-% y el .log lo avisa. Todo va en una caja del alto exacto de la página: una slide nunca ocupa dos.
+% cajas; con ellas, la página entera se compone una vez con la imagen (\laimagen) a todo el ancho de
+% la caja de texto, y se mide su alto natural. Si no entra en \textheight, primero se cierran las
+% dos separaciones (hasta \encogible, 8 pt entre las dos) y, si aun así falta, la imagen se achica
+% exactamente lo que falta: nunca más ancha que la caja de texto, ni más angosta de lo necesario.
+% Si le quedaría menos del 62 % del alto que tiene a todo el ancho, el texto se vuelve a componer un
+% punto más pequeño (\tamano = 1); por debajo del 45 %, la imagen se queda en el 45 % y la página se
+% desborda. La caja es de alto fijo y su único relleno (\vfill) estira pero no encoge, así que un
+% desborde de más de \vfuzz sale en el .log como «Overfull \vbox». Una slide nunca ocupa dos
+% páginas, y la línea «cuadernillo: slide …» del .log dice cómo quedó cada imagen. Entre la imagen
+% y el texto no va interlineado (\nointerlineskip), sólo \sepimagen: cuando la caja del texto
+% empieza con un \color (una indicación en gris), su alto es 0, y TeX agregaba ahí hasta 13 pt de
+% interlineado que ninguna cuenta veía.
 \newcount\tamano
 \newcommand{\fuentedicho}{\ifcase\tamano\normalsize\else\small\fi}
 \newcommand{\fuentenota}{\ifcase\tamano\small\else\footnotesize\fi}
@@ -770,29 +789,39 @@ PREAMBULO = r"""\documentclass[11pt,a4paper]{article}
 \newcommand{\laimagen}{}
 \newsavebox{\cajacabeza}
 \newsavebox{\cajacuerpo}
+\newsavebox{\cajapagina}
 \newlength{\anchoimagen}
 \newlength{\altomaximo}
 \newlength{\altoimagen}
-\newlength{\sepcabeza}\setlength{\sepcabeza}{7pt}
-\newlength{\sepimagen}\setlength{\sepimagen}{9pt}
-\newcommand{\medircuerpo}{%
-  \sbox{\cajacuerpo}{\begin{minipage}[t]{\textwidth}\cuerpo\end{minipage}}%
-  \setlength{\altoimagen}{\dimexpr\textheight-\ht\cajacabeza-\dp\cajacabeza-\ht\cajacuerpo
-    -\dp\cajacuerpo-\sepcabeza-\sepimagen-2\fboxrule-8pt\relax}}
-\newcommand{\paginaslide}{%
+\newlength{\sepcabeza}\setlength{\sepcabeza}{7pt minus 3pt}
+\newlength{\sepimagen}\setlength{\sepimagen}{12pt minus 5pt}
+\newlength{\encogible}
+\setlength{\encogible}{\dimexpr\glueshrink\sepcabeza+\glueshrink\sepimagen\relax}
+\newcommand{\componerpagina}{%
+  \usebox{\cajacabeza}\par\vspace{\sepcabeza}%
+  {\centering\laimagen\par}%
+  \vspace{\sepimagen}\nointerlineskip
+  \usebox{\cajacuerpo}\par}
+% El espacio que cierra el último bloque (\vspace, el \topsep de una lista) quedaría al pie de la
+% página sin verse; se recorta para que lo aproveche la imagen.
+\newcommand{\recortarfinal}{\par\unskip\unpenalty\unskip\unpenalty\unskip\unpenalty\unskip}
+\newcommand{\medirpagina}{%
+  \sbox{\cajacuerpo}{\begin{minipage}[t]{\textwidth}\cuerpo\recortarfinal\end{minipage}}%
+  \setlength{\altoimagen}{\altomaximo}%
+  \setbox\cajapagina=\vbox{\componerpagina}%
+  \setlength{\altoimagen}{\dimexpr\textheight+\encogible+\altomaximo-\ht\cajapagina
+    -\dp\cajapagina\relax}%
+  \ifdim\altoimagen>\altomaximo\setlength{\altoimagen}{\altomaximo}\fi}
+\newcommand{\paginaslide}[1]{%
   \setlength{\anchoimagen}{\dimexpr\textwidth-2\fboxrule\relax}%
   \setlength{\altomaximo}{\dimexpr\anchoimagen*<<ALTO_PX>>/<<ANCHO_PX>>\relax}%
   \sbox{\cajacabeza}{\begin{minipage}[t]{\textwidth}\cabeza\end{minipage}}%
-  \tamano=0 \medircuerpo
-  \ifdim\altoimagen<0.62\altomaximo\tamano=1 \medircuerpo\fi
+  \tamano=0 \medirpagina
+  \ifdim\altoimagen<0.62\altomaximo\tamano=1 \medirpagina\fi
   \ifdim\altoimagen<0.45\altomaximo\setlength{\altoimagen}{0.45\altomaximo}\fi
-  \ifdim\altoimagen>\altomaximo\setlength{\altoimagen}{\altomaximo}\fi
-  \noindent\begin{minipage}[b][\textheight][t]{\textwidth}%
-    \usebox{\cajacabeza}\par\vspace{\sepcabeza}%
-    {\centering\laimagen\par}%
-    \vspace{\sepimagen}%
-    \usebox{\cajacuerpo}\par
-  \end{minipage}}
+  \typeout{cuadernillo: slide #1, imagen \the\altoimagen\space de \the\altomaximo,
+    letra \the\tamano}%
+  \vbox to\textheight{\componerpagina\vfill}}
 \newcommand{\imagenslide}[1]{\fcolorbox{rejilla}{white}{%
   \includegraphics[width=\anchoimagen,height=\altoimagen,keepaspectratio]{#1}}}
 \newcommand{\sinimagen}[1]{\fcolorbox{rejilla}{rejilla!25}{%
@@ -802,17 +831,22 @@ PREAMBULO = r"""\documentclass[11pt,a4paper]{article}
 \newcommand{\aviso}[1]{{\small\color{naranja}\textbf{Aviso:} #1\par}}
 \newcommand{\nota}[1]{{\fuentenota\itshape\color{tintasec}#1\par}\vspace{4pt}}
 \newcommand{\dicho}[1]{{\fuentedicho #1\par}\vspace{3pt}}
-\newcommand{\rotulovariante}[1]{{\fuentenota\color{naranja}\etiqueta{#1}\par}\vspace{1pt}}
+\newcommand{\rotulovariante}[1]{{\fuentenota\color{naranja}#1\par}\vspace{1pt}}
 \newcommand{\variante}[2]{\vspace{1pt}{\fuentenota\color{apagado}\leftskip=1em
   \textit{#1}\par\vspace{1pt}#2\par}\vspace{4pt}}
 \newcommand{\aclarar}[1]{\vspace{4pt}{\color{rejilla}\rule{\linewidth}{0.6pt}}\par\vspace{3pt}%
   {\fuenteaclarar\bfseries\color{azuloscuro}\etiqueta{#1}\par}\vspace{1pt}}
 
-% EL BANCO DE PREGUNTAS, a dos columnas, como en el cuadernillo del TP1.
-\newcommand{\grupopreguntas}[1]{\par\vspace{7pt}{\footnotesize\bfseries\color{azul}\etiqueta{#1}\par}
-  \nopagebreak\vspace{1pt}}
-\newcommand{\pregunta}[3]{\par\vspace{5pt}{\small\bfseries\color{azuloscuro}#1\par}\nopagebreak
-  {\footnotesize\color{apagado}#2\par}\nopagebreak\vspace{1pt}{\small #3\par}}
+% EL BANCO DE PREGUNTAS, a dos columnas, como en el cuadernillo del TP1. Cada pregunta es una pieza
+% (\begin{pieza}…\end{pieza}, una minipage del ancho de la columna) que multicols no puede cortar:
+% el título nunca queda al pie de una columna con la respuesta en la siguiente, ni la respuesta
+% partida en dos. El título de un grupo entra en la pieza de su primer elemento. Un \nopagebreak
+% entre párrafos no alcanzaba: el \color en modo vertical deja un nodo que habilita el corte.
+\newenvironment{pieza}[1]{\par\vspace{#1}\noindent\begin{minipage}[b]{\linewidth}}
+  {\end{minipage}\par}
+\newcommand{\grupopreguntas}[1]{{\footnotesize\bfseries\color{azul}\etiqueta{#1}\par}\vspace{6pt}}
+\newcommand{\pregunta}[3]{{\small\bfseries\color{azuloscuro}#1\par}
+  {\footnotesize\color{apagado}#2\par}\vspace{1pt}{\small #3\par}}
 
 % LAS PORTADAS DE SECCIÓN (reloj, respaldo, preguntas).
 \newcommand{\titulo}[1]{{\LARGE\bfseries\color{azuloscuro}#1\par}\vspace{6pt}}
@@ -949,6 +983,27 @@ def _segmentos(d, separador):
                           for i, segmento in enumerate(d.segmentos) if i > 0 or segmento)
 
 
+# En el guion, la variante del test cerrado va después de la de la defensa y su párrafo dice «…, en
+# lugar de lo anterior:». Si el cuadernillo la adelanta, lo que reemplaza queda debajo, en gris.
+_LO_ANTERIOR = re.compile(r"\ben lugar de lo anterior\b")
+
+
+def rotulo_de_variante(etiqueta, adelantada=False):
+    """El párrafo del guion que presenta una variante, completo, en LaTeX.
+
+    Su negrita inicial, si la tiene, va como rótulo en mayúsculas espaciadas; el resto del párrafo
+    sigue en la misma línea, tal cual, porque suele decir hasta cuándo vale la variante y qué
+    muestra la imagen. `adelantada`: la variante va antes que la que en el guion la precede, así que
+    su «en lugar de lo anterior» pasa a apuntar a la de abajo.
+    """
+    if adelantada:
+        etiqueta = _LO_ANTERIOR.sub("en lugar de la variante de abajo, en gris", etiqueta)
+    m = _NEGRITA.match(etiqueta)
+    if not m:
+        return en_linea(etiqueta)
+    return r"\etiqueta{" + en_linea(texto_plano(m.group(1))) + "}" + en_linea(etiqueta[m.end():])
+
+
 def _cuerpo(pagina, test_pendiente):
     s = pagina.slide
     if s is None:
@@ -963,12 +1018,12 @@ def _cuerpo(pagina, test_pendiente):
                           + r"\par}\vspace{3pt}")
         elif tipo == "dicho" and not dicho_puesto:
             # Todas las variantes van donde estaba la primera: la principal adelante y las otras,
-            # en gris, debajo, con el párrafo que las presenta.
+            # en gris, debajo, cada una con el párrafo que la presenta, completo.
             dicho_puesto = True
             if otras and principal.etiqueta:
-                negrita = _NEGRITA.search(principal.etiqueta)
-                rotulo = negrita.group(1) if negrita else principal.etiqueta
-                partes.append(r"\rotulovariante{" + en_linea(texto_plano(rotulo)) + "}")
+                adelantada = next(i for i, d in enumerate(s.dichos) if d is principal) > 0
+                partes.append(r"\rotulovariante{"
+                              + rotulo_de_variante(principal.etiqueta, adelantada) + "}")
             partes.append(r"\dicho{" + _segmentos(principal, r"}" + "\n" + r"\dicho{") + "}")
             for otra in otras:
                 etiqueta = (en_linea(otra.etiqueta) if otra.etiqueta
@@ -979,7 +1034,10 @@ def _cuerpo(pagina, test_pendiente):
         if _normalizar(titulo) == "a aclarar":
             titulo = "A aclarar · preguntas probables"
         partes.append(r"\aclarar{" + en_linea(titulo) + "}")
-        partes.append(r"{\fuenteaclarar " + latex_de_bloques(bloques_md(s.aclarar)) + r"\par}")
+        # Sin justificar: en letra pequeña, con `código` y cifras largas, la justificación estiraba
+        # algunas líneas hasta el «Underfull \hbox (badness 10000)».
+        partes.append(r"{\fuenteaclarar\raggedright " + latex_de_bloques(bloques_md(s.aclarar))
+                      + r"\par}")
     return "\n".join(partes)
 
 
@@ -998,7 +1056,7 @@ def latex_slide(pagina, total, guion, test_pendiente, primera=False):
         r"\renewcommand{\cabeza}{" + _cabeza(pagina, guion, test_pendiente) + "}",
         r"\renewcommand{\cuerpo}{" + _cuerpo(pagina, test_pendiente) + "}",
         r"\renewcommand{\laimagen}{" + imagen + "}",
-        r"\paginaslide",
+        r"\paginaslide{" + str(pagina.numero) + "}",
     ] if linea)
 
 
@@ -1159,16 +1217,24 @@ def latex_preguntas(guion, diferencias_mapa):
                       + escapar(detalle) + ".}")
     partes.append(r"\vspace{4pt}\raggedcolumns\begin{multicols}{2}")
     for i, grupo in enumerate(guion.grupos, start=1):
+        # El marcador y el título del grupo van dentro de la pieza de su primer elemento: así no
+        # quedan solos al pie de una columna.
+        cabecera = ""
         if grupo.titulo:
-            partes.append(rf"\pdfbookmark[1]{{{escapar(texto_plano(grupo.titulo))}}}{{grupo-{i}}}")
-            partes.append(r"\grupopreguntas{" + en_linea(grupo.titulo) + "}")
-        for e in grupo.elementos:
+            cabecera = (rf"\pdfbookmark[1]{{{escapar(texto_plano(grupo.titulo))}}}{{grupo-{i}}}"
+                        + r"\grupopreguntas{" + en_linea(grupo.titulo) + "}\n")
+        for e in grupo.elementos or [None]:
             if isinstance(e, Pregunta):
-                partes.append(r"\pregunta{" + f"{e.numero}. " + en_linea(e.pregunta) + "}{"
-                              + (en_linea(f"[{e.etiqueta}]") if e.etiqueta else "") + "}{"
-                              + en_linea(e.respuesta) + "}")
+                contenido = (r"\pregunta{" + f"{e.numero}. " + en_linea(e.pregunta) + "}{"
+                             + (en_linea(f"[{e.etiqueta}]") if e.etiqueta else "") + "}{"
+                             + en_linea(e.respuesta) + "}")
+            elif e is not None:
+                contenido = r"{\small " + latex_de_bloques([e]) + r"\par}"
             else:
-                partes.append(r"{\small " + latex_de_bloques([e]) + r"\par}")
+                contenido = ""
+            partes.append(r"\begin{pieza}{" + ("9pt" if cabecera else "6pt") + "}\n" + cabecera
+                          + contenido + "\n" + r"\end{pieza}")
+            cabecera = ""
     partes += [r"\end{multicols}", r"\label{fin}"]
     return "\n".join(partes)
 
@@ -1204,15 +1270,47 @@ def documento(guion, meta, frames, paginas, test_pendiente, diferencias_mapa, ta
 # Compilar y revisar
 # =================================================================================================
 
-RELEER = re.compile(r"Rerun to get|Label\(s\) may have changed|Rerun LaTeX|rerunfilecheck")
-AVISOS_LOG = re.compile(r"^(Overfull \\[hv]box.*|Underfull \\vbox.*|Missing character: .*"
+# Los avisos con los que LaTeX pide otra pasada: el del núcleo («Label(s) may have changed. Rerun to
+# get cross-references right»), el de rerunfilecheck para los marcadores («Rerun to get outlines
+# right»), el de hyperref («Rerun to get /PageLabels entry») y el de longtable («Rerun LaTeX»). No
+# se busca el nombre del paquete: «rerunfilecheck» está en todo .log de hyperref, en la línea que
+# lo carga y en «File `….out' has not changed», y con él la compilación nunca paraba antes de la
+# tercera pasada. \s+ entre palabras: el .log corta las líneas largas.
+RELEER = re.compile(r"Rerun\s+to\s+get|Label\(s\)\s+may\s+have\s+changed|Rerun\s+LaTeX")
+# Los underfull \hbox se muestran desde badness 10000, el máximo que TeX informa: una línea tan
+# estirada que se ve. Los de menos quedan fuera: la justificación a dos columnas los produce sin
+# que se noten.
+AVISOS_LOG = re.compile(r"^(Overfull \\[hv]box.*|Underfull \\vbox.*"
+                        r"|Underfull \\hbox \(badness [1-9]\d{4,}\).*|Missing character: .*"
                         r"|LaTeX(?: Font)? Warning: .*|Package \S+ Warning: .*"
                         r"|pdfTeX warning.*|luaotfload.*warning.*)$", re.M | re.I)
 ETIQUETA_AUX = re.compile(r"\\newlabel\{([^}]*)\}\{\{[^}]*\}\{(\d+)\}")
+IMAGEN_LOG = re.compile(r"^cuadernillo: slide (\d+), imagen ([\d.]+)pt de ([\d.]+)pt, "
+                        r"letra (\d+)\s*$", re.M)
+ANCHO_COMPLETO = 0.9995   # desde aquí, la imagen va a todo el ancho (el resto es redondeo)
+
+
+def pide_otra_pasada(log):
+    """True si el .log de una pasada de LaTeX pide otra: cambió una etiqueta o los marcadores."""
+    return RELEER.search(log) is not None
+
+
+def imagenes_del_log(log):
+    """{slide: (fracción del ancho, letra)} de las líneas «cuadernillo: slide …» del .log.
+
+    La imagen conserva su proporción, así que la fracción del alto es la del ancho. `letra` es 0
+    con la letra normal y 1 si el texto se compuso un punto más pequeño.
+    """
+    return {int(n): (float(alto) / float(maximo), int(letra))
+            for n, alto, maximo, letra in IMAGEN_LOG.findall(log)}
 
 
 def compilar(tex, directorio, motor=MOTOR):
-    """Compila cuadernillo.tex en `directorio` hasta que no pida otra pasada. (pdf, .log)."""
+    """Compila cuadernillo.tex en `directorio` hasta que no pida otra pasada.
+
+    Devuelve (pdf, .log de la última pasada, pasadas): dos, si todo converge; CORRIDAS_MAXIMAS
+    como mucho.
+    """
     fuente = Path(directorio) / "cuadernillo.tex"
     fuente.write_text(tex, encoding="utf-8")
     log = ""
@@ -1233,9 +1331,9 @@ def compilar(tex, directorio, motor=MOTOR):
                        if linea.startswith("!") or re.match(r"^\S+\.tex:\d+:", linea)]
             raise ErrorCuadernillo(f"{motor} falló en la pasada {corrida}:\n"
                                    + "\n".join((errores or log.splitlines()[-25:])[:15]))
-        if corrida >= 2 and not RELEER.search(log):
+        if corrida >= 2 and not pide_otra_pasada(log):
             break
-    return fuente.with_suffix(".pdf"), log
+    return fuente.with_suffix(".pdf"), log, corrida
 
 
 def revisar_log(log):
@@ -1281,6 +1379,23 @@ class Resultado:
     test_pendiente: bool | None
     avisos: list[str]            # del guion contra el deck
     avisos_log: list[str]        # del .log de LuaLaTeX y de la estructura del resultado
+    corridas: int = 0            # pasadas de LuaLaTeX hasta que el .log dejó de pedir otra
+    imagenes: dict = field(default_factory=dict)   # slide → (fracción del ancho, letra)
+
+
+def resumen_de_imagenes(imagenes):
+    """Una línea: qué slides quedaron con la imagen más angosta que la caja de texto, y cuánto."""
+    if not imagenes:
+        return "Imágenes: el .log no dice cómo quedaron."
+    achicadas = [(n, fraccion, letra) for n, (fraccion, letra) in sorted(imagenes.items())
+                 if fraccion < ANCHO_COMPLETO or letra]
+    if not achicadas:
+        return f"Imágenes: las {len(imagenes)} a todo el ancho de la caja de texto."
+    detalle = _enumerar(f"la de la slide {n} va al {_decimal(100 * fraccion)} % del ancho"
+                        + (", con la letra un punto más pequeña" if letra else "")
+                        for n, fraccion, letra in achicadas)
+    return (f"Imágenes: {len(imagenes) - len(achicadas)} de {len(imagenes)} a todo el ancho de la "
+            f"caja de texto; por el largo del texto, {detalle}.")
 
 
 def generar(presentacion=PRESENTACION, guion=GUION, salida=SALIDA, resultados_test=RESULTADOS_TEST,
@@ -1321,8 +1436,12 @@ def generar(presentacion=PRESENTACION, guion=GUION, salida=SALIDA, resultados_te
         imagenes = renderizar_varias(presentacion, pedidos, dpi)
         tamano = tamano_png(imagenes[0]) if imagenes else (16, 9)
         tex = documento(g, meta, frames, paginas, test_pendiente, diferencias, tamano, ahora)
-        pdf, log = compilar(tex, directorio)
+        pdf, log, corridas = compilar(tex, directorio)
         avisos_log = revisar_log(log)
+        if pide_otra_pasada(log):
+            avisos_log.append(f"{MOTOR} sigue pidiendo otra pasada después de {corridas}: los "
+                              "marcadores o las etiquetas pueden haber quedado desfasados.")
+        imagenes_slides = imagenes_del_log(log)
         aux = pdf.with_suffix(".aux")
         etiquetas = paginas_de_etiquetas(aux.read_text(encoding="utf-8", errors="replace")
                                          if aux.exists() else "")
@@ -1333,7 +1452,7 @@ def generar(presentacion=PRESENTACION, guion=GUION, salida=SALIDA, resultados_te
         shutil.copyfile(pdf, parcial)
         os.replace(parcial, salida)
     return Resultado(salida, paginas_salida, g, frames, paginas_deck, paginas, etiquetas,
-                     test_pendiente, avisos, avisos_log)
+                     test_pendiente, avisos, avisos_log, corridas, imagenes_slides)
 
 
 # =================================================================================================
@@ -1382,7 +1501,9 @@ def _mostrar(r, presentacion, guion):
     print("Avisos del guion contra el deck: " + ("ninguno." if not r.avisos else ""))
     for a in r.avisos:
         print(f"  - {a}")
-    print(f".log de {MOTOR} y estructura: " + ("sin avisos." if not r.avisos_log else ""))
+    print(resumen_de_imagenes(r.imagenes))
+    print(f".log de {MOTOR} ({r.corridas} {'pasada' if r.corridas == 1 else 'pasadas'}) y "
+          "estructura: " + ("sin avisos." if not r.avisos_log else ""))
     for a in r.avisos_log:
         print(f"  - {a}")
     print(f"Escrito: {_relativa(r.salida)}, {r.paginas} páginas ({_secciones_del_resultado(r)}).")

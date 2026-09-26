@@ -28,11 +28,14 @@ from src.ablaciones import VARIANTES
 from src.datos import RAIZ, cargar_train
 from src.eda_html import analizar, leer_names
 from src.evaluar_test import MACROS as MACROS_TEST
-from src.evaluar_test import N_BOOTSTRAP, N_TEST
+from src.evaluar_test import N_BOOTSTRAP, N_TEST, renderizar_tex
+from src.evidencia_particion import escribir as escribir_evidencia
+from src.evidencia_particion import evidencia
 from src.metricas import METRICAS, llamadas
 from src.numeros import (
     DEFINICION_MENOS,
     DESCONOCIDO,
+    EVIDENCIA_PARTICION,
     MENOS,
     PERMITIDOS,
     RUTA_RESULTADOS_TEST,
@@ -143,8 +146,10 @@ def test_formato_espanol_con_casos_a_mano():
     assert a_texto(r"11{,}3\,\%") == "11,3 %"
     assert a_texto(r"\signoMenos 0{,}028") == "\N{MINUS SIGN}0,028"
     assert a_texto(r"1\,234{,}5") == "1 234,5"
+    # Los intervalos de informe/resultados-test.tex llevan la raya de LaTeX.
+    assert a_texto("0{,}812--0{,}834") == "0,812\N{EN DASH}0,834"
     print("ok  formato español: 0{,}795, 11{,}3\\,\\%, 32\\,940, +0{,}170 y \\signoMenos 0{,}0012; "
-          "en el guion, 0,795, 11,3 %, 32 940 y −0,028")
+          "en el guion, 0,795, 11,3 %, 32 940, −0,028 y el intervalo 0,812–0,834")
 
 
 def test_los_macros_se_leen_igual_en_texto_y_en_modo_matematico():
@@ -395,6 +400,16 @@ def test_el_verificador_detecta_numeros_tipeados():
           "que la primera versión dejaba pasar; --permitir lo amplía")
 
 
+def _resultados_test_a_verificar(carpeta):
+    """Los resultados-test.tex que se verifican: los marcadores que escribe
+    src/evaluar_test.py --marcadores, generados en `carpeta` con el nombre de siempre (--verificar
+    reconoce por el nombre los macros generados), y además informe/resultados-test.tex si existe.
+    El clon de entrega no trae informe/ (src/entregar.py): ahí se verifican sólo los marcadores."""
+    marcadores = Path(carpeta) / RUTA_RESULTADOS_TEST.name
+    marcadores.write_text(renderizar_tex(None), encoding="utf-8")
+    return [marcadores] + ([RUTA_RESULTADOS_TEST] if RUTA_RESULTADOS_TEST.exists() else [])
+
+
 def test_el_verificador_sin_preambulo_y_en_los_macros_generados():
     # Un fragmento sin \begin{document} se lee entero, salvo comentarios.
     fragmento = "\\newcommand{\\x}{0,79}\n% 0,79\n\\x y 0,79"
@@ -403,9 +418,13 @@ def test_el_verificador_sin_preambulo_y_en_los_macros_generados():
     # Un tikzpicture sin cerrar oculta su sintaxis hasta el final, sin fallar; su nodo se lee.
     assert numeros_a_mano("\\begin{tikzpicture}\n\\draw (0,0) -- (3,4);\n\\node at (1,2) {32};") \
         == [(3, "32")]
-    assert numeros_a_mano(RUTA_RESULTADOS_TEST.read_text(encoding="utf-8"), generado=True) == []
-    print("ok  un fragmento sin preámbulo se lee entero; informe/resultados-test.tex no tiene "
-          "números a mano")
+    with tempfile.TemporaryDirectory() as tmp:
+        rutas = _resultados_test_a_verificar(tmp)
+        for ruta in rutas:
+            assert numeros_a_mano(ruta.read_text(encoding="utf-8"), generado=True) == [], ruta
+    print("ok  un fragmento sin preámbulo se lee entero; los marcadores de resultados-test.tex"
+          + (" e informe/resultados-test.tex no tienen" if len(rutas) > 1 else " no tienen (sin "
+             "informe/, como en el clon de entrega)") + " números a mano")
 
 
 def _verificar_cli(*argumentos):
@@ -430,7 +449,8 @@ def test_cli_verificar_da_archivo_linea_y_codigo():
         assert _verificar_cli(tmp / "deck.tex", "--permitir", r"\b0,79\b")[0] == 0
         # Los macros generados se verifican solos: sus definiciones no cuentan.
         assert _verificar_cli(tmp / "numeros.tex")[0] == 0
-        assert _verificar_cli(RUTA_RESULTADOS_TEST)[0] == 0
+        for ruta in _resultados_test_a_verificar(tmp):
+            assert _verificar_cli(ruta)[0] == 0, ruta
 
         # Dos niveles de \input, cada uno relativo a la carpeta del .tex raíz, como en LaTeX.
         secciones = tmp / "v" / "secciones"
@@ -572,6 +592,32 @@ def test_con_la_evaluacion_de_test_y_la_evidencia_de_la_particion_se_derivan_sus
           "11,3 %, +0,011 y +0,140; 400 semillas, 0,31 pp, 10,4 % a 12,1 %, 6,4 % y 30,8 %")
 
 
+def test_evidencia_particion_escribe_el_archivo_que_se_lee_aqui():
+    """src/evidencia_particion.py escribe el JSON con el contrato que lee generar(). Un dataset
+    sintético de 1 000 filas con 100 «yes»: 60 en las 800 primeras y 40 en las 200 últimas, así
+    que la partición temporal da 7,5 % en train (60 / 800) y 20,0 % en test (40 / 200). Las
+    cifras sin estratificar dependen del sorteo: se comparan con las que calculó el módulo."""
+    df = pd.DataFrame({"y": ["yes"] * 60 + ["no"] * 740 + ["yes"] * 40 + ["no"] * 160})
+    datos = evidencia(df, n_semillas=20)
+    assert abs(datos["temporal"]["pct_yes_train"] - 7.5) < 1e-9
+    assert abs(datos["temporal"]["pct_yes_test"] - 20.0) < 1e-9
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        escribir_evidencia(tmp / EVIDENCIA_PARTICION, datos)
+        muestra = cargar_train().iloc[::8].reset_index(drop=True)
+        generado = generar(Fuentes(tmp, train=muestra, resultados_test=tmp / "no.tex"))
+    v, s = generado.valores, datos["sin_estratificar"]
+    assert v["semillasSinEstratificar"] == "20"
+    assert v["desvioPctYesTestSinEstratificar"] == formatear_decimal(s["desvio_pp"], 2)
+    assert v["pctYesTestSinEstratificarMinimo"] == formatear_porcentaje(s["minimo_pct"])
+    assert v["pctYesTestSinEstratificarMaximo"] == formatear_porcentaje(s["maximo_pct"])
+    assert v["pctYesTrainTemporal"] == r"7{,}5\,\%" and v["pctYesTestTemporal"] == r"20{,}0\,\%"
+    assert f"resultados/{EVIDENCIA_PARTICION}" not in generado.faltan
+    print("ok  src/evidencia_particion.py escribe el JSON que se lee aquí: con 60 «yes» en las "
+          "800 primeras filas y 40 en las 200 últimas, la partición temporal da 7,5 % y 20,0 %, y "
+          "los seis macros de D-02 y D-03 dejan de valer «?»")
+
+
 def test_sin_ningun_resultado_no_falla():
     with tempfile.TemporaryDirectory() as tmp:
         muestra = cargar_train().iloc[::8].reset_index(drop=True)
@@ -600,6 +646,40 @@ def test_la_meseta_de_knn_vale_interrogacion_si_deja_de_estar_dentro_de_un_error
     assert any("D-22" in que and "vecinosKnnMeseta" in nombres
                for que, nombres in generado.faltan.items()), generado.faltan
     print("ok  \\vecinosKnnMeseta, copiado de D-22, vale «?» si el punto sale de 1 error estándar")
+
+
+def test_knn_por_distancia_sale_de_la_curva_y_no_de_hiperparametros_json():
+    """La grilla de KNN con weights = distance se extendió hasta 801 después de escribir
+    hiperparametros.json, que quedó con su entrada vieja (201). Los cuatro macros de ese punto
+    aplican D-22 a la curva misma. Aquí el mejor es 101, pero 801 queda dentro de un error estándar
+    y es el de más vecinos: la regla elige 801, y el JSON viejo dice 201."""
+    validacion = {1: [0.60, 0.61, 0.62, 0.60, 0.61],
+                  101: [0.770, 0.772, 0.768, 0.771, 0.770],        # media 0,7702, ES 0,00066
+                  801: [0.7698, 0.7700, 0.7699, 0.7701, 0.7702]}   # media 0,7700
+    train = {1: 0.99, 101: 1.0, 801: 1.0}
+    filas = []
+    for k, valores in validacion.items():
+        configuracion = json.dumps({"n_neighbors": k, "weights": "distance"}, sort_keys=True)
+        for fold, valor in enumerate(valores, start=1):
+            for conjunto, v in (("train", train[k]), ("validacion", valor)):
+                filas.append({"parametro": "n_neighbors", "punto": str(k), "modelo": "knn",
+                              "configuracion": configuracion, "fold": fold, "conjunto": conjunto,
+                              "metrica": "auc", "valor": v})
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "curvas").mkdir()
+        pd.DataFrame(filas).to_csv(tmp / "curvas" / "knn_n_neighbors_distance.csv", index=False)
+        vieja = {"valor": 201, "auc_validacion_media": 0.7685, "auc_train_media": 0.9999,
+                 "brecha": 0.2314, "mejor": "201", "puntos_dentro_1es": ["151", "201"]}
+        (tmp / "hiperparametros.json").write_text(
+            json.dumps({"curvas": {"knn_n_neighbors_distance": vieja}}), encoding="utf-8")
+        muestra = cargar_train().iloc[::8].reset_index(drop=True)
+        v = generar(Fuentes(tmp, train=muestra, resultados_test=tmp / "no.tex")).valores
+    assert v["vecinosKnnDistancia"] == "801", v["vecinosKnnDistancia"]
+    assert v["aucKnnDistancia"] == "0{,}770" and v["aucTrainKnnDistancia"] == "1{,}000"
+    assert v["brechaKnnDistancia"] == "0{,}230", v["brechaKnnDistancia"]
+    print("ok  KNN por distancia: D-22 sobre la curva elige 801 (0,770, brecha 0,230), no el 201 de "
+          "una entrada vieja de hiperparametros.json")
 
 
 # --- Sobre los resultados reales ----------------------------------------------------------------
@@ -694,7 +774,26 @@ def _recalculados():
     k = llamadas(len(oof))
     vp = int(oof.sort_values("puntaje", ascending=False, kind="stable")["y"].iloc[:k].sum())
 
+    # KNN con weights = distance: D-22 sobre la curva tal como está, no la entrada de
+    # hiperparametros.json. El mejor punto de validación y, dentro de un error estándar de él, el de
+    # más vecinos; el error estándar es el desvío (ddof = 1) sobre la raíz de los folds.
+    distancia = _leer("curvas/knn_n_neighbors_distance.csv", dtype={"punto": str},
+                      keep_default_na=False)
+    distancia = distancia[distancia["metrica"] == "auc"].astype({"valor": float})
+    por_k = distancia.pivot_table(index="punto", columns="conjunto", values="valor",
+                                  aggfunc=["mean", "std", "count"])
+    medias_k = por_k[("mean", "validacion")]
+    mejor_k = medias_k.idxmax()
+    umbral_k = medias_k[mejor_k] - (por_k.loc[mejor_k, ("std", "validacion")]
+                                    / np.sqrt(por_k.loc[mejor_k, ("count", "validacion")]))
+    k_distancia = max(medias_k.index[medias_k >= umbral_k], key=int)
+
     return {
+        "vecinosKnnDistancia": formatear_miles(int(k_distancia)),
+        "aucKnnDistancia": formatear_decimal(medias_k[k_distancia]),
+        "aucTrainKnnDistancia": formatear_decimal(por_k.loc[k_distancia, ("mean", "train")]),
+        "brechaKnnDistancia": formatear_decimal(por_k.loc[k_distancia, ("mean", "train")]
+                                                - medias_k[k_distancia]),
         "pctParesEntreAnios": formatear_porcentaje(100 * sumas["entre"][1] / pares),
         "aucOofEntreAnios": formatear_decimal(sumas["entre"][0] / sumas["entre"][1]),
         "aucOofDentroAnio": formatear_decimal(sumas["dentro"][0] / sumas["dentro"][1]),
@@ -840,8 +939,10 @@ def main():
     test_cli_verificar_da_archivo_linea_y_codigo()
     test_cli_sintetico_es_determinista_y_escribe_interrogacion_si_falta_un_archivo()
     test_con_la_evaluacion_de_test_y_la_evidencia_de_la_particion_se_derivan_sus_macros()
+    test_evidencia_particion_escribe_el_archivo_que_se_lee_aqui()
     test_sin_ningun_resultado_no_falla()
     test_la_meseta_de_knn_vale_interrogacion_si_deja_de_estar_dentro_de_un_error_estandar()
+    test_knn_por_distancia_sale_de_la_curva_y_no_de_hiperparametros_json()
     test_resultados_reales_coinciden_con_las_otras_fuentes()
     print("TODOS LOS TESTS OK")
 

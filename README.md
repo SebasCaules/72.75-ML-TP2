@@ -162,8 +162,9 @@ python -m src.numeros --verificar informe/presentacion.tex   # gate G3: ningún 
 # Punto 4: la evaluación única del test (N0-1: después del 30/09)
 python -m src.evaluar_test
 
-# Entrega: el zip del código y el PDF -> entregables/; --probar hace la prueba de clon limpio
-python -m src.entregar --probar
+# Entrega: el zip del código, con DECISIONES.md y GLOSARIO.md (S-01), y el PDF -> entregables/;
+# --probar hace la prueba de clon limpio
+python -m src.entregar --con-bitacora --probar
 ```
 
 - **`src.evaluar_test` abre el test, y se corre una sola vez.** Si `resultados/evaluacion_test.json`
@@ -180,9 +181,10 @@ python -m src.entregar --probar
 - **Tiempos** (`resultados/costos.csv`, sobre un fold de 26 352 filas): lo lento es la SVM. Con RBF y
   C = 1 tarda 8 s en ajustar y 12 s en puntuar el fold de entrenamiento; con kernel polinómico y
   C = 100, 57 s; la lineal de libsvm con C = 10 no terminó en 600 s, y por eso la lineal va con
-  `LinearSVC`. La estimación en serie de cada grilla (`resultados/costos_grillas.csv`) va de 1 minuto
-  (KNN) a 23 minutos (C de la SVM); con los cinco folds en paralelo, el valor por defecto de
-  `--n-jobs`, tarda menos. Lo que no ajusta modelos corre en segundos.
+  `LinearSVC`. La estimación en serie de cada grilla, hecha antes de correr las curvas
+  (`resultados/costos_grillas.csv`), va de 1 minuto (KNN) a 23 minutos (C de la SVM); con los cinco
+  folds en paralelo, el valor por defecto de `--n-jobs`, tarda menos. Lo que no ajusta modelos corre
+  en segundos.
 
 ## Estructura
 

@@ -49,23 +49,24 @@ repite el recall ya mostrado, y H1 lo matiza: hacia adelante, ese recall es 0,24
 
 ## 3. Qué errores comete el modelo elegido
 
-**Sobre validación, no sobre test** (N0-1). OOF de RF llamando al 20 % de cada fold, sumado en los
-cinco:
+**Sobre validación, no sobre test** (N0-1). OOF de RF sobre la lista completa de validación (los 5
+folds juntos), llamando al 20 %: 6 588 llamadas. Es el corte de la curva de ganancia y del test, y
+la matriz de la slide 15 (`src/numeros.py`, `\vpRfVal` a `\vnRfVal`):
 
 | | Llamado | No llamado |
 |---|---|---|
-| «yes» | VP = 2 336 | FN = 1 375 |
-| «no» | FP = 4 254 | VN = 24 975 |
+| «yes» | VP = 2 329 | FN = 1 382 |
+| «no» | FP = 4 259 | VN = 24 970 |
 
-**Lectura de negocio.** Un FN es un cliente que habría contratado y no se llama: 1 375, el 37,1 %
-de los «yes». Un FP es una llamada de más: 4 254, el 64,6 % de las 6 590 llamadas. Cada «yes»
+**Lectura de negocio.** Un FN es un cliente que habría contratado y no se llama: 1 382, el 37,2 %
+de los «yes». Un FP es una llamada de más: 4 259, el 64,6 % de las 6 588 llamadas. Cada «yes»
 cuesta 2,8 llamadas, contra 8,9 sin modelo. El error caro es el FN (D-19).
 
 **Perfiles (OOF).**
-- **Época:** el 76,3 % de los FN es de 2008; RF llama al 0,4 % de las filas de 2008 y a todas las
-  de 2010. Mayo aporta el 36,9 % de los FN: RF deja fuera 507 de sus 704 «yes».
-- **Sin historial:** el 92,1 % de los FN no tiene campaña previa; con `poutcome` = success, RF llama
-  a 1 093 de 1 094 y pierde uno de sus 722 «yes».
+- **Época:** el 76,0 % de los FN es de 2008; RF llama al 0,4 % de las filas de 2008 y a todas las
+  de 2010. Mayo aporta el 37,0 % de los FN: RF deja fuera 512 de sus 704 «yes».
+- **Sin historial:** el 92,2 % de los FN no tiene campaña previa; con `poutcome` = success, RF llama
+  a los 1 094 y no pierde ninguno de sus 722 «yes».
 
 ## 4. Limitaciones
 
@@ -79,7 +80,7 @@ Por impacto:
    estándar, 0,0025 (inferencia).
 4. **Desbalance sin tratar (D-21):** pesos balanceados en RF, +0,0006, despreciable (N0-12).
 5. **`unknown` (D-08):** imputar es neutro (RF +0,0011); los clientes con `default` «unknown»
-   (5,3 % de «yes») casi no se llaman y aportan el 21,7 % de los FN (OOF).
+   (5,3 % de «yes») casi no se llaman y aportan el 21,6 % de los FN (OOF).
 6. **`duration` fuera (D-05):** con ella, 0,94 (A1), pero no existe antes de llamar.
 7. **`campaign` puede depender del resultado (inferencia, D-07):** media 2,053 en «yes» y 2,627 en
    «no», compatible pero no concluyente; efecto no medido.
@@ -89,7 +90,7 @@ Por impacto:
 Por impacto:
 1. **Validación temporal como esquema principal (D-25):** mide una campaña futura.
 2. **Más historial del cliente:** el 86,3 % no tiene campaña previa (`eda/reporte.txt`, §7) y
-   concentra el 92,1 % de los FN.
+   concentra el 92,2 % de los FN.
 3. **Costo explícito por tipo de error:** el umbral «depende del costo de cada error» (Clase 4,
    slides 41–44), no de un 20 % fijo (D-20).
 4. **Calibración de probabilidades:** un costo por error necesita probabilidades (inferencia), y hoy
@@ -115,16 +116,15 @@ contra hacia adelante, sin macro (barajado y hacia adelante) y recall hacia adel
 bloque, `robustez_folds.csv`. ΔAUC de A1, A6 (medida sobre el NB gaussiano de referencia), A8, A11
 y A12: `ablaciones_resumen.csv`. Kernels con C = 0,001: `curvas/svm_kernel.csv`; el RBF en su
 mejor C: `curvas/svm_C_balanced.csv` (D-22). Profundidad 8 contra 10: `curvas/rf_max_depth.csv`
-(D-22). Pesos de RF: `curvas/rf_pesos_clase_depth8.csv`, 0,79608 − 0,79544 = +0,0006 (N0-12
-escribe +0,0007, la resta de las medias ya redondeadas); fold a fold, +0,0006 ± 0,0009, positiva en
-los cinco: es despreciable por su tamaño, no por ruido. q = 10 y 30 %: `sensibilidad_q_final.csv`;
+(D-22). Pesos de RF: `curvas/rf_pesos_clase_depth8.csv`, 0,79608 − 0,79544 = +0,0006; fold a
+fold, +0,0006 ± 0,0009, positiva en los cinco: es despreciable por su tamaño, no por ruido.
+q = 10 y 30 %: `sensibilidad_q_final.csv`;
 RF queda primero con los tres q, pero el orden de los otros tres cambia (con q = 10 %, SVM, KNN y
 NB; con 20 %, KNN, NB y SVM; con 30 %, NB, SVM y KNN). El 62,8 %: `ganancia_final.csv`, p = 20.
 Correlaciones, asimetría, `pdays`, medias de `campaign` y el 86,3 % sin campaña previa:
 `eda/reporte.txt`, §2, §4, §6 y §7. La U de la edad, los desvíos y el 5,3 % de «yes» con `default`
 «unknown» (D-08): `eda/eda.html`. Varianza de `pdays` y `nr.employed`: D-12. La asimetría de
-`campaign` es 4,89 sobre train (`eda/reporte.txt`, §4: 4,886; `eda/eda.html`: 4,89); D-13 escribe
-4,76, que no sale de ningún archivo de train.
+`campaign` es 4,89 sobre train (`eda/reporte.txt`, §4: 4,886; `eda/eda.html`: 4,89).
 
 **Calculadas.** Desde la raíz del repo; lee sólo train (`cargar_train()`) y no entrena nada:
 
@@ -145,12 +145,12 @@ t = train.assign(y01=(train["y"] == "yes").astype(int), anio=anio_inferido(train
 oof = pd.read_csv("resultados/oof_final_rf.csv", float_precision="round_trip")
 d = oof.merge(t, on="fila", how="left", validate="one_to_one")
 
-# §3. Llamar al 20 % de cada fold: k = llamadas(n_fold), los k de mayor puntaje
-n_fold = d.groupby("fold")["fila"].transform("size")
-d["llamado"] = d.groupby("fold")["puntaje"].rank(method="first", ascending=False) <= n_fold.map(llamadas)
-for f, p in d.groupby("fold"):  # sin empates en el corte: coincide con en_presupuesto
-    r = en_presupuesto(p["y01"], p["puntaje"])
-    assert np.isclose(r["recall_q"] * p["y01"].sum(), (p["llamado"] & (p["y01"] == 1)).sum())
+# §3. Llamar al 20 % de la lista completa, los 5 folds juntos: k = llamadas(n), los k de mayor
+# puntaje; el corte de la curva de ganancia, de la slide 15 y del test
+k = llamadas(len(d))
+d["llamado"] = d["puntaje"].rank(method="first", ascending=False) <= k
+r = en_presupuesto(d["y01"], d["puntaje"])  # sin empate partido en el corte: coincide
+assert np.isclose(r["recall_q"] * d["y01"].sum(), (d["llamado"] & (d["y01"] == 1)).sum())
 d["VP"] = d["llamado"] & (d["y01"] == 1)
 d["FP"] = d["llamado"] & (d["y01"] == 0)
 d["FN"] = ~d["llamado"] & (d["y01"] == 1)
@@ -222,11 +222,11 @@ for _, r in rf.iterrows():
 EOF
 ```
 
-De esa salida salen: la matriz de §3 y sus cocientes (1 375 / 3 711 = 37,1 %; 4 254 / 6 590 =
-64,6 %; 6 590 / 2 336 = 2,8 llamadas por «yes»; sin modelo, 1 / 0,1127 = 8,9, con la precisión de
+De esa salida salen: la matriz de §3 y sus cocientes (1 382 / 3 711 = 37,2 %; 4 259 / 6 588 =
+64,6 %; 6 588 / 2 329 = 2,8 llamadas por «yes»; sin modelo, 1 / 0,1127 = 8,9, con la precisión de
 «sin modelo» de `cv_final_resumen.csv`); los perfiles por `anio`, `month`, `poutcome` y `default`
-(76,3 %, 0,4 %, 36,9 %, 507 de 704, 92,1 %, 1 093 de 1 094; con `default` «unknown», 4,7 % de
-filas llamadas y 299 de los 1 375 FN, 21,7 %); el AUC por año (0,598, 0,759 y 0,749; 0,794 junto)
+(76,0 %, 0,4 %, 37,0 %, 512 de 704, 92,2 %, 1 094 de 1 094; con `default` «unknown», 4,8 % de
+filas llamadas y 299 de los 1 382 FN, 21,6 %); el AUC por año (0,598, 0,759 y 0,749; 0,794 junto)
 y por pares (66,3 % de pares de años distintos; 0,658 dentro del año, 0,864 entre años); la edad
 (máxima 61 en 2008; de más de 60, 1 en 2008, 483 en 2009 y 258 en 2010, 741 de 742 en 2009–2010; el
 tramo de 60 o más de 2008 son 144, 143 de ellos con 60); el 0,033 del NB categórico sin macro, las

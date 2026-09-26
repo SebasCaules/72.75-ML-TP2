@@ -81,7 +81,7 @@ predictora**.
 | `graficos.py` | Las figuras de análisis, 01 a 07 | `figuras/` |
 | `graficos_presentacion.py` | Las figuras de la presentación: 16:9, sin título, la leyenda arriba y revelados en pasos | `figuras/presentacion/` |
 | `numeros.py` | Cada número de la presentación como macro de LaTeX, con el archivo y la columna de donde sale; `--verificar` falla si un `.tex` tiene un número escrito a mano | `informe/numeros.tex`, `informe/numeros.md` |
-| `entregar.py` | Arma este zip y el PDF de la presentación; `--probar` descomprime el zip en un directorio temporal y corre ahí todas las suites | `entregables/` |
+| `entregar.py` | Arma este zip y el PDF de la presentación; `--con-bitacora` suma `DECISIONES.md` y `GLOSARIO.md`, que este zip lleva, y `--probar` descomprime el zip en un directorio temporal y corre ahí todas las suites | `entregables/` |
 
 Las rutas de la columna «Escribe» sin carpeta están en `resultados/`. `informe/` no viene en el zip:
 lo crean `src.numeros` y `src.evaluar_test` al correr, y la presentación se entrega aparte, en PDF.

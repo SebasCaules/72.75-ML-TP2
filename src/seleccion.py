@@ -25,8 +25,10 @@ filas que train, queda un aviso: la validación corrió sobre una submuestra.
 Salida: resultados/modelo_elegido.json.
 
 `--rapido` prueba el recorrido completo en segundos: corre con el corredor común una validación
-cruzada pequeña (3 000 filas de train, sin la SVM y con RF de 20 árboles) en un directorio
-temporal, y elige sobre ella. Es el único camino que ajusta modelos, y no escribe en resultados/.
+cruzada pequeña (3 000 filas de train, sin la SVM) en un directorio temporal, y elige sobre ella.
+Mide la configuración vigente tal cual, sin achicar RF: la vigente es la que se declara (N0-13),
+así que medir otra cosa para ir más rápido haría fallar la verificación. Es el único camino que
+ajusta modelos, y no escribe en resultados/.
 """
 
 import argparse
@@ -68,7 +70,6 @@ LINEA_BASE = "linea_base.csv"
 ETIQUETA_RAPIDA = "rapido"
 N_RAPIDO = 3000
 MODELOS_RAPIDOS = ("nb_gaussiano", "nb_categorico", "knn", "rf")
-AJUSTES_RAPIDOS = {"rf": {"n_estimators": 20}}
 
 # Un modelo justo en el borde de 1 ES cuenta como empatado aunque la resta pierda el último bit.
 HOLGURA = 1e-12
@@ -410,7 +411,10 @@ def imprimir(eleccion):
 def validacion_rapida(directorio):
     """Escribe en `directorio` las tres entradas con el formato del contrato, medidas sobre una
     submuestra estratificada de train: cv_rapido.csv con `sin_modelo`, linea_base.csv y un
-    hiperparametros.json parcial con la forma del de src/curvas.py. Devuelve el número de filas."""
+    hiperparametros.json con la forma del de src/curvas.py. Cada modelo se mide con su
+    configuración vigente, y el JSON propone esos mismos valores: como la vigente prevalece
+    (N0-13), cualquier otro valor del JSON se declararía sin haberse medido. Devuelve el número de
+    filas."""
     from sklearn.dummy import DummyClassifier
     from sklearn.model_selection import train_test_split
 
@@ -422,8 +426,8 @@ def validacion_rapida(directorio):
                                   random_state=SEMILLA)
     X, y = separar_X_y(muestra)
     tablas = []
-    for modelo in MODELOS_RAPIDOS:
-        hiper = {**HIPERPARAMETROS_FINALES[modelo], **AJUSTES_RAPIDOS.get(modelo, {})}
+    vigentes = {modelo: dict(HIPERPARAMETROS_FINALES[modelo]) for modelo in MODELOS_RAPIDOS}
+    for modelo, hiper in vigentes.items():
         tabla, _ = validacion_cruzada(crear_modelo(modelo, OPCIONES_FINALES, **hiper), X, y,
                                       filas=muestra[FILA], n_jobs=1)
         tablas.append(con_identidad(tabla, modelo, hiper, etiqueta=ETIQUETA_RAPIDA))
@@ -432,7 +436,7 @@ def validacion_rapida(directorio):
     tablas.append(con_identidad(base, SIN_MODELO, {}, etiqueta=ETIQUETA_RAPIDA))
     escribir_largo(directorio / f"cv_{ETIQUETA_RAPIDA}.csv", pd.concat(tablas, ignore_index=True))
     escribir_largo(directorio / LINEA_BASE, con_identidad(base, SIN_MODELO, {}))
-    (directorio / HIPERPARAMETROS).write_text(json.dumps({"modelos": AJUSTES_RAPIDOS, "avisos": []}),
+    (directorio / HIPERPARAMETROS).write_text(json.dumps({"modelos": vigentes, "avisos": []}),
                                               encoding="utf-8")
     return len(muestra)
 

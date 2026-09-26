@@ -1,4 +1,4 @@
-"""Correr con: python -m src.curvas --modelo rf --parametro max_depth
+"""Correr con: python -m src.curvas --modelo rf --parametro max_depth --fijo n_estimators=300
 
 Ola 4 del plan (pasos 4.1 a 4.4; D-21 y D-22): las curvas de validación. Es el protocolo de la
 Clase 7, slide 50: para cada valor de un hiperparámetro se mide el AUC en train y en validación con
@@ -9,16 +9,33 @@ Cada curva recorre un parámetro sobre la configuración vigente (`src/configura
 resultados/curvas/<modelo>_<parametro>[_<sufijo>].csv en formato largo: `parametro`, `punto` (el
 valor como texto) y las seis columnas del contrato de `src/resultados.py`; `configuracion` lleva
 los hiperparámetros completos del punto. Los valores salen de `GRILLAS` salvo que se pasen con
---valores. Las curvas del plan, cada una en su propio proceso si se quiere:
+--valores.
 
-    python -m src.curvas --modelo rf --parametro max_depth
-    python -m src.curvas --modelo rf --parametro n_estimators
+La configuración vigente cambió al cerrar la ola 4 (D-22), así que un comando sin --fijo ya no
+mide lo que midió su curva. Los doce que siguen, los mismos de README.md, fijan con --fijo la
+configuración con que se midió cada CSV de resultados/curvas/: cada punto sale con la misma
+configuración efectiva, aunque la columna `configuracion` puede escribir explícito un valor por
+omisión (pesos_clase=None) o C = 1 en lugar de 1.0. Los kernels se comparan con C = 0,001 y pesos
+balanceados (D-22). Cada curva puede correr en su propio proceso:
+
+    python -m src.curvas --modelo rf --parametro max_depth --fijo n_estimators=300
+    python -m src.curvas --modelo rf --parametro n_estimators --fijo max_depth=None
+    python -m src.curvas --modelo rf --parametro n_estimators --fijo max_depth=8 --sufijo depth8
+    python -m src.curvas --modelo rf --parametro pesos_clase --valores None,balanced \\
+        --fijo n_estimators=300 max_depth=None
+    python -m src.curvas --modelo rf --parametro pesos_clase --valores None,balanced \\
+        --fijo n_estimators=300 max_depth=8 --sufijo depth8
     python -m src.curvas --modelo knn --parametro n_neighbors --fijo weights=uniform --sufijo uniform
     python -m src.curvas --modelo knn --parametro n_neighbors --fijo weights=distance --sufijo distance
-    python -m src.curvas --modelo svm --parametro C
-    python -m src.curvas --modelo svm --parametro kernel --valores linear,poly,rbf --fijo C=<mejor C>
-    python -m src.curvas --modelo rf --parametro pesos_clase --valores None,balanced
-    python -m src.curvas --modelo svm --parametro pesos_clase --valores None,balanced
+    python -m src.curvas --modelo svm --parametro C --fijo kernel=rbf pesos_clase=None
+    python -m src.curvas --modelo svm --parametro pesos_clase --valores None,balanced \\
+        --fijo kernel=rbf C=1
+    python -m src.curvas --modelo svm --parametro C --fijo kernel=rbf pesos_clase=balanced \\
+        --sufijo balanced
+    python -m src.curvas --modelo svm --parametro kernel --valores linear,poly,rbf \\
+        --fijo C=0.001 pesos_clase=balanced
+    python -m src.curvas --modelo svm --parametro C --fijo kernel=linear pesos_clase=balanced \\
+        --sufijo linear_balanced
     python -m src.curvas --elegir
 
 Kernel lineal: todo punto con kernel="linear" usa implementacion="liblinear" (LinearSVC con pérdida

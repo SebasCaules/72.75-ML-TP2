@@ -13,6 +13,8 @@ poco frecuentes, diferencias entre clases, correlaciones y posibles fuentes de
 data leakage (duration).
 """
 
+import textwrap
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -109,13 +111,15 @@ log(unknown.round(2).to_string())
 centinela = df["pdays"] == PDAYS_CENTINELA
 log()
 log(f"pdays == {PDAYS_CENTINELA} (centinela): {100 * centinela.mean():.2f} % de las filas")
-log("  -> es un centinela, no una distancia: tratarlo como numérico directo distorsiona")
-log("     escalado y distancias (KNN/SVM).")
+log("  -> es un centinela (no hay días registrados), no una distancia. D-10 lo deja como está:")
+log("     sacar pdays (A2) empeora NB y KNN; escalado, el centinela separa a los contactados")
+log("     del resto, y para los árboles es un corte.")
 contactados = centinela & (df["previous"] >= 1)
 log(f"  Pero NO significa 'nunca contactado': {contactados.sum():,} filas con pdays == "
     f"{PDAYS_CENTINELA} tienen previous >= 1")
 log(f"  (poutcome de esas filas: {df.loc[contactados, 'poutcome'].value_counts().to_dict()}).")
-log("  -> para marcar 'contactado antes' conviene usar previous > 0, no pdays != 999.")
+log("  -> 'contactado antes' se lee en previous > 0, no en pdays != 999. D-10 no agrega esa")
+log("     indicadora: poutcome ya la tiene (nonexistent equivale a previous == 0).")
 log(f"poutcome == 'nonexistent': {100 * (df['poutcome'] == 'nonexistent').mean():.2f} % "
     "(coherente con previous == 0)")
 log(f"  Filas con previous == 0 y poutcome != 'nonexistent': "
@@ -321,25 +325,30 @@ ax1.set_title("Tasa de 'yes' y euribor3m a lo largo del archivo (train)")
 guardar(fig, "07-orden-temporal.png")
 
 # --------------------------------------------------------------------------
-# 10. Resumen de decisiones sugeridas para el pipeline
+# 10. Qué se decidió con esto (las propuestas del EDA, resueltas en DECISIONES.md)
 # --------------------------------------------------------------------------
-titulo("10. CONSECUENCIAS PARA EL PIPELINE (a discutir)")
+titulo("10. CONSECUENCIAS PARA EL PIPELINE (lo decidido, en DECISIONES.md)")
 decisiones = [
-    "HECHO (D-01): duplicados exactos eliminados antes del split.",
-    "HECHO (D-02, D-03): split 80/20 estratificado y con shuffle antes de cualquier transformación.",
-    "HECHO (D-05): duration fuera del modelo (leakage); a lo sumo, un modelo con duration como techo.",
-    "HECHO (D-06): la CV usa folds() = StratifiedKFold barajado; nunca cv=5 (no baraja).",
-    "Métricas acordes al desbalance (no accuracy sola).",
-    "pdays: el 999 es un centinela; 'contactado antes' sale de previous > 0 (y/o descartar pdays).",
-    "'unknown': mantener como categoría (su tasa de 'yes' difiere) o imputar dentro del pipeline.",
-    "default: casi no tiene 'yes' conocidos; evaluar descartarla (ver tabla de la sección 7).",
-    "Agrupar categorías < 1 % (p. ej. education 'illiterate', default 'yes') en 'otros'.",
-    "One-hot para categóricas nominales; month y day_of_week también (no son lineales).",
-    "Escalado (StandardScaler) para KNN y SVM, dentro del Pipeline.",
-    "Macro colineales: considerar quedarse con una o dos (euribor3m, nr.employed), sobre todo para NB.",
+    "D-01: duplicados exactos eliminados antes de partir.",
+    "D-02, D-03: partición 80/20 estratificada y barajada, antes de cualquier transformación.",
+    "D-05: duration fuera del modelo (fuga); a lo sumo, un modelo con duration como techo.",
+    "D-06: la validación cruzada usa folds() (StratifiedKFold barajado); nunca cv=5, que no baraja.",
+    "D-19, D-20: métricas acordes al desbalance, no accuracy: AUC y recall llamando al 20 % de la "
+    "lista.",
+    "D-10: pdays se queda con el 999 (sacarla, A2, empeora NB y KNN); 'contactado antes' ya está "
+    "en poutcome, así que la indicadora previous > 0 no se agrega.",
+    "D-08: 'unknown' se mantiene como categoría; imputar por la moda (A11) es neutro.",
+    "D-09: default no se descarta: pasa a una indicadora 'unknown' / 'no' (A3).",
+    "D-11: las categorías raras se funden en la moda de su columna, no en 'otros' (A4): education "
+    "'illiterate' y marital 'unknown'; job 'unknown' queda, default 'yes' lo resuelve D-09 y dec no "
+    "se toca.",
+    "D-15: one-hot para las categóricas nominales, month y day_of_week incluidas (las dos quedan).",
+    "D-12: StandardScaler para KNN y SVM, dentro del Pipeline; RF y NB sin escalar.",
+    "D-14: el bloque macro entra completo; quedarse con euribor3m y nr.employed (A6) empeora NB y "
+    "KNN.",
 ]
 for d in decisiones:
-    log(f"  - {d}")
+    log(textwrap.fill(d, width=96, initial_indent="  - ", subsequent_indent="    "))
 
 (SALIDA / "reporte.txt").write_text("\n".join(_lineas) + "\n", encoding="utf-8")
 print(f"\nReporte y figuras guardados en: {SALIDA}")

@@ -34,6 +34,7 @@ from src.experimentos import (
     con_objetivo,
     con_sin_modelo,
     ganancia,
+    hiperparametros_de,
     hiperparametros_vigentes,
     leer_oof,
     oof_sin_cv,
@@ -178,7 +179,7 @@ def test_rapido_escribe_el_contrato(directorio, train):
         assert list(cv.columns) == ["etiqueta"] + CAMPOS, modelo
         assert len(cv) == K * 2 * len(METRICAS) and set(cv["etiqueta"]) == {"referencia"}
         assert set(cv["configuracion"]) == {
-            configuracion_json(hiperparametros_vigentes(modelo, rapido=True))}
+            configuracion_json(hiperparametros_de(modelo, "referencia", rapido=True))}
         assert cv["valor"].between(0, 1).all()
 
         oof = pd.read_csv(directorio / f"oof_referencia_{modelo}.csv")
@@ -235,38 +236,55 @@ def test_rapido_resume_y_deriva(directorio):
           "precisión y F1 de cada fold; la ganancia crece hasta el 100 % y sin modelo es la diagonal")
 
 
-def test_usa_la_configuracion_vigente(directorio, train):
+def test_cada_etiqueta_usa_su_configuracion(directorio, train):
     muestra = submuestra(train)
-    esperado = _oof_knn(muestra, OPCIONES_PRUEBA, **HIPERPARAMETROS_PRUEBA["knn"])
-    # El test discrimina: con las opciones o con los hiperparámetros de referencia, el OOF es otro.
-    for otro in (_oof_knn(muestra, Opciones(), **HIPERPARAMETROS_PRUEBA["knn"]),
-                 _oof_knn(muestra, OPCIONES_PRUEBA)):
-        assert not np.allclose(otro["puntaje"], esperado["puntaje"])
-    configuracion = configuracion_json({**REFERENCIA["knn"], **HIPERPARAMETROS_PRUEBA["knn"]})
+    vigente = _oof_knn(muestra, OPCIONES_PRUEBA, **HIPERPARAMETROS_PRUEBA["knn"])
+    referencia = _oof_knn(muestra, OPCIONES_PRUEBA)
+    # El test discrimina: con las opciones de referencia el OOF es otro, y el de los
+    # hiperparámetros vigentes no es el de REFERENCIA.
+    for otro in (_oof_knn(muestra, Opciones(), **HIPERPARAMETROS_PRUEBA["knn"]), referencia):
+        assert not np.allclose(otro["puntaje"], vigente["puntaje"])
+    configuraciones = {
+        "final": configuracion_json({**REFERENCIA["knn"], **HIPERPARAMETROS_PRUEBA["knn"]}),
+        "referencia": configuracion_json(REFERENCIA["knn"]),
+    }
 
-    rapido, normal = directorio / "rapido", directorio / "normal"
+    rapido, normal, de_referencia = (directorio / c for c in ("rapido", "normal", "referencia"))
     with _configuracion_de_prueba():
-        texto = _salida_de(experimentos.main, ["--rapido", "--salida", str(rapido)])
+        texto = _salida_de(experimentos.main, ["--rapido", "--etiqueta", "final",
+                                               "--salida", str(rapido)])
     assert f"Opciones vigentes: {OPCIONES_PRUEBA}" in texto
+    assert "Hiperparámetros: los vigentes de src/configuracion.py." in texto
     # El modo normal, sobre la misma muestra en lugar de todo train.
     with _configuracion_de_prueba(cargar_train=lambda: muestra.copy()):
         texto = _salida_de(experimentos.main, ["--etiqueta", "final", "--n-jobs", "1",
                                                "--salida", str(normal)])
-    assert "Etiqueta final: knn, 1 proceso, en" in texto and f"{OPCIONES_PRUEBA}" in texto
+        assert "Etiqueta final: knn, 1 proceso, en" in texto and f"{OPCIONES_PRUEBA}" in texto
+        # La etiqueta referencia no lee HIPERPARAMETROS_FINALES: mide REFERENCIA aunque la vigente
+        # sea otra, así que rehacerla reproduce cv_referencia_* después de la ola 4.
+        texto = _salida_de(experimentos.main, ["--etiqueta", "referencia", "--n-jobs", "1",
+                                               "--salida", str(de_referencia)])
+        assert "Hiperparámetros: REFERENCIA, de src/modelos.py." in texto
+        assert f"Opciones vigentes: {OPCIONES_PRUEBA}" in texto
 
     # Sin --modelo corren los de MODELOS_FINALES y sólo ellos.
     assert sorted(p.name for p in rapido.iterdir()) == sorted([
-        "cv_referencia_knn.csv", "oof_referencia_knn.csv", "cv_referencia.csv",
-        "cv_referencia_resumen.csv", "sensibilidad_q_referencia.csv", "ganancia_referencia.csv"])
+        "cv_final_knn.csv", "oof_final_knn.csv", "cv_final.csv", "cv_final_resumen.csv",
+        "sensibilidad_q_final.csv", "ganancia_final.csv"])
     assert sorted(p.name for p in normal.iterdir()) == ["cv_final_knn.csv", "oof_final_knn.csv"]
-    for carpeta, etiqueta in ((rapido, "referencia"), (normal, "final")):
+    assert sorted(p.name for p in de_referencia.iterdir()) == ["cv_referencia_knn.csv",
+                                                               "oof_referencia_knn.csv"]
+    for carpeta, etiqueta, esperado in ((rapido, "final", vigente), (normal, "final", vigente),
+                                        (de_referencia, "referencia", referencia)):
         cv = pd.read_csv(carpeta / f"cv_{etiqueta}_knn.csv")
-        assert set(cv["configuracion"]) == {configuracion} and set(cv["etiqueta"]) == {etiqueta}
+        assert set(cv["configuracion"]) == {configuraciones[etiqueta]}, carpeta.name
+        assert set(cv["etiqueta"]) == {etiqueta}
         oof = _leer_oof_ordenado(carpeta / f"oof_{etiqueta}_knn.csv")
-        assert _mismo_oof(oof, esperado), etiqueta
-    print("ok  sin --modelo corren los modelos de MODELOS_FINALES, con OPCIONES_FINALES y "
-          "HIPERPARAMETROS_FINALES sobre la referencia, en el modo rápido y en el normal: el OOF "
-          "es el de esa configuración y no el de la referencia")
+        assert _mismo_oof(oof, esperado), carpeta.name
+    print("ok  sin --modelo corren los modelos de MODELOS_FINALES, con OPCIONES_FINALES; la "
+          "etiqueta final usa HIPERPARAMETROS_FINALES sobre la referencia, en el modo rápido y en "
+          "el normal, y la etiqueta referencia usa REFERENCIA aunque la vigente sea otra: cada OOF "
+          "es el de su configuración")
 
 
 def test_derivados_leen_solo_los_oof_de_su_cv(directorio, train):
@@ -426,26 +444,37 @@ def test_guardas_de_la_linea_de_comandos(directorio, train):
           "se niega y no escribe nada")
 
 
-def test_hiperparametros_vigentes():
-    # Los de configuracion.py pisan a los de la referencia; los que no nombran quedan como están.
+def test_hiperparametros_de_cada_etiqueta():
+    # final: los de configuracion.py pisan a los de la referencia; los que no nombran quedan como
+    # están. referencia: REFERENCIA, aunque configuracion.py diga otra cosa o no nombre al modelo.
+    antes = {m: dict(h) for m, h in REFERENCIA.items()}
     with _reemplazar(HIPERPARAMETROS_FINALES={"rf": {"max_depth": 8}}):
         assert hiperparametros_vigentes("rf") == {**REFERENCIA["rf"], "max_depth": 8}
+        assert hiperparametros_de("rf", "final") == hiperparametros_vigentes("rf")
         arboles = min(REFERENCIA["rf"]["n_estimators"], ARBOLES_RAPIDO)
         assert hiperparametros_vigentes("rf", rapido=True) == {
             **REFERENCIA["rf"], "max_depth": 8, "n_estimators": arboles}
-        try:
-            hiperparametros_vigentes("knn")
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("aceptó un modelo sin hiperparámetros en configuracion.py")
+        assert hiperparametros_de("rf", "referencia") == REFERENCIA["rf"]
+        assert hiperparametros_de("rf", "referencia", rapido=True) == {
+            **REFERENCIA["rf"], "n_estimators": arboles}
+        assert hiperparametros_de("knn", "referencia") == REFERENCIA["knn"]
+        for malo in (lambda: hiperparametros_vigentes("knn"),
+                     lambda: hiperparametros_de("rf", "intermedia")):
+            try:
+                malo()
+            except ValueError:
+                continue
+            raise AssertionError("aceptó un modelo sin hiperparámetros en configuracion.py o una "
+                                 "etiqueta desconocida")
+    assert REFERENCIA == antes, "recortar los árboles del modo rápido no toca REFERENCIA"
     assert ARBOLES_RAPIDO <= 20
     # Sin --modelo corren todos los de MODELOS_FINALES: cada uno tiene que tener los suyos.
     for modelo in MODELOS_FINALES:
-        hiperparametros_vigentes(modelo)
-    print("ok  los hiperparámetros son los de configuracion.py sobre la referencia; en modo rápido, "
-          f"RF con {ARBOLES_RAPIDO} árboles o menos; cada modelo de MODELOS_FINALES tiene los "
-          "suyos")
+        hiperparametros_de(modelo, "final")
+        hiperparametros_de(modelo, "referencia")
+    print("ok  la etiqueta final usa los de configuracion.py sobre la referencia y la etiqueta "
+          f"referencia, REFERENCIA; en modo rápido, RF con {ARBOLES_RAPIDO} árboles o menos; cada "
+          "modelo de MODELOS_FINALES tiene los suyos")
 
 
 def test_sensibilidad_q_calculada_a_mano():
@@ -544,14 +573,14 @@ def main():
         test_submuestra_estratificada_con_semilla_42(train)
         test_rapido_escribe_el_contrato(tmp / "rapido", train)
         test_rapido_resume_y_deriva(tmp / "rapido")
-        test_usa_la_configuracion_vigente(tmp / "configuracion", train)
+        test_cada_etiqueta_usa_su_configuracion(tmp / "configuracion", train)
         test_derivados_leen_solo_los_oof_de_su_cv(tmp / "configuracion" / "normal", train)
         test_resumen_con_linea_base_y_brecha_a_mano(tmp / "resumen")
         test_guardas_de_la_linea_de_comandos(tmp / "guardas", train)
         test_leer_oof_exige_los_mismos_folds(tmp / "oof")
     test_verificar_oof_reconoce_el_oof_de_otra_corrida()
     test_resumen_rechaza_filas_repetidas_o_claves_vacias()
-    test_hiperparametros_vigentes()
+    test_hiperparametros_de_cada_etiqueta()
     test_sensibilidad_q_calculada_a_mano()
     test_con_objetivo_rechaza_filas_que_no_estan_en_train()
     test_ganancia_sobre_un_oof_sintetico()

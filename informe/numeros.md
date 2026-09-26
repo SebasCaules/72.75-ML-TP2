@@ -10,7 +10,6 @@ Resultados leídos de `resultados/`.
 
 Estos macros valen «?» porque falta su entrada. El deck compila igual, y se completan solos al volver a correr `python3 -m src.numeros`.
 
-- `resultados/evidencia_particion.json`: `\semillasSinEstratificar`, `\desvioPctYesTestSinEstratificar`, `\pctYesTestSinEstratificarMinimo`, `\pctYesTestSinEstratificarMaximo`, `\pctYesTrainTemporal`, `\pctYesTestTemporal`
 - `resultados/evaluacion_test.json`: `\yesTest`, `\pctYesTest`, `\diferenciaAucTestValidacion`, `\diferenciaRecallTestValidacion`
 
 ## Slide 2 · El problema
@@ -42,12 +41,12 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\filasFoldValidacion` | 6 588 | `resultados/robustez_folds.csv`: barajado, fold 1, n_validacion |
 | `\llamadasFoldValidacion` | 1 318 | `src/metricas.py`: llamadas(filasFoldValidacion) |
 | `\llamadasTrain` | 6 588 | `src/metricas.py`: llamadas(filasTrain), el corte de la lista fuera de fold |
-| `\semillasSinEstratificar` | ? | `resultados/evidencia_particion.json`: n_semillas, las particiones sin estratificar (D-02) (pendiente) |
-| `\desvioPctYesTestSinEstratificar` | ? | `resultados/evidencia_particion.json`: sin_estratificar.desvio_pp, el desvío del % de «yes» del test entre semillas, en puntos porcentuales (D-02) (pendiente) |
-| `\pctYesTestSinEstratificarMinimo` | ? | `resultados/evidencia_particion.json`: sin_estratificar.minimo_pct, el menor % de «yes» del test entre semillas (D-02) (pendiente) |
-| `\pctYesTestSinEstratificarMaximo` | ? | `resultados/evidencia_particion.json`: sin_estratificar.maximo_pct, el mayor (D-02) (pendiente) |
-| `\pctYesTrainTemporal` | ? | `resultados/evidencia_particion.json`: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03) (pendiente) |
-| `\pctYesTestTemporal` | ? | `resultados/evidencia_particion.json`: temporal.pct_yes_test, el del test (D-03) (pendiente) |
+| `\semillasSinEstratificar` | 400 | `resultados/evidencia_particion.json`: n_semillas, las particiones sin estratificar (D-02) |
+| `\desvioPctYesTestSinEstratificar` | 0,31 | `resultados/evidencia_particion.json`: sin_estratificar.desvio_pp, el desvío del % de «yes» del test entre semillas, en puntos porcentuales (D-02) |
+| `\pctYesTestSinEstratificarMinimo` | 10,4 % | `resultados/evidencia_particion.json`: sin_estratificar.minimo_pct, el menor % de «yes» del test entre semillas (D-02) |
+| `\pctYesTestSinEstratificarMaximo` | 12,1 % | `resultados/evidencia_particion.json`: sin_estratificar.maximo_pct, el mayor (D-02) |
+| `\pctYesTrainTemporal` | 6,4 % | `resultados/evidencia_particion.json`: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03) |
+| `\pctYesTestTemporal` | 30,8 % | `resultados/evidencia_particion.json`: temporal.pct_yes_test, el del test (D-03) |
 
 ## Slide 4 · EDA: la duración es fuga
 
@@ -366,10 +365,10 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\aucKnnOchocientosUno` | 0,784 | `resultados/curvas/knn_n_neighbors_uniform.csv`: punto 801, validacion, auc, media |
 | `\aucTrainKnnUno` | 0,988 | `resultados/curvas/knn_n_neighbors_uniform.csv`: punto 1, train, auc, media |
 | `\brechaKnnUno` | 0,369 | `resultados/curvas/knn_n_neighbors_uniform.csv`: punto 1, train − validación |
-| `\vecinosKnnDistancia` | 201 | `resultados/hiperparametros.json`: curvas.knn_n_neighbors_distance.valor (weights = distance) |
-| `\aucKnnDistancia` | 0,769 | `resultados/hiperparametros.json`: curvas.knn_n_neighbors_distance.auc_validacion_media |
-| `\aucTrainKnnDistancia` | 1,000 | `resultados/hiperparametros.json`: curvas.knn_n_neighbors_distance.auc_train_media |
-| `\brechaKnnDistancia` | 0,231 | `resultados/hiperparametros.json`: curvas.knn_n_neighbors_distance.brecha |
+| `\vecinosKnnDistancia` | 801 | `resultados/curvas/knn_n_neighbors_distance.csv`: el punto que elige D-22 sobre la curva (`src/curvas.py`, elegir_punto; weights = distance), n_neighbors |
+| `\aucKnnDistancia` | 0,770 | `resultados/curvas/knn_n_neighbors_distance.csv`: el punto que elige D-22 sobre la curva (`src/curvas.py`, elegir_punto; weights = distance), validacion, auc, media |
+| `\aucTrainKnnDistancia` | 1,000 | `resultados/curvas/knn_n_neighbors_distance.csv`: el punto que elige D-22 sobre la curva (`src/curvas.py`, elegir_punto; weights = distance), train, auc, media |
+| `\brechaKnnDistancia` | 0,230 | `resultados/curvas/knn_n_neighbors_distance.csv`: el punto que elige D-22 sobre la curva (`src/curvas.py`, elegir_punto; weights = distance), train − validación |
 
 ## Slide 12 · Curva de la SVM
 

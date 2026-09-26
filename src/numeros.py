@@ -69,7 +69,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from src.ablaciones import VARIANTES
 from src.configuracion import OPCIONES_FINALES
-from src.curvas import leer_curvas, resumen_por_punto
+from src.curvas import elegir_punto, leer_curvas, resumen_por_punto
 from src.datos import EXCLUIDAS, FILA, OBJETIVO, PROP_TEST, RAIZ, cargar_train
 from src.eda_html import (
     BLOQUE,
@@ -175,9 +175,10 @@ def formatear_parametro(valor):
 
 def a_texto(valor):
     r"""El valor de un macro como se escribe en el guion: '32\,940' -> '32 940',
-    '11{,}3\,\%' -> '11,3 %', '\signoMenos 0{,}028' -> '−0,028'."""
+    '11{,}3\,\%' -> '11,3 %', '\signoMenos 0{,}028' -> '−0,028'. Los intervalos de
+    informe/resultados-test.tex llevan «--», la raya de LaTeX: '0{,}812--0{,}834' -> '0,812–0,834'."""
     return (valor.replace(MENOS, "\N{MINUS SIGN}").replace(COMA, ",").replace(POR_CIENTO, " %")
-            .replace(ESPACIO_FINO, " ").replace("\\%", "%"))
+            .replace(ESPACIO_FINO, " ").replace("\\%", "%").replace("--", "\N{EN DASH}"))
 
 
 _UNIDADES = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
@@ -507,6 +508,20 @@ def _hiper(curva, clave):
     def dato(f):
         return _anidado(f.json("hiperparametros.json"), ["curvas", curva, clave],
                         "resultados/hiperparametros.json")
+    return dato
+
+
+def _eleccion(curva, clave):
+    """Lo que elige D-22 (src/curvas.py, elegir_punto) sobre resultados/curvas/<curva>.csv tal
+    como está, sin pasar por resultados/hiperparametros.json: una curva que se extiende después de
+    escribir ese JSON deja ahí su entrada vieja. Es el caso de KNN con weights = distance, cuya
+    grilla se extendió hasta 801 después de escribirlo."""
+    def dato(f):
+        tabla, _ = f.curva(curva)
+        eleccion = f.memoria(("eleccion", curva), lambda: elegir_punto(tabla))
+        if eleccion.get(clave) is None:
+            raise Faltante(f"resultados/curvas/{curva}.csv: {clave}")
+        return eleccion[clave]
     return dato
 
 
@@ -1304,20 +1319,23 @@ def _seccion_curva_knn():
                             f"{curva}: punto {vecinos}, validacion, auc, media",
                             _curva("knn_n_neighbors_uniform", str(vecinos), "auc_validacion_media"),
                             _metrica))
-    distancia = "resultados/hiperparametros.json: curvas.knn_n_neighbors_distance"
+    # weights = distance: D-22 aplicada a la curva misma, que ya tiene la grilla extendida (ver
+    # _eleccion). Los cuatro macros son del mismo punto.
+    distancia = ("resultados/curvas/knn_n_neighbors_distance.csv: el punto que elige D-22 sobre "
+                 "la curva (src/curvas.py, elegir_punto; weights = distance)")
     numeros += [
         _num("aucTrainKnnUno", f"{curva}: punto 1, train, auc, media",
              _curva("knn_n_neighbors_uniform", "1", "auc_train_media"), _metrica),
         _num("brechaKnnUno", f"{curva}: punto 1, train − validación",
              _curva("knn_n_neighbors_uniform", "1", "brecha"), _metrica),
-        _num("vecinosKnnDistancia", f"{distancia}.valor (weights = distance)",
-             _hiper("knn_n_neighbors_distance", "valor"), formatear_parametro),
-        _num("aucKnnDistancia", f"{distancia}.auc_validacion_media",
-             _hiper("knn_n_neighbors_distance", "auc_validacion_media"), _metrica),
-        _num("aucTrainKnnDistancia", f"{distancia}.auc_train_media",
-             _hiper("knn_n_neighbors_distance", "auc_train_media"), _metrica),
-        _num("brechaKnnDistancia", f"{distancia}.brecha",
-             _hiper("knn_n_neighbors_distance", "brecha"), _metrica),
+        _num("vecinosKnnDistancia", f"{distancia}, n_neighbors",
+             _eleccion("knn_n_neighbors_distance", "valor"), formatear_parametro),
+        _num("aucKnnDistancia", f"{distancia}, validacion, auc, media",
+             _eleccion("knn_n_neighbors_distance", "auc_validacion_media"), _metrica),
+        _num("aucTrainKnnDistancia", f"{distancia}, train, auc, media",
+             _eleccion("knn_n_neighbors_distance", "auc_train_media"), _metrica),
+        _num("brechaKnnDistancia", f"{distancia}, train − validación",
+             _eleccion("knn_n_neighbors_distance", "brecha"), _metrica),
     ]
     return numeros
 

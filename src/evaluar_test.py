@@ -366,51 +366,101 @@ def diferencias_con_configuracion(modelo, hiperparametros, opciones):
     return diferencias
 
 
-# --- Macros de LaTeX ----------------------------------------------------------------------------
+# --- Formato de las cifras ----------------------------------------------------------------------
 
+# En la terminal: coma decimal y punto de miles.
 _A_ESPANOL = str.maketrans({",": ".", ".": ","})
 
 
 def formato_decimal(x, decimales=3):
-    """Coma decimal y punto de miles: 0.8234 -> «0,823»; 1234.5 -> «1.234,500»."""
+    """Para la terminal. Coma decimal y punto de miles: 0.8234 -> «0,823»; 1234.5 -> «1.234,500»."""
     return f"{x:,.{decimales}f}".translate(_A_ESPANOL)
 
 
 def formato_entero(n):
-    """Punto de miles: 8236 -> «8.236»."""
+    """Para la terminal. Punto de miles: 8236 -> «8.236»."""
     return f"{int(n):,d}".translate(_A_ESPANOL)
 
 
 def formato_intervalo(ic, decimales=3):
+    """Para la terminal: «0,812–0,834»."""
     inf, sup = ic
     return f"{formato_decimal(inf, decimales)}–{formato_decimal(sup, decimales)}"
 
+
+# En informe/resultados-test.tex, el formato de src/numeros.py, para que el deck escriba los números
+# de test con el mismo formato que los de validación: la coma decimal entre llaves, porque dentro de
+# $…$ una coma suelta es puntuación y deja un espacio detrás («0, 823»), y los miles con espacio
+# fino (8\,236), que mide lo mismo en texto y en matemática. No se importa de src/numeros.py, que
+# importa este módulo; tests/test_evaluar_test.py comprueba que los dos den lo mismo. Las métricas
+# y los conteos de test no son negativos, así que no hace falta el \signoMenos de src/numeros.py.
+COMA_TEX = "{,}"
+ESPACIO_FINO_TEX = "\\,"
+# El intervalo va con «--», que es una raya sólo en modo texto: dentro de $…$ serían dos signos
+# menos. Por eso \aucic y \recallic, a diferencia de los demás macros, van sólo en modo texto.
+RAYA_TEX = "--"
+
+
+def _miles_tex(digitos):
+    """'8236' -> '8\\,236'."""
+    grupos = []
+    while len(digitos) > 3:
+        digitos, grupo = digitos[:-3], digitos[-3:]
+        grupos.insert(0, grupo)
+    return ESPACIO_FINO_TEX.join([digitos, *grupos])
+
+
+def decimal_tex(x, decimales=3):
+    r"""Para resultados-test.tex: 0.8234 -> «0{,}823»; 1234.5 con un decimal -> «1\,234{,}5»."""
+    entero, _, fraccion = f"{float(x):.{decimales}f}".partition(".")
+    return _miles_tex(entero) + (COMA_TEX + fraccion if fraccion else "")
+
+
+def entero_tex(n):
+    r"""Para resultados-test.tex: 8236 -> «8\,236»; 928 -> «928»."""
+    return _miles_tex(str(int(n)))
+
+
+def intervalo_tex(ic, decimales=3):
+    r"""Para resultados-test.tex, sólo en modo texto: (0.8121, 0.8339) -> «0{,}812--0{,}834»."""
+    inf, sup = ic
+    return f"{decimal_tex(inf, decimales)}{RAYA_TEX}{decimal_tex(sup, decimales)}"
+
+
+# --- Macros de LaTeX ----------------------------------------------------------------------------
 
 def valores_tex(registro):
     """El texto de cada macro a partir del registro de la evaluación, en el orden de MACROS."""
     m, c, d = registro["metricas"], registro["matriz_confusion"], registro["desempate"]
     valores = {
-        "auctest": formato_decimal(m["auc"]["valor"]),
-        "aucic": formato_intervalo(m["auc"]["ic95"]),
-        "recalltest": formato_decimal(m["recall_q"]["valor"]),
-        "recallic": formato_intervalo(m["recall_q"]["ic95"]),
-        "precisiontest": formato_decimal(m["precision_q"]["valor"]),
-        "fitest": formato_decimal(m["f1_q"]["valor"]),
-        "aptest": formato_decimal(m["ap"]["valor"]),
-        "vptest": formato_entero(c["vp"]),
-        "fptest": formato_entero(c["fp"]),
-        "fntest": formato_entero(c["fn"]),
-        "vntest": formato_entero(c["vn"]),
-        "recallmatriztest": formato_decimal(d["recall_matriz"]),
-        "precisionmatriztest": formato_decimal(d["precision_matriz"]),
-        "empatadostest": formato_entero(d["empatados"]),
-        "llamadosempatadostest": formato_entero(d["llamados_entre_empatados"]),
-        "ntest": formato_entero(registro["n_test"]),
-        "llamadastest": formato_entero(registro["llamadas"]),
-        "nevaluaciones": formato_entero(registro["n_evaluaciones"]),
+        "auctest": decimal_tex(m["auc"]["valor"]),
+        "aucic": intervalo_tex(m["auc"]["ic95"]),
+        "recalltest": decimal_tex(m["recall_q"]["valor"]),
+        "recallic": intervalo_tex(m["recall_q"]["ic95"]),
+        "precisiontest": decimal_tex(m["precision_q"]["valor"]),
+        "fitest": decimal_tex(m["f1_q"]["valor"]),
+        "aptest": decimal_tex(m["ap"]["valor"]),
+        "vptest": entero_tex(c["vp"]),
+        "fptest": entero_tex(c["fp"]),
+        "fntest": entero_tex(c["fn"]),
+        "vntest": entero_tex(c["vn"]),
+        "recallmatriztest": decimal_tex(d["recall_matriz"]),
+        "precisionmatriztest": decimal_tex(d["precision_matriz"]),
+        "empatadostest": entero_tex(d["empatados"]),
+        "llamadosempatadostest": entero_tex(d["llamados_entre_empatados"]),
+        "ntest": entero_tex(registro["n_test"]),
+        "llamadastest": entero_tex(registro["llamadas"]),
+        "nevaluaciones": entero_tex(registro["n_evaluaciones"]),
     }
     return {nombre: valores[nombre] for nombre in MACROS}
 
+
+# El formato, para quien use los macros en el deck.
+FORMATO_TEX = (
+    r"% Formato de src/numeros.py: la coma decimal entre llaves y los miles con espacio fino, así",
+    r"% cada macro se lee igual en texto y dentro de $…$. Salvo \aucic y \recallic: su «--» es una",
+    r"% raya sólo en modo texto.",
+)
 
 # Las dos lecturas del corte, para que el deck elija cuál muestra y pueda explicar la diferencia.
 LEYENDA_TEX = (
@@ -437,8 +487,8 @@ def renderizar_tex(registro=None):
         if "ADVERTENCIA" in registro:
             encabezado.append(f"% {registro['ADVERTENCIA']}")
         bandera = r"\testpendientefalse"
-    lineas = ["% GENERADO POR src/evaluar_test.py; no editar a mano.", *encabezado, *LEYENDA_TEX,
-              r"\newif\iftestpendiente" + bandera]
+    lineas = ["% GENERADO POR src/evaluar_test.py; no editar a mano.", *encabezado, *FORMATO_TEX,
+              *LEYENDA_TEX, r"\newif\iftestpendiente" + bandera]
     lineas += [f"\\newcommand{{\\{nombre}}}{{{valores[nombre]}}}" for nombre in MACROS]
     return "\n".join(lineas) + "\n"
 

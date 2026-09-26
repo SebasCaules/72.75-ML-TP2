@@ -22,7 +22,7 @@ from src.estilo import ROTULO_LINEA_BASE
 from src.metricas import METRICAS
 from src.modelos import REFERENCIA
 from src.resultados import DIR, con_identidad, escribir_largo
-from src.seleccion import SIN_MODELO, seleccionar
+from src.seleccion import ETIQUETA_RAPIDA, MODELOS_RAPIDOS, N_RAPIDO, SIN_MODELO, seleccionar
 from src.seleccion import main as linea_de_comandos
 from src.validacion import K
 
@@ -195,15 +195,24 @@ def test_hiperparametros_del_json_o_los_vigentes():
 
 
 def test_configuracion_medida_distinta_de_la_declarada_es_error():
-    # El CSV midió rf con 300 árboles y hiperparametros.json declara 400: el JSON describiría un
-    # modelo que no se validó. En cambio, 300 guardado como texto (un np.int64 pasa a "300" en
-    # configuracion_json) es el mismo valor y no es error.
+    # La configuración vigente (main() la fija a la referencia: rf con 300 árboles y nada más)
+    # prevalece sobre hiperparametros.json, que sólo completa lo que ella no fija (N0-13). El CSV
+    # midió rf con la vigente. Si el JSON agrega max_depth = 10, que la vigente no fija, declararía
+    # un modelo que no se validó, y la selección se detiene. En cambio, los 400 árboles de otro JSON
+    # quedan pisados por los 300 vigentes, que son los medidos: no es error, y se declaran 300.
+    # Y 300 guardado como texto (un np.int64 pasa a "300" en configuracion_json) es el mismo valor.
+    vigentes_rf = {**REFERENCIA["rf"], **HIPERPARAMETROS_FINALES["rf"]}
+    assert vigentes_rf == {"n_estimators": 300}, "main() fija la vigente a la referencia"
     with tempfile.TemporaryDirectory() as d:
-        _escribir_cv(d, _tabla("rf", AUC_MEJOR, 0.60, hiper={"n_estimators": 300}))
+        _escribir_cv(d, _tabla("rf", AUC_MEJOR, 0.60, hiper=vigentes_rf))
         _escribir_linea_base(d)
-        (Path(d) / "hiperparametros.json").write_text(json.dumps({"rf": {"n_estimators": 400}}))
+        (Path(d) / "hiperparametros.json").write_text(json.dumps({"rf": {"max_depth": 10}}))
         _falla(lambda: seleccionar(d, modelos=["rf"], n_train=100), ValueError,
-               "rf", '"n_estimators": 300', '"n_estimators": 400')
+               'rf: medida {"n_estimators": 300}, declarada {"max_depth": 10, "n_estimators": 300}')
+
+        (Path(d) / "hiperparametros.json").write_text(json.dumps({"rf": {"n_estimators": 400}}))
+        pisado = seleccionar(d, modelos=["rf"], n_train=100)
+    assert pisado["hiperparametros"] == {"n_estimators": 300}
 
     with tempfile.TemporaryDirectory() as d:
         tabla = _tabla("rf", AUC_MEJOR, 0.60, hiper={"n_estimators": np.int64(300)})
@@ -213,8 +222,9 @@ def test_configuracion_medida_distinta_de_la_declarada_es_error():
         (Path(d) / "hiperparametros.json").write_text(json.dumps({"rf": {"n_estimators": 300}}))
         e = seleccionar(d, modelos=["rf"], n_train=100)
     assert e["hiperparametros"]["n_estimators"] == 300
-    print("ok  si el CSV no se midió con los hiperparámetros declarados, error; 300 y \"300\" "
-          "son el mismo valor")
+    print("ok  si hiperparametros.json agrega un valor que la vigente no fija y el CSV no midió, "
+          "error; los 400 árboles del JSON quedan pisados por los 300 vigentes (N0-13); 300 y "
+          "\"300\" son el mismo valor")
 
 
 def test_validacion_cruzada_incompleta_es_error():
@@ -343,7 +353,28 @@ def test_linea_de_comandos():
           "en resultados/")
 
 
+def test_rapido_termina_con_la_configuracion_vigente():
+    # --rapido mide cada modelo con su configuración vigente, la de src/configuracion.py (este caso
+    # corre antes de que main() la fije a la referencia), sobre 3 000 filas de train, y elige con
+    # la misma verificación que la corrida real: lo medido tiene que ser lo declarado. Cuando medía
+    # RF con 20 árboles y la vigente tenía 200, esa verificación lo detenía (N0-13).
+    with tempfile.TemporaryDirectory() as d:
+        destino = Path(d) / "elegido.json"
+        with redirect_stdout(io.StringIO()) as salida:
+            linea_de_comandos(["--rapido", "--salida", str(destino)])
+        e = json.loads(destino.read_text(encoding="utf-8"))
+    assert e["etiqueta"] == ETIQUETA_RAPIDA and e["n_train"] == N_RAPIDO
+    assert sorted(f["modelo"] for f in e["ranking"]) == sorted(MODELOS_RAPIDOS)
+    assert e["hiperparametros"] == {**REFERENCIA[e["modelo"]],
+                                    **HIPERPARAMETROS_FINALES[e["modelo"]]}
+    assert e["avisos"] == [] and f"Modelo elegido: {e['modelo']}" in salida.getvalue()
+    print(f"ok  --rapido termina: mide {', '.join(MODELOS_RAPIDOS)} con la configuración vigente "
+          f"sobre {N_RAPIDO} filas y elige {e['modelo']}, declarado con lo que se midió")
+
+
 def main():
+    # --rapido tiene que correr con la configuración vigente de verdad: va antes de fijarla.
+    test_rapido_termina_con_la_configuracion_vigente()
     # La regla se prueba con tablas sintéticas medidas con la referencia de cada modelo, así que
     # la configuración vigente se fija a esa referencia: si no, un hiperparámetro elegido en la
     # ola 4 (por ejemplo max_depth) aparecería como «declarado» y no medido.

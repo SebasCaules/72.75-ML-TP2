@@ -1,14 +1,17 @@
 """Correr con: python -m src.experimentos --etiqueta referencia [--modelo knn] [--n-jobs 5]
 
-Pasos 3.3 y 5.1 del plan: la validación cruzada de los clasificadores con la configuración vigente
-de src/configuracion.py, con las cinco métricas de src/metricas.py en train y en validación, por
+Pasos 3.3 y 5.1 del plan: la validación cruzada de los clasificadores con las opciones vigentes de
+src/configuracion.py, con las cinco métricas de src/metricas.py en train y en validación, por
 fold, y los puntajes fuera de fold (OOF, N0-5). Sobre esos OOF, sin volver a ajustar nada, calcula
 la sensibilidad del presupuesto de llamadas a q (D-20, paso 2.2) y la curva de ganancia acumulada
 (H3, ola 6).
 
-La etiqueta distingue la corrida con la configuración de referencia (paso 3.3) de la corrida con
-los hiperparámetros elegidos (paso 5.1). El módulo no decide cuál es cuál: usa lo que
-src/configuracion.py tenga en el momento de correr.
+La etiqueta decide los hiperparámetros. Con `referencia` (paso 3.3) son los de REFERENCIA
+(src/modelos.py), sin leer HIPERPARAMETROS_FINALES: esa corrida no se mueve cuando la ola 4 cambia
+la configuración vigente, y rehacerla reproduce cv_referencia_* tal como se midió, como pasa con
+el A0 de las ablaciones (N0-9). Con `final` (paso 5.1) son los de src/configuracion.py sobre la
+referencia (N0-3). Las opciones de preprocesamiento son siempre OPCIONES_FINALES, las de la ola 1,
+con las que se midieron las dos corridas.
 
 Cada modelo escribe sus propios archivos (N0-6), así que los modelos pueden correr en procesos
 paralelos; los otros modos leen lo que haya en el directorio de salida (resultados/ por defecto):
@@ -90,16 +93,35 @@ ARBOLES_RAPIDO = 20
 
 # --- Validación cruzada -------------------------------------------------------------------------
 
+def _recortar_arboles(h, rapido):
+    if rapido and "n_estimators" in h:
+        h["n_estimators"] = min(h["n_estimators"], ARBOLES_RAPIDO)
+    return h
+
+
 def hiperparametros_vigentes(nombre, rapido=False):
     """Los de src/configuracion.py sobre la referencia, combinados como los combina crear_modelo:
     así la columna configuracion dice todo lo que corrió. En modo rápido, RF con 20 árboles o
     menos."""
     if nombre not in HIPERPARAMETROS_FINALES:
         raise ValueError(f"{nombre} no tiene hiperparámetros en src/configuracion.py")
-    h = {**REFERENCIA[nombre], **HIPERPARAMETROS_FINALES[nombre]}
-    if rapido and "n_estimators" in h:
-        h["n_estimators"] = min(h["n_estimators"], ARBOLES_RAPIDO)
-    return h
+    return _recortar_arboles({**REFERENCIA[nombre], **HIPERPARAMETROS_FINALES[nombre]}, rapido)
+
+
+def hiperparametros_de(nombre, etiqueta, rapido=False):
+    """Los hiperparámetros con que corre `etiqueta`: los de REFERENCIA con `referencia`, que no
+    dependen de src/configuracion.py, y los vigentes con `final`."""
+    if etiqueta not in ETIQUETAS:
+        raise ValueError(f"etiqueta desconocida: {etiqueta}; las válidas son {', '.join(ETIQUETAS)}")
+    if etiqueta == "referencia":
+        return _recortar_arboles(dict(REFERENCIA[nombre]), rapido)
+    return hiperparametros_vigentes(nombre, rapido)
+
+
+def origen_de(etiqueta):
+    """De dónde salen los hiperparámetros de `etiqueta`, para mostrarlo al correr."""
+    return ("REFERENCIA, de src/modelos.py" if etiqueta == "referencia"
+            else "los vigentes de src/configuracion.py")
 
 
 def submuestra(train, n=FILAS_RAPIDO):
@@ -110,9 +132,9 @@ def submuestra(train, n=FILAS_RAPIDO):
 
 
 def validar(nombre, train, etiqueta, n_jobs=N_JOBS, rapido=False):
-    """Validación cruzada de un modelo con la configuración vigente. Devuelve la tabla larga, con la
-    columna etiqueta primero, y los puntajes OOF."""
-    h = hiperparametros_vigentes(nombre, rapido)
+    """Validación cruzada de un modelo con los hiperparámetros de su etiqueta y las opciones
+    vigentes. Devuelve la tabla larga, con la columna etiqueta primero, y los puntajes OOF."""
+    h = hiperparametros_de(nombre, etiqueta, rapido)
     X, y = separar_X_y(train)
     tabla, oof = validacion_cruzada(crear_modelo(nombre, OPCIONES_FINALES, **h), X, y,
                                     filas=train[FILA], n_jobs=n_jobs)
@@ -417,10 +439,13 @@ def _oofs(salida, etiqueta, train):
 def _parser():
     p = argparse.ArgumentParser(
         prog="python -m src.experimentos",
-        description="Validación cruzada de los clasificadores con la configuración vigente "
-                    "(src/configuracion.py), su resumen, la sensibilidad a q y la curva de ganancia.")
+        description="Validación cruzada de los clasificadores, su resumen, la sensibilidad a q y la "
+                    "curva de ganancia. La etiqueta referencia usa los hiperparámetros de "
+                    "REFERENCIA (src/modelos.py) y final, los vigentes (src/configuracion.py).")
     p.add_argument("--etiqueta", choices=ETIQUETAS,
-                   help="referencia (paso 3.3) o final (paso 5.1); obligatoria salvo con --rapido")
+                   help="referencia (paso 3.3, hiperparámetros de REFERENCIA) o final (paso 5.1, "
+                        "los de src/configuracion.py); obligatoria salvo con --rapido, que usa "
+                        "referencia si no se indica")
     p.add_argument("--modelo", nargs="+", choices=MODELOS, metavar="MODELO",
                    help=f"uno o más de: {', '.join(MODELOS)}. Por defecto, los de MODELOS_FINALES")
     p.add_argument("--n-jobs", type=int, default=N_JOBS,
@@ -451,6 +476,7 @@ def _rapido(args):
           f"«yes»), {_procesos(1)}, RF con {ARBOLES_RAPIDO} árboles o menos. Etiqueta {etiqueta}, "
           f"en {_mostrar(salida)}.")
     print(f"Opciones vigentes: {OPCIONES_FINALES}")
+    print(f"Hiperparámetros: {origen_de(etiqueta)}.")
     inicio = time.perf_counter()
     correr(modelos, muestra, etiqueta, salida, n_jobs=1, rapido=True)
     print()
@@ -467,6 +493,7 @@ def _validacion(args):
     print(f"Etiqueta {args.etiqueta}: {', '.join(modelos)}, {_procesos(args.n_jobs)}, en "
           f"{_mostrar(salida)}.")
     print(f"Opciones vigentes: {OPCIONES_FINALES}")
+    print(f"Hiperparámetros: {origen_de(args.etiqueta)}.")
     correr(modelos, cargar_train(), args.etiqueta, salida, n_jobs=args.n_jobs)
 
 

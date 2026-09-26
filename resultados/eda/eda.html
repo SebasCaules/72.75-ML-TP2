@@ -115,6 +115,7 @@ td:first-child { width: 36%; }
 }
 .estado.hecha { color: var(--acento); border-color: var(--acento); }
 .estado.propuesta { color: var(--tinta-sec); background: var(--panel); }
+.estado.descartada { color: var(--tinta-sec); border-color: var(--tinta-sec); border-style: dotted; }
 .estado.consultar { color: var(--tinta); border-color: var(--tinta-sec); border-style: dashed; }
 .supuestos td:first-child { width: 12%; font-weight: 600; }
 footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rejilla); font-size: 0.9rem; color: var(--tinta-sec); }
@@ -166,24 +167,24 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rejill
 </section>
 <section id="acciones">
   <h2>Qué hacer con esto</h2>
-  <p>Cada fila remite al gráfico que la respalda. «Hecha» remite a <code>DECISIONES.md</code>; «Propuesta» todavía no se aplicó; «Consultar a la cátedra» depende de lo que se haya visto en clase.</p>
+  <p>Cada fila es una propuesta de este análisis, anterior a las ablaciones de la ola 1, y remite al gráfico que la respalda; los «Qué hacer» de cada gráfico son esas mismas propuestas. El estado dice qué se decidió después, y el porqué está en esa fila de <code>DECISIONES.md</code>. «Hecha»: se aplicó («en parte» si la decisión la acota). «Medida»: se probó en una ablación, y la decisión dice qué quedó. «Descartada»: se decidió lo contrario. «Decidida»: se resolvió con los datos, y la decisión cita la consulta a la cátedra sobre el tema.</p>
   <div class="tabla">
     <table>
-      <thead><tr><th>Decisión sugerida</th><th>Evidencia</th><th>Estado</th></tr></thead>
+      <thead><tr><th>Propuesta del EDA</th><th>Evidencia</th><th>Estado</th></tr></thead>
       <tbody>
       <tr><td><code>duration</code> fuera del modelo; a lo sumo, un modelo techo con ella.</td><td><a href="#fuga">Fuga de datos</a>: AUC 0,818 por sí sola; 0 «yes» en las 1.318 llamadas de menos de 30 s y 46,05 % en el decil más largo.</td><td><span class="estado hecha">Hecha (D-05)</span></td></tr>
       <tr><td>Partición aleatoria estratificada y validación cruzada barajada.</td><td><a href="#tiempo">El tiempo</a>: la tasa por bloque del archivo va del 1,9 % al 50,9 %; sin barajar, cada <i>fold</i> caería en una época.</td><td><span class="estado hecha">Hecha (D-02, D-03, D-06)</span></td></tr>
-      <tr><td>«unknown» se mantiene como categoría propia, sin imputar.</td><td><a href="#faltantes">Faltantes</a>: en <code>default</code>, 5,3 % de «yes» con «unknown» frente a 12,8 % con el valor conocido; en las otras cinco columnas el «unknown» también tiene más «yes».</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td><code>default</code>: casi no tiene «yes»; tratarla como indicadora «unknown» / «no».</td><td><a href="#faltantes">Faltantes</a>: el nivel «yes» tiene 2 filas de 32.940; «unknown», el 20,8 %.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td><code>pdays</code> = 999 no significa «nunca contactado»: usar <code>previous</code> &gt; 0 como indicadora de contacto previo y no usar el 999 como número.</td><td><a href="#previas">Campañas previas</a>: 3.302 filas con 999 y <code>previous</code> ≥ 1, con 12,7 % de «yes» frente a 8,8 % sin contactos previos.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td>Niveles con menos del 1 % de las filas: agruparlos dentro del pipeline (p. ej. <code>OneHotEncoder</code> con <code>min_frequency</code>), salvo los de tasa distintiva como <code>dec</code>.</td><td><a href="#categorias">Categorías</a>: cinco niveles bajo el 1 %; <code>dec</code> tiene 50,3 % de «yes» con 145 filas. Ninguna columna tiene más de un nivel raro, así que <code>min_frequency</code>, por sí solo, no los funde con nada.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td>Escalado (<code>StandardScaler</code>) dentro del pipeline para KNN y SVM; RF no lo necesita.</td><td><a href="#escalas">Escalas</a>: los desvíos difieren 374 veces; sin escalar, <code>pdays</code> aporta el 86,6 % de la varianza.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td><code>campaign</code> tiene cola larga: probar <code>log1p</code> para KNN y SVM.</td><td><a href="#numericas">Numéricas</a>: asimetría 4,89; el 81,5 % tiene 3 contactos o menos y el máximo es 56.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td>Bloque macro casi colineal: medir con y sin reducirlo a una o dos variables, sobre todo para Naive Bayes; y medir el modelo sin el bloque para cuantificar cuánto «aprende la época».</td><td><a href="#macro">Contexto económico</a>: r entre 0,91 y 0,97 en <code>emp.var.rate</code>, <code>euribor3m</code> y <code>nr.employed</code>; <code>nr.employed</code> y <code>euribor3m</code> son lo que más separa (AUC 0,745 y 0,740).</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td><code>month</code> codifica en parte la época; <code>day_of_week</code> separa poco: candidata a descartar tras medir.</td><td><a href="#tiempo">El tiempo</a>: los meses con más del 40 % de «yes» tienen euribor3m medio 1,06 (resto: 3,75). <a href="#categorias">Categorías</a>: V de <code>day_of_week</code> = 0,014.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td>Edad con forma de U: discretizarla en tramos para Naive Bayes; RF y SVM con RBF la capturan.</td><td><a href="#numericas">Numéricas</a>: 24,2 % en <25, 8,0 % en 45–49 y 39,3 % en 60+; AUC de <code>age</code> sola: 0,507.</td><td><span class="estado propuesta">Propuesta</span></td></tr>
-      <tr><td>Variante de Naive Bayes para datos mixtos: GaussianNB o CategoricalNB con las numéricas discretizadas.</td><td><a href="#numericas">Numéricas</a>: ninguna numérica tiene forma de campana por clase; <code>campaign</code> tiene asimetría 4,89 y <code>pdays</code> vale 999 en el 96,3 % de las filas.</td><td><span class="estado consultar">Consultar a la cátedra</span></td></tr>
-      <tr><td>Tratar o no el desbalance (pesos de clase).</td><td><a href="#objetivo">El objetivo</a>: 7,9 «no» por cada «yes»; decir siempre «no» acierta el 88,7 %.</td><td><span class="estado consultar">Consultar a la cátedra</span></td></tr>
+      <tr><td>«unknown» se mantiene como categoría propia, sin imputar.</td><td><a href="#faltantes">Faltantes</a>: en <code>default</code>, 5,3 % de «yes» con «unknown» frente a 12,8 % con el valor conocido; en las otras cinco columnas el «unknown» también tiene más «yes».</td><td><span class="estado hecha">Hecha (D-08)</span></td></tr>
+      <tr><td><code>default</code>: casi no tiene «yes»; tratarla como indicadora «unknown» / «no».</td><td><a href="#faltantes">Faltantes</a>: el nivel «yes» tiene 2 filas de 32.940; «unknown», el 20,8 %.</td><td><span class="estado hecha">Hecha (D-09)</span></td></tr>
+      <tr><td><code>pdays</code> = 999 no significa «nunca contactado»: usar <code>previous</code> &gt; 0 como indicadora de contacto previo y no usar el 999 como número.</td><td><a href="#previas">Campañas previas</a>: 3.302 filas con 999 y <code>previous</code> ≥ 1, con 12,7 % de «yes» frente a 8,8 % sin contactos previos.</td><td><span class="estado descartada">Descartada (D-10)</span></td></tr>
+      <tr><td>Niveles con menos del 1 % de las filas: agruparlos dentro del pipeline fundiendo cada uno con otro nivel de su columna, salvo los de tasa distintiva como <code>dec</code>.</td><td><a href="#categorias">Categorías</a>: cinco niveles bajo el 1 %; <code>dec</code> tiene 50,3 % de «yes» con 145 filas. Ninguna columna tiene más de un nivel raro, así que <code>min_frequency</code>, por sí solo, no los funde con nada.</td><td><span class="estado hecha">Hecha en parte (D-11)</span></td></tr>
+      <tr><td>Escalado (<code>StandardScaler</code>) dentro del pipeline para KNN y SVM; RF no lo necesita.</td><td><a href="#escalas">Escalas</a>: los desvíos difieren 374 veces; sin escalar, <code>pdays</code> aporta el 86,6 % de la varianza.</td><td><span class="estado hecha">Hecha (D-12)</span></td></tr>
+      <tr><td><code>campaign</code> tiene cola larga: probar <code>log1p</code> para KNN y SVM.</td><td><a href="#numericas">Numéricas</a>: asimetría 4,89; el 81,5 % tiene 3 contactos o menos y el máximo es 56.</td><td><span class="estado descartada">Medida (D-13)</span></td></tr>
+      <tr><td>Bloque macro casi colineal: medir con y sin reducirlo a una o dos variables, sobre todo para Naive Bayes; y medir el modelo sin el bloque para cuantificar cuánto «aprende la época».</td><td><a href="#macro">Contexto económico</a>: r entre 0,91 y 0,97 en <code>emp.var.rate</code>, <code>euribor3m</code> y <code>nr.employed</code>; <code>nr.employed</code> y <code>euribor3m</code> son lo que más separa (AUC 0,745 y 0,740).</td><td><span class="estado descartada">Medida (D-14)</span></td></tr>
+      <tr><td><code>month</code> codifica en parte la época; <code>day_of_week</code> separa poco: candidata a descartar tras medir.</td><td><a href="#tiempo">El tiempo</a>: los meses con más del 40 % de «yes» tienen euribor3m medio 1,06 (resto: 3,75). <a href="#categorias">Categorías</a>: V de <code>day_of_week</code> = 0,014.</td><td><span class="estado descartada">Medida (D-15)</span></td></tr>
+      <tr><td>Edad con forma de U: discretizarla en tramos para Naive Bayes; RF y SVM con RBF la capturan.</td><td><a href="#numericas">Numéricas</a>: 24,2 % en <25, 8,0 % en 45–49 y 39,3 % en 60+; AUC de <code>age</code> sola: 0,507.</td><td><span class="estado descartada">Medida (D-16)</span></td></tr>
+      <tr><td>Variante de Naive Bayes para datos mixtos: GaussianNB o CategoricalNB con las numéricas discretizadas.</td><td><a href="#numericas">Numéricas</a>: ninguna numérica tiene forma de campana por clase; <code>campaign</code> tiene asimetría 4,89 y <code>pdays</code> vale 999 en el 96,3 % de las filas.</td><td><span class="estado hecha">Decidida (D-18)</span></td></tr>
+      <tr><td>Tratar o no el desbalance (pesos de clase).</td><td><a href="#objetivo">El objetivo</a>: 7,9 «no» por cada «yes»; decir siempre «no» acierta el 88,7 %.</td><td><span class="estado hecha">Decidida (D-21)</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -296,6 +297,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rejill
     <ul>
       <li>Marcar el contacto previo con <code>previous</code> &gt; 0, no con <code>pdays</code> ≠ 999.</li>
       <li>No usar el 999 como número: en KNN y SVM dejaría a un cliente sin fecha a 999 «días» de uno contactado hace 6 días (la mediana). Si <code>pdays</code> se conserva, que sea sólo donde hay días registrados, junto con la indicadora.</li>
+      <li>Estas dos propuestas se descartaron después (D-10): <code>pdays</code> se queda con el 999. Sacarla empeora Naive Bayes y KNN; escalado, el centinela separa a los contactados del resto, y para los árboles es un corte. La indicadora no se agrega: <code>previous</code> &gt; 0 ya está en <code>poutcome</code> (nonexistent equivale a <code>previous</code> = 0).</li>
     </ul>
   </article>
 </section>
@@ -425,7 +427,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rejill
 </section>
 </main>
 <footer>
-  <p>Para regenerar la página: <code>python -m src.eda_html</code> desde la carpeta del TP (con <code>--fragmento RUTA</code> escribe además la versión sin envoltura). Datos: <code>data/particion/train.csv</code>, 32.940 filas. Todas las cifras de esta página las calcula el script; ninguna está escrita a mano. Generada el 25/09/2026.</p>
+  <p>Para regenerar la página: <code>python -m src.eda_html</code> desde la carpeta del TP (con <code>--fragmento RUTA</code> escribe además la versión sin envoltura). Datos: <code>data/particion/train.csv</code>, 32.940 filas. Todas las cifras de esta página las calcula el script; ninguna está escrita a mano. Generada el 26/09/2026.</p>
 </footer>
 </div>
 </body>
