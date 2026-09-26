@@ -417,6 +417,10 @@
 \newcommand{\fpRfVal}{4\,259}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FP llamando al 20 % de la lista fuera de fold
 \newcommand{\fnRfVal}{1\,382}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FN llamando al 20 % de la lista fuera de fold
 \newcommand{\vnRfVal}{24\,970}                              % resultados/oof_final_rf.csv con la y de train (cargar_train()): VN llamando al 20 % de la lista fuera de fold
+\newcommand{\llamadasPorYesRf}{2{,}8}                       % resultados/oof_final_rf.csv con la y de train (cargar_train()): llamadas por cada VP, llamando al 20 % de la lista fuera de fold, (VP + FP) / VP
+\newcommand{\llamadasPorYesSinModelo}{8{,}9}                % resultados/cv_final_resumen.csv: 1 / (sin_modelo, validacion, precision_q, media), las llamadas por cada «yes» sin modelo
+\newcommand{\nivelIntervalo}{95\,\%}                        % src/evaluar_test.py: PERCENTILES, el nivel del intervalo por bootstrap del AUC y del recall de test (D-24)
+\newcommand{\remuestreosBootstrap}{2\,000}                  % src/evaluar_test.py: N_BOOTSTRAP, los remuestreos de ese intervalo (D-24)
 
 % --- Slide 16 · Por qué cada modelo rindió lo que rindió -------------------------------------------
 \newcommand{\correlacionMacroMinima}{0{,}91}                % train (cargar_train()): el menor |r| entre los pares del bloque macro con |r| >= 0,9 (D-14)
@@ -520,6 +524,27 @@
 \newcommand{\pctYesEntrenamientoAdelanteCinco}{6{,}5\,\%}   % resultados/robustez_folds.csv: hacia_adelante, fold 5, pct_yes_train
 \newcommand{\filasEntrenamientoAdelanteCinco}{27\,450}      % resultados/robustez_folds.csv: hacia_adelante, fold 5, n_train
 \newcommand{\filasBloqueAdelante}{5\,490}                   % resultados/robustez_folds.csv: hacia_adelante, fold 1, n_validacion
+\newcommand{\pctParesEntreAnios}{66{,}3\,\%}                % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): % de los pares «yes»–«no» que son de años distintos
+\newcommand{\aucOofEntreAnios}{0{,}864}                     % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): AUC fuera de fold de RF sobre los pares de años distintos
+\newcommand{\aucOofDentroAnio}{0{,}658}                     % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): AUC fuera de fold de RF sobre los pares del mismo año
+\newcommand{\aucOofDosMilOcho}{0{,}598}                     % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): AUC fuera de fold de RF en las filas de 2008
+\newcommand{\aucOofDosMilNueve}{0{,}759}                    % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): AUC fuera de fold de RF en las filas de 2009
+\newcommand{\aucOofDosMilDiez}{0{,}749}                     % resultados/oof_final_rf.csv con la y y el año inferido de train (cargar_train()): AUC fuera de fold de RF en las filas de 2010
+\newcommand{\aucRfBarajadoBloqueUno}{0{,}536}               % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 1 hacia adelante (resultados/robustez_folds.csv): AUC fuera de fold de RF (barajado)
+\newcommand{\caidaAucRfBloqueUno}{0{,}047}                  % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 1 hacia adelante (resultados/robustez_folds.csv): AUC barajado menos el hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold 1)
+\newcommand{\yesEntrenamientoAdelanteUno}{159}              % train (cargar_train()): «yes» con fila <= fila_max_train del fold 1 hacia adelante (resultados/robustez_folds.csv)
+\newcommand{\aucRfBarajadoBloqueDos}{0{,}519}               % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 2 hacia adelante (resultados/robustez_folds.csv): AUC fuera de fold de RF (barajado)
+\newcommand{\caidaAucRfBloqueDos}{0{,}019}                  % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 2 hacia adelante (resultados/robustez_folds.csv): AUC barajado menos el hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold 2)
+\newcommand{\yesEntrenamientoAdelanteDos}{419}              % train (cargar_train()): «yes» con fila <= fila_max_train del fold 2 hacia adelante (resultados/robustez_folds.csv)
+\newcommand{\aucRfBarajadoBloqueTres}{0{,}584}              % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 3 hacia adelante (resultados/robustez_folds.csv): AUC fuera de fold de RF (barajado)
+\newcommand{\caidaAucRfBloqueTres}{0{,}158}                 % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 3 hacia adelante (resultados/robustez_folds.csv): AUC barajado menos el hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold 3)
+\newcommand{\yesEntrenamientoAdelanteTres}{778}             % train (cargar_train()): «yes» con fila <= fila_max_train del fold 3 hacia adelante (resultados/robustez_folds.csv)
+\newcommand{\aucRfBarajadoBloqueCuatro}{0{,}748}            % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 4 hacia adelante (resultados/robustez_folds.csv): AUC fuera de fold de RF (barajado)
+\newcommand{\caidaAucRfBloqueCuatro}{0{,}084}               % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 4 hacia adelante (resultados/robustez_folds.csv): AUC barajado menos el hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold 4)
+\newcommand{\yesEntrenamientoAdelanteCuatro}{1\,084}        % train (cargar_train()): «yes» con fila <= fila_max_train del fold 4 hacia adelante (resultados/robustez_folds.csv)
+\newcommand{\aucRfBarajadoBloqueCinco}{0{,}762}             % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 5 hacia adelante (resultados/robustez_folds.csv): AUC fuera de fold de RF (barajado)
+\newcommand{\caidaAucRfBloqueCinco}{0{,}051}                % resultados/oof_final_rf.csv con la y de train (cargar_train()), en las filas del bloque 5 hacia adelante (resultados/robustez_folds.csv): AUC barajado menos el hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold 5)
+\newcommand{\yesEntrenamientoAdelanteCinco}{1\,780}         % train (cargar_train()): «yes» con fila <= fila_max_train del fold 5 hacia adelante (resultados/robustez_folds.csv)
 
 % --- Reserva · Curva de ganancia (H3) --------------------------------------------------------------
 \newcommand{\gananciaRfDiez}{44{,}6\,\%}                    % resultados/ganancia_final.csv: rf, p = 10, pct_yes_alcanzado

@@ -457,6 +457,10 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\fpRfVal` | 4 259 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): FP llamando al 20 % de la lista fuera de fold |
 | `\fnRfVal` | 1 382 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): FN llamando al 20 % de la lista fuera de fold |
 | `\vnRfVal` | 24 970 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): VN llamando al 20 % de la lista fuera de fold |
+| `\llamadasPorYesRf` | 2,8 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): llamadas por cada VP, llamando al 20 % de la lista fuera de fold, (VP + FP) / VP |
+| `\llamadasPorYesSinModelo` | 8,9 | `resultados/cv_final_resumen.csv`: 1 / (sin_modelo, validacion, precision_q, media), las llamadas por cada «yes» sin modelo |
+| `\nivelIntervalo` | 95 % | `src/evaluar_test.py`: PERCENTILES, el nivel del intervalo por bootstrap del AUC y del recall de test (D-24) |
+| `\remuestreosBootstrap` | 2 000 | `src/evaluar_test.py`: N_BOOTSTRAP, los remuestreos de ese intervalo (D-24) |
 
 ## Slide 16 · Por qué cada modelo rindió lo que rindió
 
@@ -569,6 +573,27 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\pctYesEntrenamientoAdelanteCinco` | 6,5 % | `resultados/robustez_folds.csv`: hacia_adelante, fold 5, pct_yes_train |
 | `\filasEntrenamientoAdelanteCinco` | 27 450 | `resultados/robustez_folds.csv`: hacia_adelante, fold 5, n_train |
 | `\filasBloqueAdelante` | 5 490 | `resultados/robustez_folds.csv`: hacia_adelante, fold 1, n_validacion |
+| `\pctParesEntreAnios` | 66,3 % | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): % de los pares «yes»–«no» que son de años distintos |
+| `\aucOofEntreAnios` | 0,864 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF sobre los pares de años distintos |
+| `\aucOofDentroAnio` | 0,658 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF sobre los pares del mismo año |
+| `\aucOofDosMilOcho` | 0,598 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2008 |
+| `\aucOofDosMilNueve` | 0,759 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2009 |
+| `\aucOofDosMilDiez` | 0,749 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2010 |
+| `\aucRfBarajadoBloqueUno` | 0,536 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 1 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
+| `\caidaAucRfBloqueUno` | 0,047 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 1 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 1) |
+| `\yesEntrenamientoAdelanteUno` | 159 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 1 hacia adelante (`resultados/robustez_folds.csv`) |
+| `\aucRfBarajadoBloqueDos` | 0,519 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 2 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
+| `\caidaAucRfBloqueDos` | 0,019 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 2 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 2) |
+| `\yesEntrenamientoAdelanteDos` | 419 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 2 hacia adelante (`resultados/robustez_folds.csv`) |
+| `\aucRfBarajadoBloqueTres` | 0,584 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 3 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
+| `\caidaAucRfBloqueTres` | 0,158 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 3 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 3) |
+| `\yesEntrenamientoAdelanteTres` | 778 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 3 hacia adelante (`resultados/robustez_folds.csv`) |
+| `\aucRfBarajadoBloqueCuatro` | 0,748 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 4 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
+| `\caidaAucRfBloqueCuatro` | 0,084 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 4 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 4) |
+| `\yesEntrenamientoAdelanteCuatro` | 1 084 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 4 hacia adelante (`resultados/robustez_folds.csv`) |
+| `\aucRfBarajadoBloqueCinco` | 0,762 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 5 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
+| `\caidaAucRfBloqueCinco` | 0,051 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 5 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 5) |
+| `\yesEntrenamientoAdelanteCinco` | 1 780 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 5 hacia adelante (`resultados/robustez_folds.csv`) |
 
 ## Reserva · Curva de ganancia (H3)
 

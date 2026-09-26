@@ -1,0 +1,1068 @@
+% =====================================================================
+%  TP2 — Presentación de defensa (10 min + 10 min de preguntas)
+%  72.75 Aprendizaje Automático — ITBA — 2026 Q2 — Grupo 7
+%
+%  Compilar desde informe/, con pdflatex (el motor del TP1), dejando los auxiliares aparte:
+%    latexmk -pdf -outdir=_build presentacion.tex && cp _build/presentacion.pdf .
+%  El .log se lee antes de borrar _build/.
+%
+%  PRINCIPIO RECTOR, el del TP1: la slide apoya lo que se dice, no lo dice. Cada frame lleva un
+%  \note{} con lo que se dice mientras está en pantalla y, al final, la reserva «Si preguntan».
+%  En pantalla quedan la figura, el diagrama o el número, y la frase que cierra la sección. Con
+%  las notas ocultas (lo que hace beamer por defecto) el PDF es el de proyección; para ensayar
+%  con el guion al lado, descomentar una de las dos líneas \setbeameroption de abajo.
+%
+%  NÚMEROS (gate G3). Ninguno se escribe a mano, tampoco en las notas: los de train y de
+%  validación salen de numeros.tex (src/numeros.py) y los de test, de resultados-test.tex
+%  (src/evaluar_test.py). Lo comprueba, desde la raíz del repo:
+%    python3 -m src.numeros --verificar informe/presentacion.tex
+%  Los macros de numeros.tex llevan la coma entre llaves y se pueden usar dentro de $…$; los de
+%  resultados-test.tex no (S-12): van sólo en modo texto.
+%
+%  ESTADO DEL TEST. El test todavía no se evaluó (N0-1): resultados-test.tex declara
+%  \testpendientetrue y sus macros valen «?». Las dos slides que dependen del test (14 y 15)
+%  tienen escritas sus dos variantes con \iftestpendiente. Correr `python3 -m src.evaluar_test`,
+%  después `python3 -m src.numeros`, y recompilar es el único paso para pasar de una a otra.
+%
+%  ESTRUCTURA. Los 20 frames del esqueleto del plan (§5, ola 7), que suman 9:15, y después del
+%  \appendix cuatro de respaldo para las preguntas (R1 a R4), con las figuras de reserva. Todo
+%  lo calificable, limitaciones incluidas, va antes del hallazgo, y el hallazgo es lo último que
+%  se muestra (guía A4, A6).
+%
+%  Lo que no se trajo del preámbulo del TP1, por código muerto (guía TP1-L): \piefig,
+%  \cierreconnumero y \cierrependiente, el interruptor \testevaluado (el TP2 usa el
+%  \iftestpendiente de resultados-test.tex), los bloques de beamer, la configuración de tablas
+%  de booktabs (el deck no tiene tablas: la matriz de confusión es un dibujo) y \chippendiente.
+%  La rama del apéndice de la barra, del índice y del pie sí se conserva, porque ahora corre:
+%  la usan los cuatro frames de respaldo.
+% =====================================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+% Con babel en español, \% agrega su propio espacio fino, y los macros de numeros.tex ya traen el
+% suyo (11{,}3\,\%): sin esta línea el espacio queda doble.
+\spanishplainpercent
+
+% ---------------------------------------------------------------------
+% TIPOGRAFÍA — Fira Sans + Fira Mono + matemática sans (las razones, en el deck del TP1):
+% trazo parejo que sobrevive a la proyección, un solo sistema para el texto y los nombres de
+% variable en \texttt, y pesos para armar la jerarquía. `scaled=0.96` devuelve la mancha de
+% texto a la de Latin Modern; `lining,tabular` alinea las cifras por dígito.
+% ---------------------------------------------------------------------
+\usepackage[sfdefault,lining,tabular,scaled=0.96]{FiraSans}
+\usepackage[scaled=0.86]{FiraMono}
+\usepackage{amsmath}
+\usepackage{newtxsf}
+\usefonttheme{professionalfonts}
+\usepackage[tracking=true]{microtype}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+
+% Sólo las figuras de proyección (guía B5): ninguna figura del deck es la de análisis.
+\graphicspath{{../figuras/presentacion/}}
+
+% ---------------------------------------------------------------------
+% Tema mínimo, construido a mano: la pantalla es para los datos. Sin símbolos de navegación ni
+% transiciones (guía B7).
+% ---------------------------------------------------------------------
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+
+% GUION HABLADO. Para ensayar con las notas a la vista:
+%   - una página de nota después de cada slide:
+% \setbeameroption{show notes}
+%   - slide y nota lado a lado:
+% \setbeameroption{show notes on second screen=right}
+
+\setbeamersize{text margin left=1.6em,text margin right=1.6em}
+
+% Paleta: la de las figuras (src/estilo.py), validada para daltonismo (tests/test_paleta.py).
+% En las figuras, azul es «no», train y barajado; naranja es «yes», validación y hacia adelante.
+% En el texto, azul es el dato (\dato) y naranja lo que hay que mirar (\ojo).
+\definecolor{azul}{HTML}{2A78D6}
+\definecolor{naranja}{HTML}{EB6834}
+\definecolor{azuloscuro}{HTML}{104281}
+\definecolor{tinta}{HTML}{0B0B0B}
+\definecolor{tintasec}{HTML}{52514E}
+\definecolor{apagado}{HTML}{898781}
+\definecolor{rejilla}{HTML}{E1E0D9}
+\definecolor{superficie}{HTML}{FCFCFB}
+% El color de cada modelo, como COLOR_MODELO de src/estilo.py.
+\colorlet{colorrf}{naranja}
+\colorlet{colorknn}{azul}
+\definecolor{colornb}{HTML}{A8447F}
+\colorlet{colorsvm}{azuloscuro}
+
+\setbeamercolor{normal text}{fg=tinta,bg=superficie}
+\setbeamercolor{structure}{fg=azul}
+\setbeamercolor{frametitle}{fg=tinta,bg=superficie}
+\setbeamercolor{title}{fg=tinta}
+\setbeamercolor{alerted text}{fg=naranja}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamerfont{title}{size=\LARGE,series=\bfseries}
+
+% Viñeta: un cuadrado pequeño en gris, el vocabulario rectangular del resto de la pantalla; el
+% azul queda para el dato.
+\setbeamertemplate{itemize item}{%
+  \raisebox{0.18em}{\textcolor{apagado}{\rule{0.38em}{0.38em}}}}
+
+% La mayúscula espaciada, en un solo lugar: rotula un dato (\etiqueta, \cab) o abre una pantalla
+% (\volanta, en la portada y en el cierre).
+\newcommand{\etiqueta}[1]{\textls[90]{\MakeUppercase{#1}}}
+\newcommand{\volanta}[1]{\color{azul}\textls[160]{\MakeUppercase{#1}}}
+\newcommand{\cab}[1]{{\footnotesize\color{tintasec}\etiqueta{#1}}}
+
+% ---------------------------------------------------------------------
+% ENCABEZADO: título, índice de secciones y barra de progreso (la del TP1).
+%
+% La barra cuenta frames y no overlays, y divide por \insertmainframenumber: en el respaldo va
+% entera en lugar de pasarse de largo. El tope es para la primera pasada, cuando todavía no
+% existe el .nav y \insertmainframenumber vale 1.
+% ---------------------------------------------------------------------
+\newlength{\barraancho}
+\newlength{\barrallena}
+\newcommand{\barraprogreso}{%
+  \setlength{\barraancho}{\textwidth}%
+  \ifnum\insertframenumberinappendix>0\relax
+    \setlength{\barrallena}{\barraancho}%
+  \else
+    \pgfmathsetlength{\barrallena}{\barraancho*\insertframenumber/\insertmainframenumber}%
+    \ifdim\barrallena>\barraancho\setlength{\barrallena}{\barraancho}\fi
+  \fi
+  \textcolor{azul}{\rule{\barrallena}{1.4pt}}%
+  \ifdim\barrallena<\barraancho
+    \textcolor{rejilla}{\rule{\dimexpr\barraancho-\barrallena\relax}{1.4pt}}%
+  \fi
+}
+
+% El número de slide, para las preguntas («vuelvan a la 12»): n/N en la charla, Rn/N en el
+% respaldo, así el total de la charla no promete slides que no se exponen.
+\newcommand{\indicediapo}{%
+  \ifnum\insertframenumberinappendix>0\relax
+    R\insertframenumberinappendix/\insertappendixframenumber
+  \else
+    \insertframenumber/\insertmainframenumber
+  \fi}
+
+% El índice de secciones bajo el título: la sección en curso en azul y negrita, las demás en
+% gris. Cada nombre va en una caja del ancho de su versión en negrita, así las posiciones no se
+% mueven de una slide a otra. En el respaldo no se resalta ninguna.
+\newcommand{\sep}{\hspace{0.42em}\textcolor{apagado!40}{\textperiodcentered}\hspace{0.42em}}
+\newlength{\secancho}
+\newcommand{\secitem}[2]{%
+  \settowidth{\secancho}{\textbf{#2}}%
+  \makebox[\secancho][c]{%
+    \ifnum\insertframenumberinappendix>0\relax
+      \textcolor{apagado}{#2}%
+    \else
+      \ifnum\insertsectionnumber=#1\relax
+        \textcolor{azul}{\textbf{#2}}%
+      \else
+        \textcolor{apagado}{#2}%
+      \fi
+    \fi}}
+\newcommand{\indicesecciones}{{\fontsize{6.2}{7}\selectfont%
+  \secitem{1}{El problema}\sep\secitem{2}{Datos}\sep\secitem{3}{EDA}\sep
+  \secitem{4}{Métricas}\sep\secitem{5}{Modelos}\sep\secitem{6}{Hiperparámetros}\sep
+  \secitem{7}{Modelo final}\sep\secitem{8}{Conclusiones}\sep\secitem{9}{Hallazgo}}}
+
+% El encabezado en un \vbox sin \baselineskip entre cajas: su alto es exactamente la suma de los
+% \vskip y de las tres cajas. El título va en un \parbox para que uno largo corte en dos líneas
+% en lugar de desbordar.
+\setbeamertemplate{frametitle}{%
+  \vbox{\offinterlineskip%
+    \vskip0.55em%
+    \parbox[t]{\textwidth}{\raggedright\insertframetitle}%
+    \vskip0.60em%
+    \hbox{\indicesecciones}%
+    \vskip0.32em%
+    \hbox{\barraprogreso}%
+    \vskip0.15em%
+  }%
+}
+
+% Pie: la sección a la izquierda, en versalita espaciada, y el número de slide a la derecha, con
+% el mismo margen que el texto. El nombre sale de \secname y no de \insertsectionhead, que es un
+% \hyperlink: \MakeUppercase le pasaba a mayúsculas también el destino («NAVIGATION2» en lugar
+% de «Navigation2») y pdfTeX avisaba un enlace roto por sección (el deck del TP1 tenía el mismo
+% aviso).
+\setbeamertemplate{footline}{%
+  \hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=2.6ex,dp=1.5ex]{}%
+    \hspace*{1.6em}%
+    {\fontsize{6.2}{7}\selectfont\color{apagado}\etiqueta{%
+      \ifnum\insertframenumberinappendix>0\relax Respaldo\else\secname\fi}}\hfill
+    {\fontsize{6.6}{7}\selectfont\color{apagado}\indicediapo}%
+    \hspace*{1.6em}%
+  \end{beamercolorbox}}%
+}
+
+% ---------------------------------------------------------------------
+% FIGURAS. La figura entra en una caja de ancho y alto con keepaspectratio: ata la cota que
+% llegue primero. Medido en este deck: bajo un título de una línea quedan unos 193 pt de alto
+% útil (\textheight vale 252 pt porque el tema no reserva el encabezado ni el pie), y una figura
+% de proyección (2,12:1) a 0,97 del ancho mide 191 pt. Entra sola; con una línea debajo, no. Por
+% eso el alto se baja dentro del frame con \renewcommand (el frame es un grupo, no se escapa):
+% 0,68 con un veredicto debajo y 0,72 con una referencia. Sin pie (guía B1).
+% ---------------------------------------------------------------------
+\newcommand{\figgrandealto}{0.90}
+\newcommand{\figgrande}[2][0.99]{%
+  \includegraphics[width=#1\textwidth,height=\figgrandealto\textheight,keepaspectratio]{#2}}
+
+% Centrado sin el entorno `center`, que agrega \topsep arriba y abajo.
+\newcommand{\centrado}[1]{{\par\centering#1\par}}
+
+% Atajos de énfasis.
+\newcommand{\dato}[1]{\textcolor{azul}{\textbf{#1}}}
+\newcommand{\ojo}[1]{\textcolor{naranja}{\textbf{#1}}}
+\newcommand{\gris}[1]{\textcolor{apagado}{#1}}
+\newcommand{\sepdato}{\hspace{0.55em}\textcolor{apagado!55}{\textperiodcentered}\hspace{0.55em}}
+\newcommand{\salto}{{\color{apagado}$\;\to\;$}}
+% En las notas, la marca de avance del guion: una pulsación, un overlay.
+\newcommand{\avanza}{\textcolor{naranja}{\,[$\rightarrow$]\,}}
+
+% ---------------------------------------------------------------------
+% LA FICHA: fondo neutro y un filete azul a la izquierda, a todo el alto (el trazo de la barra
+% de progreso). Es la pieza plana del TP1, dibujada con TikZ para que el filete acompañe a una
+% ficha de dos líneas.
+%
+% EL VEREDICTO es una ficha centrada, del ancho de su texto: la frase que cierra una sección y
+% nombra un efecto (guía D1, gate G12). Entra como último overlay de su slide.
+%
+% LA REFERENCIA es la línea de base en las slides cuya figura no la dibuja porque «sin modelo»
+% (AUC 0,5) queda debajo de su eje: el gate G11 pide el rótulo en toda slide con métricas de
+% validación. Va pequeña, gris y a la derecha, para que no compita con la figura.
+% ---------------------------------------------------------------------
+\tikzset{
+  filete/.style={path picture={\fill[#1] (path picture bounding box.north west)
+    rectangle ([xshift=2.4pt]path picture bounding box.south west);}},
+  ficha/.style={fill=rejilla!45, filete=azul, inner xsep=0.75em, inner ysep=0.5em,
+    text width=#1, align=flush left, font=\small\bfseries, text=azuloscuro},
+}
+\newlength{\fichaancho}
+\newcommand{\ficha}[2][\linewidth]{%
+  \setlength{\fichaancho}{#1}\addtolength{\fichaancho}{-1.5em}%
+  \tikz[baseline]\node[ficha=\fichaancho]{#2};}
+\newcommand{\veredicto}[1]{%
+  \centrado{\tikz\node[fill=rejilla!45, filete=azul, inner xsep=0.85em, inner ysep=0.45em,
+    font=\small\bfseries, text=tinta]{#1};}}
+\newcommand{\referencia}[1]{{\par\raggedleft\scriptsize\color{apagado}#1\par}}
+
+% ---------------------------------------------------------------------
+% EL NÚMERO HÉROE (slide 14), a 40 pt con su pie: \heroe cuando el test ya se evaluó, y
+% \heropendiente, el hueco dibujado como tal (una caja de trazo discontinuo con el rótulo
+% adentro), mientras no. El pie de \heropendiente va pegado a su caja: la caja ya delimita.
+% ---------------------------------------------------------------------
+\newcommand{\heroe}[2]{%
+  \begin{center}
+    {\fontsize{40}{44}\selectfont\textcolor{azul}{\textbf{#1}}}\\[0.55em]
+    {\color{apagado}\rule{2.2em}{1pt}}\\[0.6em]
+    {\footnotesize\color{tintasec}#2}
+  \end{center}%
+}
+\newcommand{\heropendiente}[2]{%
+  \centrado{%
+    \begin{tikzpicture}
+      \node[draw=apagado, dash pattern=on 3.2pt off 2.6pt, line width=0.9pt,
+            rounded corners=3pt, fill=rejilla!20, inner xsep=1.5em, inner ysep=0.7em]
+        {\fontsize{21}{25}\selectfont\color{apagado}\textls[140]{\MakeUppercase{#1}}};
+    \end{tikzpicture}\\[0.45em]
+    {\footnotesize\color{tintasec}#2}}}
+
+% ---------------------------------------------------------------------
+% DIAGRAMAS: un solo juego de estilos para todos (caja neutra, azul y naranja, misma geometría
+% y misma flecha). `visible on` es el truco del TP1: el nodo existe en todos los overlays y sólo
+% se pinta transparente cuando no toca, así el posicionamiento no falla y el dibujo no salta.
+% ---------------------------------------------------------------------
+\tikzset{
+  caja/.style       = {draw=apagado, fill=rejilla!30, rounded corners=2pt, line width=0.7pt,
+                       text=tinta, align=center, inner sep=5pt},
+  cajaazul/.style   = {caja, draw=azul, fill=azul!10},
+  cajanaranja/.style= {caja, draw=naranja, fill=naranja!10},
+  flecha/.style     = {-{Stealth[length=2.2mm,width=1.6mm]}, draw=apagado, line width=0.7pt},
+  invisible/.style  = {opacity=0, text opacity=0},
+  visible on/.style = {alt={#1{}{invisible}}},
+  alt/.code args    = {<#1>#2#3}{\alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}}},
+}
+
+\title{¿Quién va a contratar un plazo fijo?}
+% Sin \textperiodcentered: dentro de \textls (la volanta) deja «minus0pt» impreso en la
+% fuente TS1.
+\subtitle{Trabajo Práctico 2: clasificación supervisada}
+\author{Grupo 7 --- Andrés Cortese (64612) \textperiodcentered{} Sebastián Caules (64331)}
+\institute{Instituto Tecnológico de Buenos Aires --- 72.75 Aprendizaje Automático}
+\date{Defensa: 07/10/2026}
+
+% Metadatos y apertura: el visor abre sólo la página, con la slide entera (las razones, en el
+% deck del TP1).
+\hypersetup{
+  pdfauthor={Grupo 7 --- Andrés Cortese (64612), Sebastián Caules (64331)},
+  pdfsubject={TP2 --- Clasificación supervisada sobre Bank Marketing: Naive Bayes, SVM, KNN y
+              Random Forest, con validación cruzada},
+  pdfkeywords={clasificación, Naive Bayes, SVM, KNN, Random Forest, validación cruzada, AUC,
+               recall, fuga de datos, validación temporal, ITBA, 72.75},
+  pdfpagemode=UseNone,
+  pdfstartview=Fit,
+}
+
+% Los números: todos generados. numeros.tex define además \signoMenos.
+\input{numeros.tex}
+\input{resultados-test.tex}
+
+\begin{document}
+
+% =====================================================================
+% 1 · Portada. Sin \frametitle; el pie le pone igual el número. Armada a mano, como en el TP1:
+% volanta, título en bandera, filete azul y los datos en tres escalones de gris.
+% =====================================================================
+\begin{frame}
+  \vspace{0.4em}
+  {\fontsize{7.5}{9}\selectfont\volanta{\insertsubtitle}\par}
+  \vskip1.0em
+  {\usebeamerfont{title}\color{tinta}%
+    \parbox[t]{0.80\textwidth}{\raggedright\inserttitle}\par}
+  \vskip0.9em
+  {\color{azul}\rule{4.5em}{2.2pt}\par}
+  \vskip1.2em
+  {\small\color{tintasec}\insertauthor\par}
+  \vskip0.15em
+  {\small\color{tintasec}\insertinstitute\par}
+  \vskip1.5em
+  {\footnotesize\color{apagado}%
+    Dataset: \textit{Bank Marketing} --- \filasCsv{} contactos de campañas telefónicas de un
+    banco, de \anioInicio{} a \anioFin\par}
+  \vskip0.2em
+  {\footnotesize\color{apagado}\insertdate\par}
+  \note{Buenas tardes. Grupo siete: Trabajo Práctico 2, clasificación supervisada sobre
+    \textit{Bank Marketing}.\\[0.4em]
+    \textbf{Si preguntan.} Es el dataset que indica el enunciado: el \textit{Bank Marketing} de
+    UCI con cinco indicadores macroeconómicos, \filasCsv{} filas, \predictoras{} predictoras y la
+    clase \texttt{y}; campañas de mayo de 2008 a noviembre de 2010.}
+\end{frame}
+
+% =====================================================================
+\section{El problema}
+% =====================================================================
+% 2 · El problema. El diagrama entra en el orden del relato: qué se predice, con qué datos
+% (lo que el banco sabe antes de marcar, D-07) y el desbalance, que es el título. La barra de
+% clases está dibujada a escala con el % de «yes» de train (\pctYesTrain): si cambiara la
+% partición, hay que mover el corte (hoy en 11,414 cm: el 88,7 % de los 4,3 cm de la barra).
+\begin{frame}{Decir siempre «no» ya acierta el \exactitudSiempreNo}
+  \vspace{0.4em}
+  \centrado{%
+  \begin{tikzpicture}[font=\small, x=1cm, y=1cm]
+    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (cli) at (0,1.59)
+      {el cliente\\[-2pt]{\scriptsize\gris{edad, trabajo, estudios, crédito}}};
+    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (his) at (0,0.53)
+      {su historial\\[-2pt]{\scriptsize\gris{campañas anteriores y su resultado}}};
+    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (ctx) at (0,-0.53)
+      {el contexto económico\\[-2pt]{\scriptsize\gris{euribor, empleo, precios, confianza}}};
+    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (lla) at (0,-1.59)
+      {la llamada que se va a hacer\\[-2pt]{\scriptsize\gris{canal, mes, día, n.º de llamada}}};
+    \node[cajaazul, minimum width=2.7cm, minimum height=1.2cm] (m) at (5.1,0)
+      {modelo\\[-2pt]{\scriptsize\gris{antes de llamar}}};
+    \node[cajanaranja, minimum width=4.3cm, minimum height=1.2cm] (y) at (9.75,0)
+      {¿va a contratar?\\[-2pt]{\scriptsize\gris{\texttt{y}: yes o no}}};
+    \draw[flecha] (m) -- (y);
+    \draw[flecha, visible on=<2->] (cli.east) -- (m.160);
+    \draw[flecha, visible on=<2->] (his.east) -- (m.173);
+    \draw[flecha, visible on=<2->] (ctx.east) -- (m.187);
+    \draw[flecha, visible on=<2->] (lla.east) -- (m.200);
+    \begin{scope}[visible on=<3->]
+      \node[anchor=south west, font=\footnotesize, text=tintasec, inner sep=1pt] at (7.6,-0.93)
+        {en train};
+      \fill[azul!85] (7.6,-1.40) rectangle (11.414,-0.95);
+      \fill[naranja] (11.414,-1.40) rectangle (11.9,-0.95);
+      \node[anchor=west, font=\footnotesize\bfseries, text=white, inner sep=1pt] at (7.7,-1.175)
+        {«no»\sepdato\exactitudSiempreNo};
+      \node[anchor=north east, font=\footnotesize\bfseries, text=naranja, inner sep=1pt]
+        at (11.9,-1.46) {«yes»\sepdato\pctYesTrain};
+    \end{scope}
+  \end{tikzpicture}}
+  \note{Un banco ofrece un plazo fijo por teléfono. La pregunta es: antes de marcar, ¿este
+    cliente va a contratar? Si lo sabemos, llamamos primero a los más probables.
+    \avanza El modelo sólo puede usar lo que el banco sabe antes de la llamada: el cliente, su
+    historial en campañas anteriores, el contexto económico y los datos de la llamada que va a
+    hacer.
+    \avanza Y la clase está muy desbalanceada: en train, sólo el \pctYesTrain{} dijo que sí.
+    Decir siempre «no» ya acierta el \exactitudSiempreNo: la exactitud no sirve aquí.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuántos son? \yesTrain{} «yes» de \filasTrain{} clientes de train.
+    ¿Por qué \predictorasDisponibles{} predictoras y no \predictoras? Sale \texttt{duration},
+    que es fuga (slide 4; D-05). ¿\texttt{campaign} existe antes de llamar? Sí: es el número de
+    llamada que se va a hacer, contando esa (D-07). La reserva es que, tras un «yes», no se
+    vuelve a llamar, así que su valor final depende del resultado: media \mediaCampaignYes{} en
+    los «yes» y \mediaCampaignNo{} en los «no», con la misma mediana; queda como limitación. ¿Y
+    \texttt{month}, \texttt{day\_of\_week} y \texttt{contact}? Son de la llamada que se va a
+    hacer, y se eligen antes de marcar (inferencia; va en la consulta a la cátedra).}
+\end{frame}
+
+% =====================================================================
+\section{Datos}
+% =====================================================================
+% 3 · Qué datos deciden (consejo «Importante» del enunciado, p. 3; guía A3): antes de la primera
+% métrica, la partición y la tabla etapa → datos → qué decide. La barra de train y test está a
+% escala del 80/20; las filas de la tabla entran de a una, y la del test va en naranja porque es
+% la única que no decide nada.
+\begin{frame}{Train decide; test sólo mide, y una sola vez}
+  \vspace{0.2em}
+  \centrado{%
+  \begin{tikzpicture}[x=1cm, y=1cm]
+    \node[anchor=south west, font=\scriptsize, text=apagado, inner sep=1pt] at (0,1.08)
+      {\filasSinDuplicados{} filas: las \filasCsv{} del archivo menos \duplicados{} duplicados
+       exactos\sepdato 80/20 estratificado por \texttt{y}};
+    \fill[azul!20, rounded corners=2pt] (0,0) rectangle (11.25,1.0);
+    \node[font=\small, align=center] at (5.625,0.5)
+      {\textbf{train}\\[-2.5pt]{\scriptsize\gris{\filasTrain{} filas\sepdato\proporcionTrain}}};
+    \fill[naranja!20, rounded corners=2pt] (11.39,0) rectangle (14.2,1.0);
+    \node[font=\small, align=center] at (12.795,0.5)
+      {\textbf{test}\\[-2.5pt]{\scriptsize\gris{\filasTest{} filas\sepdato\proporcionTest}}};
+    % La tabla: etapa, datos y qué decide.
+    \node[anchor=west, inner sep=0pt] at (0.25,-0.62) {\cab{Etapa}};
+    \node[anchor=west, inner sep=0pt] at (4.55,-0.62) {\cab{Datos}};
+    \node[anchor=west, inner sep=0pt] at (8.85,-0.62) {\cab{Qué decide}};
+    \draw[apagado, line width=0.4pt] (0,-0.86) -- (14.2,-0.86);
+    \begin{scope}[visible on=<2->]
+      \fill[rejilla!35] (0,-1.02) rectangle (14.2,-1.62);
+      \node[anchor=west, font=\small] at (0.25,-1.32) {EDA y ablaciones};
+      \node[anchor=west, font=\small\bfseries, text=azul] at (4.55,-1.32) {train};
+      \node[anchor=west, font=\small] at (8.85,-1.32) {qué variables entran, y cómo};
+    \end{scope}
+    \begin{scope}[visible on=<3->]
+      \fill[rejilla!35] (0,-1.72) rectangle (14.2,-2.32);
+      \node[anchor=west, font=\small] at (0.25,-2.02) {validación cruzada};
+      \node[anchor=west, font=\small] at (4.55,-2.02) {\textcolor{azul}{\textbf{train}}, en 5 folds};
+      \node[anchor=west, font=\small] at (8.85,-2.02) {modelo e hiperparámetros};
+    \end{scope}
+    \begin{scope}[visible on=<4->]
+      \fill[naranja!12] (0,-2.42) rectangle (14.2,-3.02);
+      \node[anchor=west, font=\small] at (0.25,-2.72) {evaluación final};
+      \node[anchor=west, font=\small] at (4.55,-2.72)
+        {\textcolor{naranja}{\textbf{test}}, una sola vez};
+      \node[anchor=west, font=\small\bfseries, text=naranja] at (8.85,-2.72)
+        {nada: sólo estima el desempeño};
+    \end{scope}
+  \end{tikzpicture}}
+  \note{Antes de mirar los datos, los partimos, porque el análisis exploratorio también decide.
+    Quitamos \duplicados{} duplicados exactos: si una copia cae en train y otra en test, el test
+    deja de ser independiente. Después, 80/20 estratificado por la clase, con semilla fija.
+    \avanza El análisis exploratorio y las ablaciones leen sólo train.
+    \avanza La validación cruzada de 5 folds, también: con ella elegimos modelo e
+    hiperparámetros.
+    \avanza Y el test no decide nada: se abre una vez, al final, para estimar el desempeño.
+    Cada número que sigue dice de qué conjunto sale.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué estratificar, si no se vio en clase? Sin estratificar, la
+    proporción de «yes» del test cambia con la semilla; estratificando, train y test quedan con
+    el mismo \pctYesTrain{} (D-02). ¿Cómo se garantiza que nada mire el test? Todo lo anterior
+    al punto 4 lee sólo train con \texttt{cargar\_train()}; el único módulo que abre el test es
+    \texttt{src/evaluar\_test.py}, y \texttt{tests/test\_aislamiento.py} falla si otro archivo
+    lo nombra (D-04). ¿Cuánto mide cada fold? \filasFoldEntrenamiento{} filas para ajustar y
+    \filasFoldValidacion{} para validar.}
+\end{frame}
+
+% =====================================================================
+\section{EDA}
+% =====================================================================
+% 4 a 7 · El análisis exploratorio, cada observación con su consecuencia escrita (guía D1, gate
+% G12): cada slide termina en un veredicto que nombra un efecto, no un método.
+%
+% 4 · La fuga. La figura es la ablación A1 (ΔAUC con duration) con la configuración de
+% referencia, contra «sin modelo»; el veredicto es D-05.
+\begin{frame}{La duración predice el «yes», pero no existe antes de llamar}
+  \renewcommand{\figgrandealto}{0.68}
+  \centrado{\figgrande[0.97]{duration-techo.png}}
+  \vspace{0.2em}
+  \onslide<2->{\veredicto{\texttt{duration}: fuera del modelo}}
+  \note{Primera decisión del análisis exploratorio: la fuga. \texttt{duration} es la duración
+    de la última llamada, y se conoce al colgar, cuando el resultado ya se sabe. En train, el
+    decil más corto, hasta \durationDecilCorto{} segundos, tiene \pctYesDurationDecilCorto{} de
+    «yes»; el más largo, \pctYesDurationDecilLargo. Medimos cuánto pesa: con \texttt{duration},
+    los cuatro saltan; Random Forest pasa de \aucReferenciaAblacionRf{} a \aucRfConDuration. Es
+    un techo que no existe antes de llamar, y el propio diccionario del dataset pide descartarla.
+    \avanza Consecuencia: \texttt{duration} queda fuera del modelo.\\[0.4em]
+    \textbf{Si preguntan.} ¿Con qué modelos? Con la configuración de referencia de las
+    ablaciones, en los mismos folds (ablación A1). ¿Sola, cuánto da? Como puntaje,
+    \texttt{duration} sola da AUC \aucDurationSola. ¿Qué otras variables se revisaron por fuga?
+    Las \predictoras, una por una: \predictorasDisponibles{} existen antes de marcar, y
+    \texttt{campaign} con una reserva (D-07). ¿Por qué medirla si sale? Porque el enunciado
+    sugiere comparar con y sin las variables problemáticas.}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 5 · El orden temporal (D-03, D-06). La figura es la del EDA en HTML, regenerada para
+% proyectar: tasa de «yes» por bloque de filas del CSV original y el euribor debajo.
+\begin{frame}{El archivo va por fecha: el «yes» sube de \pctYesPrimerBloqueEda{} a
+  \pctYesUltimoBloqueEda}
+  \renewcommand{\figgrandealto}{0.68}
+  \centrado{\figgrande[0.97]{orden-temporal.png}}
+  \vspace{0.2em}
+  \onslide<2->{\veredicto{Partición aleatoria; la época va como limitación}}
+  \note{Segunda: el archivo está ordenado por fecha, de mayo de 2008 a noviembre de 2010, y la
+    tasa de «yes» no es estable: en bloques de \filasBloqueEda{} filas sube de
+    \pctYesPrimerBloqueEda{} a \pctYesUltimoBloqueEda, mientras el euribor cae de
+    \euriborPrimerBloqueEda{} a \euriborMinimoBloqueEda.
+    \avanza Consecuencia: partimos al azar, como plantea el enunciado, y barajamos los folds,
+    para que ninguno quede en una sola época. Lo que esto cuesta va como limitación, y es el
+    hallazgo del final.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por año? \pctYesDosMilOcho{} de «yes» en 2008, \pctYesDosMilNueve{}
+    en 2009 y \pctYesDosMilDiez{} en 2010. ¿Por qué no partir por fecha? El enunciado plantea
+    k-fold y no menciona el tiempo, y con el último \proporcionTest{} del archivo como test se
+    entrenaría en una época y se evaluaría en otra (D-03). ¿Qué pasaba sin barajar?
+    \texttt{StratifiedKFold} sin barajar, que es lo que hace pasarle un número a \texttt{cv},
+    deja cada fold en una época: euribor medio de \euriborFoldSinBarajarPrimero{} en el primero
+    y \euriborFoldSinBarajarUltimo{} en el último; barajando, todos entre
+    \euriborFoldBarajadoMinimo{} y \euriborFoldBarajadoMaximo{} (D-06). ¿De dónde sale el año?
+    El CSV no lo trae: cada vez que el mes retrocede, empieza un año nuevo.}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 6 · El centinela de pdays (D-10). El título lleva el 999 como macro (\pdaysCentinela), así pasa
+% el verificador.
+\begin{frame}{\pdaysCentinela{} no significa «nunca contactado»}
+  \renewcommand{\figgrandealto}{0.68}
+  \centrado{\figgrande[0.97]{pdays-999.png}}
+  \vspace{0.2em}
+  \onslide<2->{\veredicto{\texttt{pdays} se queda: el \pdaysCentinela{} es un corte, no un
+    número}}
+  \note{Tercera: \texttt{pdays}. El diccionario dice que \pdaysCentinela{} es «no contactado
+    antes», y es el \pctPdaysCentinela{} de train. Pero \filasCentinelaConPrevio{} filas con
+    \pdaysCentinela{} sí tuvieron contactos previos, y los que tienen fecha contratan el
+    \pctYesPdaysContactados.
+    \avanza Sacarla empeora Naive Bayes y KNN, y en los otros dos no cambia nada. Se queda:
+    escalado o en un árbol, el \pdaysCentinela{} funciona como un corte.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuánto empeora sin \texttt{pdays}? Naive Bayes gaussiano
+    \deltaAucSinPdaysNbGaussiano{} y KNN \deltaAucSinPdaysKnn, más que su desvío (A2, D-10).
+    ¿Cuántos tienen fecha? \filasPdaysContactados{} filas. ¿Y una indicadora de contacto previo?
+    Ya está: \texttt{poutcome} «nonexistent» equivale a no tener contactos previos, y duplicarla
+    pesaría doble. ¿Y los atípicos? Esas \filasPdaysContactados{} filas son justo los atípicos de
+    \texttt{pdays} por IQR: por eso no se borran (slide 7).}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 7 · El pipeline, con la consecuencia de cada paso debajo de su caja. La partición queda
+% afuera; lo que se ajusta con datos vive dentro de cada fold (enunciado, punto 1: «dentro del
+% pipeline correspondiente»). Las cajas entran en el orden en que el pipeline las ejecuta, y el
+% último overlay es el veredicto de la sección: los atípicos por IQR (D-17).
+\begin{frame}{Todo se ajusta dentro de cada fold, en este orden}
+  \vspace{0.3em}
+  \centrado{%
+  \begin{tikzpicture}[x=1cm, y=1cm, font=\small,
+      consecuencia/.style={font=\scriptsize, text=azuloscuro, align=flush center, text width=3.2cm,
+                           anchor=north, inner sep=1pt}]
+    \node[caja, minimum width=2.7cm, minimum height=1.2cm, visible on=<1->] (a) at (1.35,0)
+      {partición\\[-1pt]{\scriptsize\gris{5 folds, barajados}}};
+    \node[caja, minimum width=2.8cm, minimum height=1.2cm, visible on=<2->] (b) at (5.25,0)
+      {reglas fijas\\[-1pt]{\scriptsize\gris{sin \texttt{duration}}}};
+    \node[cajaazul, minimum width=3.0cm, minimum height=1.2cm, visible on=<3->] (c) at (8.85,0)
+      {codificar y escalar\\[-1pt]{\scriptsize\gris{según el modelo}}};
+    \node[cajanaranja, minimum width=2.7cm, minimum height=1.2cm, visible on=<4->] (d)
+      at (12.45,0) {clasificador\\[-1pt]{\scriptsize\gris{NB, SVM, KNN, RF}}};
+    \draw[flecha, visible on=<2->] (a) -- (b);
+    \draw[flecha, visible on=<3->] (b) -- (c);
+    \draw[flecha, visible on=<4->] (c) -- (d);
+    \node[consecuencia, visible on=<1->] (ca) at (1.35,-0.78) {cada fold mezcla\\las épocas};
+    \node[consecuencia, visible on=<2->] (cb) at (5.25,-0.78)
+      {categorías fundidas:\\
+       \columnasReferencia\salto\columnasFinales{} columnas};
+    \node[consecuencia, visible on=<3->] (cc) at (8.85,-0.78)
+      {ajustado sólo con el\\fold de entrenamiento};
+    \node[consecuencia, visible on=<4->] (cd) at (12.45,-0.78) {los cuatro, en\\los mismos folds};
+    \begin{scope}[on background layer]
+      \node[draw=apagado, dash pattern=on 2.4pt off 2pt, rounded corners=4pt, line width=0.6pt,
+            inner sep=0.22cm, fit=(b) (c) (d) (cb) (cc) (cd), visible on=<2->] (fold) {};
+    \end{scope}
+    \node[anchor=south, font=\scriptsize, text=apagado, inner sep=2pt, visible on=<2->]
+      at (fold.north) {dentro de cada fold};
+  \end{tikzpicture}}
+  \vspace{0.9em}
+  \onslide<5->{\veredicto{Atípicos por IQR: \filasAtipicasIqr{} filas marcadas, ninguna
+    eliminada}}
+  \note{Así queda el pipeline. La partición: \kFolds{} folds estratificados y barajados, así cada
+    uno mezcla las épocas.
+    \avanza Dentro de cada fold, reglas fijas: sale \texttt{duration}, \texttt{default} pasa a
+    indicadora y se funden dos categorías raras; quedan \columnasFinales{} columnas.
+    \avanza Después, la codificación de cada modelo: escalado para KNN y la SVM, deciles para
+    Naive Bayes, ajustados sólo con el fold de entrenamiento.
+    \avanza Los cuatro usan los mismos folds.
+    \avanza Y los atípicos por IQR: se marcan \filasAtipicasIqr{} filas y no se borra ninguna,
+    porque son señal.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué \texttt{default} como indicadora? En train sólo
+    \filasDefaultYes{} filas dicen «yes» (D-09). ¿Y Random Forest? One-hot sin escalar (D-12).
+    ¿Cómo se decidió cada paso? Con doce ablaciones, con y sin cada decisión, en los mismos
+    folds; se adopta si sube el AUC más que su desvío, o si es neutra y simplifica (respaldo R3).
+    ¿Por qué no borrar los atípicos? \filasAtipicasIqr{} filas, el \pctAtipicasIqr, tienen algún
+    valor fuera de \factorIqr{}~IQR; entre los de \texttt{pdays} el «yes» es
+    \pctYesAtipicosPdays{} y entre los de edad \pctYesAtipicosAge, contra \pctYesTrain{} (D-17).
+    ¿Y \texttt{unknown}? Queda como categoría: imputar es neutro (D-08). ¿KNN sin escalar no da
+    más? \deltaAucSinEscalarKnn, por la razón equivocada: la distancia pasa a mirar sólo
+    \texttt{pdays} y \texttt{nr.employed} (D-12).}
+\end{frame}
+
+% =====================================================================
+\section{Métricas}
+% =====================================================================
+% 8 · Las dos métricas (D-19, D-20), cada una con su «sin modelo» debajo. El veredicto dice por
+% qué no se usa la exactitud.
+\newcommand{\indicador}[4]{%
+  \centrado{%
+    \cab{#1}\\[0.5em]
+    {\color{apagado}\rule{2.2em}{1pt}}\\[0.6em]
+    {\fontsize{25}{28}\selectfont #2}\\[0.55em]
+    {\small\color{tinta}#3}\\[0.4em]
+    {\footnotesize\color{apagado}#4}}}
+\begin{frame}{Dos métricas que no premian decir siempre «no»}
+  \vspace{0.8em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \indicador{para comparar y elegir}{\dato{AUC}}%
+        {¿ordena bien a los clientes?}{\rotuloLineaBase: \aucSinModelo}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \onslide<2->{\indicador{para medir el uso real}{\dato{recall al \presupuesto}}%
+        {¿qué parte de los «yes» alcanzan las llamadas?}{\rotuloLineaBase: \recallSinModelo}}
+    \end{column}
+  \end{columns}
+  \vspace{1.5em}
+  \onslide<3->{\veredicto{La exactitud no se usa: decir siempre «no» ya da
+    \exactitudSiempreNo}}
+  \note{Elegimos dos métricas de la Clase 4. El AUC mide si el modelo ordena bien a los
+    clientes, que es justo priorizar a quién llamar; no depende de un umbral ni premia decir
+    siempre «no»: sin modelo vale \aucAzar. Con ella comparamos y elegimos.
+    \avanza La segunda es el uso real: si el banco llama al 20~\% de la lista con mayor puntaje,
+    ¿qué parte de los que contratarían alcanza? Cuenta el error caro, el cliente perdido; sin
+    modelo vale \recallSinModelo.
+    \avanza La exactitud, no: decir siempre «no» ya da \exactitudSiempreNo.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué no el umbral de la Clase 4, el punto de la ROC más cercano
+    a (0,1) (slide 52)? Es simétrico entre los dos errores, y aquí no cuestan lo mismo; además,
+    con un umbral por modelo los recalls no se comparan. Con el presupuesto, todos hacen las
+    mismas llamadas: \llamadasFoldValidacion{} por fold de validación. ¿Por qué el
+    \presupuesto? Es un supuesto de negocio; con el \presupuestoBajo{} o el \presupuestoAlto{}
+    Random Forest sigue primero (respaldo R2). ¿Y $F_1$? Se guarda igual: RF \fUnoRfVal, sin
+    modelo \fUnoSinModelo. ¿Y el desbalance? No se remuestrea: estas métricas ya no premian el
+    «no» (D-21).}
+\end{frame}
+
+% =====================================================================
+\section{Modelos}
+% =====================================================================
+% 9 · Los cinco clasificadores con valores de referencia (Naive Bayes en sus dos variantes,
+% D-18), contra «sin modelo».
+\begin{frame}{Sin ajustar, gana \modeloMejorReferencia: \aucNbReferencia{} contra
+  \aucSinModelo{} \rotuloLineaBase}
+  \centrado{\figgrande[0.97]{modelos-referencia.png}}
+  \note{Primero, los modelos con valores de referencia, sin ajustar, en los mismos 5 folds:
+    todos quedan muy por encima de sin modelo. El mejor es Naive Bayes, en su versión
+    categórica: discretizar las numéricas en deciles le suma \deltaAucNbCategorico{} sobre el
+    gaussiano, porque ninguna numérica es normal. Y dos modelos muestran sobreajuste: la SVM
+    con RBF, con \brechaSvmRbfReferencia{} de brecha entre train y validación, y Random Forest
+    sin límite de profundidad, con \brechaRfReferencia. Eso es lo que corrigen las curvas.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuál es la referencia? Random Forest con \arbolesRfReferencia{}
+    árboles sin límite de profundidad; KNN con k = \vecinosKnnReferencia; SVM con RBF y
+    C = \cSvmReferencia; Naive Bayes con \cortesNb{} cortes y Laplace $\alpha = \alfaNb$
+    (Clase 6, slide 46). ¿Por qué el categórico? Gana en los cinco folds, por entre
+    \deltaAucNbCategoricoMinimo{} y \deltaAucNbCategoricoMaximo{} (D-18).}
+\end{frame}
+
+% =====================================================================
+\section{Hiperparámetros}
+% =====================================================================
+% 10 · La curva de sobreajuste (punto 3.1), revelada en tres pasos como la curva en U del TP1:
+% train, validación, y las bandas con las zonas y el valor elegido. Mismo encuadre en las tres.
+% «Sin modelo» (AUC 0,5) queda debajo del eje, así que va como referencia (G11).
+\begin{frame}{¿Desde qué profundidad sobreajusta Random Forest?}
+  \renewcommand{\figgrandealto}{0.72}
+  \centrado{%
+    \only<1>{\figgrande[0.97]{curva-rf-1.png}}%
+    \only<2>{\figgrande[0.97]{curva-rf-2.png}}%
+    \only<3->{\figgrande[0.97]{curva-rf-3.png}}}
+  \onslide<2->{\referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}}
+  \note{Esta es la curva para discutir sobreajuste: la profundidad máxima de los árboles.
+    Train sube siempre, y sin límite llega a \aucTrainRfProfundidadSinLimite: los árboles
+    memorizan.
+    \avanza La validación, en cambio, sube hasta \profundidadRfMejor{} y después baja, hasta
+    \aucRfProfundidadSinLimite{} sin límite: la brecha se abre a
+    \brechaRfProfundidadSinLimite. Eso es sobreajuste. En el otro extremo, con profundidad
+    \profundidadRfMinima, train y validación casi empatan, \aucTrainRfProfundidadDos{} y
+    \aucRfProfundidadDos: el modelo es demasiado simple, subajuste.
+    \avanza Elegimos \profundidadRf: queda dentro de un error estándar del máximo y es más
+    simple. Validación \aucRfProfundidadElegida, brecha \brechaRfProfundidadElegida.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué no \profundidadRfMejor, si es el máximo?
+    \aucRfProfundidadMejor{} contra \aucRfProfundidadElegida: la diferencia es menor que un
+    error estándar, \errorEstandarRfProfundidadMejor, y la regla elige el más simple (D-22).
+    ¿Y el número de árboles? \arbolesRf: con profundidad \profundidadRf{} la curva es plana, y
+    la regla daba \arbolesRfRegla, pero más árboles no suman complejidad, sólo bajan la
+    varianza (Clase 7, slide 61; N0-11). ¿Pesos de clase? \deltaAucPesosRf: despreciable
+    (N0-12).}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 11 · KNN: el sobreajuste está del otro lado del eje (Mitchell §8.2.1 para la ponderación).
+\begin{frame}{En KNN sobreajusta el k pequeño: se elige k = \vecinosKnn}
+  \renewcommand{\figgrandealto}{0.72}
+  \centrado{\figgrande[0.97]{curva-knn.png}}
+  \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
+  \note{En KNN el eje va al revés. Con \vecinosKnnMinimo{} vecino, train da \aucTrainKnnUno{} y
+    validación \aucKnnUno: cada cliente es su propio vecino, sobreajuste puro. Al sumar vecinos
+    la brecha se cierra, y desde \vecinosKnnMinimoUnoEs{} todo queda dentro de un error estándar
+    del mejor; tomamos el más suave, \vecinosKnn: \aucKnnOchocientosUno, con brecha \brechaKnn.
+    Ponderar por distancia queda peor en todo el rango.\\[0.4em]
+    \textbf{Si preguntan.} ¿Dónde está el máximo? En \vecinosKnnMejor, \aucKnnMejor; la curva es
+    una meseta desde \vecinosKnnMeseta. ¿No es enorme k = \vecinosKnn? Con
+    \filasFoldEntrenamiento{} filas por fold y \pctYesTrain{} de «yes», estimar bien una
+    proporción baja pide muchos vecinos (inferencia). ¿Y por distancia? Con
+    \texttt{weights = distance}, train da \aucTrainKnnDistancia, porque cada punto de train se
+    encuentra a sí mismo, y validación \aucKnnDistancia{} con k = \vecinosKnnDistancia{}
+    (Mitchell §8.2.1).}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 12 · La SVM: la curva de C con kernel lineal y, en el segundo paso, la del RBF atenuada, que
+% es la que sobreajusta.
+\begin{frame}{La SVM queda lineal y muy regularizada: C = \cSvm}
+  \renewcommand{\figgrandealto}{0.72}
+  \centrado{%
+    \only<1>{\figgrande[0.97]{curva-svm.png}}%
+    \only<2->{\figgrande[0.97]{curva-svm-2.png}}}
+  \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
+  \note{En la SVM exploramos C y el kernel, con pesos balanceados, que aquí sí ayudan:
+    \deltaAucPesosSvm. Con kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos
+    \cSvm, el más regularizado.
+    \avanza Con RBF, en cambio, un C grande sobreajusta: train sube casi a uno y la validación
+    cae. Comparados en C = \cSvmKernel: lineal \aucSvmKernelLineal, polinómico
+    \aucSvmKernelPolinomico{} y RBF \aucSvmKernelRbf. Queda lineal.\\[0.4em]
+    \textbf{Si preguntan.} ¿Qué es C? La convención de scikit-learn: un C grande castiga más
+    los errores y regulariza menos (Clase 8, slide 49). ¿Por qué \texttt{LinearSVC}? La SVM
+    lineal de libsvm con C = \cSvmCostoExcedido{} no terminó en \segundosLimiteCosto{}
+    segundos; \texttt{LinearSVC} con pérdida \textit{hinge} es el mismo modelo con otro
+    optimizador. ¿Y $\gamma$? No se ajustó: el kernel final es lineal.}
+\end{frame}
+
+% =====================================================================
+\section{Modelo final}
+% =====================================================================
+% 13 · Los cuatro ajustados, en AUC y en recall, contra «sin modelo» (D-23).
+\begin{frame}{Ajustados, gana \modeloFinal{} por \margenAucFinal{} de AUC en validación}
+  \centrado{\figgrande[0.97]{modelos-final.png}}
+  \note{Con los hiperparámetros elegidos gana Random Forest: \aucRfVal{} de AUC y \recallRfVal{}
+    de recall llamando al 20~\%. Le siguen KNN, \aucKnnVal; Naive Bayes, \aucNbVal, y la SVM,
+    \aucSvmVal. Ninguno queda dentro de un error estándar de Random Forest. Pero importa la
+    escala: entre el mejor y el peor hay \rangoAucFinal; entre Random Forest y sin modelo,
+    \margenAucSinModeloFinal.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuál es el umbral de empate? \umbralEmpateFinal: el AUC de Random
+    Forest menos un error estándar (D-23). ¿Sobreajusta? Brecha de \brechaRf. ¿Cuánto sumó
+    ajustar? Random Forest \deltaAucAjusteRf, KNN \deltaAucAjusteKnn, SVM \deltaAucAjusteSvm.
+    ¿Y la precisión? Llamando al 20~\%, Random Forest acierta \precisionRfVal{} de las
+    llamadas; sin modelo, \precisionSinModelo.}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 14 · El número de test, solo (guía C2, C3): la única slide del deck que no compara nada. Con
+% el test pendiente, el hueco dibujado como tal; evaluado, el AUC con su intervalo. Los macros
+% de resultados-test.tex van en modo texto (S-12). La comparación con validación se dice, no se
+% proyecta (C6): está en la nota.
+\begin{frame}{¿Qué AUC esperar en clientes nuevos de la misma época?}
+  \vspace{0.8em}
+  \iftestpendiente
+    \heropendiente{AUC de test}{pendiente: se evalúa una vez, después del 30/09}
+  \else
+    \heroe{\auctest}{AUC de \textbf{test}, sobre \filasTest{} clientes nuevos \sepdato
+      intervalo del \nivelIntervalo: \aucic}
+  \fi
+  \note{¿Qué esperar en clientes nuevos? Lo dice el test: Random Forest reentrenado con todo
+    train, sobre las \filasTest{} filas de test, una sola vez.
+    \iftestpendiente Todavía no lo abrimos; lo haremos después de las respuestas de la
+    cátedra.\else Da \auctest{} de AUC, con un intervalo del \nivelIntervalo{} de \aucic.\fi{}
+    Y atención a qué mide: el test sale de las mismas campañas que train, así que estima
+    clientes nuevos de esa época, no una campaña futura. Eso es el hallazgo.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué esperar? Si la respuesta de la cátedra cambiara una
+    variable, habría que evaluar el test dos veces, y cada vez pierde independencia (N0-1).
+    ¿Cómo se calcula el intervalo? Por bootstrap estratificado sobre las predicciones de test,
+    \remuestreosBootstrap{} remuestreos y percentiles; no se reentrena nada (D-24). ¿Y contra
+    validación? Se dice, no se proyecta: \iftestpendiente se completa al evaluar.\else la
+    diferencia es \diferenciaAucTestValidacion.\fi{} ¿Por qué no aparece sin modelo? Porque el
+    test no compite con nada: sólo mide.}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 15 · Qué errores comete (punto 5). Mientras el test siga cerrado, la matriz es la de
+% validación fuera de fold, rotulada como tal y con su «sin modelo» (G11); cuando se evalúe, la
+% misma slide pasa sola a la matriz de test, sin línea de base (C2). Es lo más honesto de las
+% dos opciones del plan: la matriz de test con «?» no diría nada, y el análisis de errores de
+% conclusiones.md (§3) se hizo sobre validación.
+%
+% Ojo, para el guion: esta matriz corta la lista fuera de fold completa en su 20 %
+% (\llamadasTrain llamadas), como la curva de ganancia y como se corta el test; la de
+% conclusiones.md, §3, corta el 20 % de cada fold y suma (6 590 llamadas), y difiere en pocas
+% filas. Los números del guion son los de numeros.md.
+\newcommand{\matrizVP}{\iftestpendiente\vpRfVal\else\vptest\fi}
+\newcommand{\matrizFP}{\iftestpendiente\fpRfVal\else\fptest\fi}
+\newcommand{\matrizFN}{\iftestpendiente\fnRfVal\else\fntest\fi}
+\newcommand{\matrizVN}{\iftestpendiente\vnRfVal\else\vntest\fi}
+\newcommand{\matrizLlamadas}{\iftestpendiente\llamadasTrain\else\llamadastest\fi}
+\newcommand{\matrizConjunto}{\iftestpendiente validación (OOF)\else test\fi}
+\newcommand{\lecturaCosto}{\iftestpendiente cada «yes» cuesta \dato{\llamadasPorYesRf}
+  llamadas\sepdato\rotuloLineaBase: \llamadasPorYesSinModelo\else recall de test:
+  \dato{\recallmatriztest}\fi}
+\begin{frame}{El error caro es el «yes» que no se llama}
+  \vspace{0.3em}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.56\textwidth}
+      \centrado{%
+      \begin{tikzpicture}[x=1cm, y=1cm,
+          celda/.style={minimum width=2.95cm, minimum height=1.3cm, align=center,
+                        rounded corners=2pt, inner sep=2pt}]
+        \node[anchor=south, font=\footnotesize, text=tintasec, inner sep=1pt, align=center]
+          at (3.05,1.95) {\textbf{\matrizConjunto}\\llamando al 20~\% de la lista:
+          \matrizLlamadas{} llamadas};
+        \node[inner sep=0pt] at (1.5,1.6) {\cab{llamado}};
+        \node[inner sep=0pt] at (4.6,1.6) {\cab{no llamado}};
+        \node[anchor=east, font=\small] at (-0.1,0.7) {«yes»};
+        \node[anchor=east, font=\small] at (-0.1,-0.7) {«no»};
+        \node[celda, fill=azul!12] at (1.5,0.7)
+          {{\Large\bfseries\color{azul}\matrizVP}\\[-1pt]{\scriptsize\gris{«yes» alcanzados}}};
+        \node[celda, fill=naranja!16, draw=naranja, line width=0.9pt] at (4.6,0.7)
+          {{\Large\bfseries\color{naranja}\matrizFN}\\[-1pt]{\scriptsize\color{naranja}«yes» perdidos}};
+        \node[celda, fill=rejilla!70] at (1.5,-0.7)
+          {{\Large\color{tinta}\matrizFP}\\[-1pt]{\scriptsize\gris{llamadas de más}}};
+        \node[celda, fill=rejilla!30] at (4.6,-0.7)
+          {{\Large\color{tinta}\matrizVN}\\[-1pt]{\scriptsize\gris{bien descartados}}};
+      \end{tikzpicture}}
+    \end{column}
+    \begin{column}{0.40\textwidth}
+      \begin{itemize}\setlength\itemsep{1.1em}
+        \item<2-> \ojo{\matrizFN{} «yes» sin llamar}: el error caro
+        \item<3-> \lecturaCosto
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \note{¿Qué errores comete? \iftestpendiente Con el test cerrado, la matriz es la de
+    validación: los puntajes fuera de fold, llamando al 20~\% de la lista.\else Es la matriz de
+    test, llamando al 20~\% de la lista.\fi{} Un falso positivo es una llamada de más; un falso
+    negativo, un cliente que habría contratado y no se llama: ese es el caro.
+    \avanza \iftestpendiente Quedan \fnRfVal{} «yes» sin llamar, sobre todo de 2008 y sin
+    historial.\else Quedan \fntest{} «yes» de test sin llamar.\fi
+    \avanza \iftestpendiente Aun así, cada «yes» cuesta \llamadasPorYesRf{} llamadas, contra
+    \llamadasPorYesSinModelo{} sin modelo.\else El recall de test, llamando al 20~\%, es
+    \recallmatriztest.\fi\\[0.4em]
+    \textbf{Si preguntan.} ¿Qué es OOF? Cada fila puntuada por el modelo del fold en que no
+    entrenó: toda train, sin fuga. ¿Por qué esta matriz? Corta la lista completa en su
+    \presupuesto, \llamadasTrain{} llamadas, como la curva de ganancia y como se corta el test.
+    ¿Cuántos «yes» hay? \yesTrain{} en train. ¿Quiénes son los perdidos? Tres de cada cuatro son
+    de 2008, un año en el que el modelo casi no llama, y casi todos no tienen campaña previa
+    (conclusiones.md, §3).}
+\end{frame}
+
+% =====================================================================
+\section{Conclusiones}
+% =====================================================================
+% 16 · Por qué rindió cada uno (punto 5): una ficha por modelo, en el orden del ranking, con su
+% AUC de validación en el color de su figura y el supuesto que explica el resultado. Son los
+% cuatro ejemplos del enunciado: correlación y no normalidad (NB), escala (KNN, SVM) y relaciones
+% no lineales (RF, SVM).
+\tikzset{tarjeta/.style={fill=rejilla!45, filete=#1, text width=6.35cm, minimum height=1.75cm,
+  inner xsep=0.85em, inner ysep=0.5em, align=flush left, font=\normalsize}}
+\begin{frame}{Por qué ganó \modeloFinal{} y quedó última la \modeloUltimoFinal}
+  \vspace{0.5em}
+  \centrado{%
+  \begin{tikzpicture}[x=1cm, y=1cm]
+    \node[tarjeta=colorrf, visible on=<1->] at (0,1.0)
+      {\textbf{Random Forest}\sepdato\textcolor{colorrf}{\textbf{\aucRfVal}}\\[3pt]
+       {\small no supone escala ni forma: capta la U de la edad}};
+    \node[tarjeta=colorknn, visible on=<2->] at (7.45,1.0)
+      {\textbf{KNN}\sepdato\textcolor{colorknn}{\textbf{\aucKnnVal}}\\[3pt]
+       {\small mide distancias: sin escalar, \texttt{pdays} es el \pctVarianzaPdays{} de
+        la varianza}};
+    \node[tarjeta=colornb, visible on=<3->] at (0,-1.0)
+      {\textbf{Naive Bayes}\sepdato\textcolor{colornb}{\textbf{\aucNbVal}}\\[3pt]
+       {\small supone independencia: tres macro con $r$ de \correlacionMacroMinima{} a
+        \correlacionMacroMaxima}};
+    \node[tarjeta=colorsvm, visible on=<4->] at (7.45,-1.0)
+      {\textbf{SVM}\sepdato\textcolor{colorsvm}{\textbf{\aucSvmVal}}\\[3pt]
+       {\small quedó lineal: no puede doblar la U de la edad}};
+  \end{tikzpicture}}
+  \vspace{0.6em}
+  \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo}
+  \note{¿Por qué rindió cada uno? Con los supuestos que pide el enunciado. Random Forest no supone
+    escala ni forma, y sus cortes captan relaciones no lineales, como la U de la edad: contratan
+    más los más jóvenes y los mayores.
+    \avanza KNN mide distancias y necesita escalar: sin escalar, \texttt{pdays} tiene el
+    \pctVarianzaPdays{} de la varianza.
+    \avanza Naive Bayes supone independencia, y el bloque macro la viola, con correlaciones de
+    \correlacionMacroMinima{} a \correlacionMacroMaxima; como las numéricas no son normales, el
+    categórico le gana al gaussiano.
+    \avanza La SVM quedó lineal, y un puntaje lineal no dobla la U. Aun así, entre los cuatro hay
+    sólo \rangoAucFinal.\\[0.4em]
+    \textbf{Si preguntan.} ¿Por qué el bloque macro ayuda a Naive Bayes si viola la
+    independencia? Sacarlo cuesta \deltaAucSinMacroNbGaussiano{} en el gaussiano (D-14): es un
+    resultado contra la intuición, probablemente porque fecha a los clientes (inferencia). ¿La U
+    de la edad es real? Se mezcla con la época: casi todos los mayores de sesenta son de
+    2009--2010, y Random Forest es el que más pierde sin macro ni \texttt{month},
+    \deltaAucSinMacroNiMonthRf{} (A8). ¿La SVM con RBF no capta la U? Podría, pero con $\gamma$
+    sin ajustar no la aprovechó: \aucSvmKernelRbf{} contra \aucSvmKernelLineal{} lineal
+    (inferencia).}
+\end{frame}
+
+% ---------------------------------------------------------------------
+% 17 · Limitaciones y mejoras, antes del hallazgo (guía A4, A7), cada lista ordenada por
+% impacto y de tres fichas. El título dice la primera, que es la que el hallazgo explica.
+\begin{frame}{Limitaciones: el test mide estas campañas, no una futura}
+  \vspace{0.3em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \cab{Limitaciones}\par\vspace{0.6em}
+      \ficha{La época: el test es de las mismas campañas}\par\vspace{0.5em}
+      \ficha{Llamar al \presupuesto{} es un supuesto de negocio}\par\vspace{0.5em}
+      \ficha{Hiperparámetros elegidos con la misma validación}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \onslide<2->{%
+      \cab{Qué mejoraríamos}\par\vspace{0.6em}
+      \ficha{Validar hacia adelante en el tiempo}\par\vspace{0.5em}
+      \ficha{Más historial: el \pctPoutcomeInexistente{} no tiene campaña previa}\par
+      \vspace{0.5em}
+      \ficha{Un costo por tipo de error, no un \presupuesto{} fijo}}
+    \end{column}
+  \end{columns}
+  \note{Tres limitaciones, por impacto. La época: el test sale de las mismas campañas, así que
+    vale para clientes nuevos de esas campañas, no para una futura. Llamar al 20~\% es un
+    supuesto: con el \presupuestoBajo{} o el \presupuestoAlto, Random Forest sigue primero. Y
+    elegimos los hiperparámetros con la misma validación que los reporta: el máximo sale algo
+    optimista.
+    \avanza Lo primero que haríamos es validar hacia adelante en el tiempo, que es como se
+    usaría el modelo, y sumar historial: el \pctPoutcomeInexistente{} no tiene campaña
+    previa.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuánto optimismo? Del orden de un error estándar,
+    \errorEstandarRfProfundidadElegida{} (inferencia); la regla de un error estándar lo atenúa.
+    ¿Y el desbalance? Pesos balanceados en Random Forest: \deltaAucPesosRf{} (N0-12). ¿Y
+    \texttt{unknown}? Imputar es neutro: Random Forest \deltaAucImputarModaRf{} (D-08). ¿Y
+    \texttt{campaign}? Puede depender del resultado (D-07); el efecto no se midió. ¿Otras
+    mejoras? Un costo por tipo de error en lugar de un presupuesto fijo, y calibrar las
+    probabilidades para poder usarlo.}
+\end{frame}
+
+% =====================================================================
+\section{Hallazgo}
+% =====================================================================
+% 18 y 19 · El hallazgo H1, lo último que se muestra (guía A4, A6), en dos pasos: primero la
+% caída de los cuatro modelos y por qué el barajado es alto, lectura (a); después, bloque a
+% bloque, las lecturas (b) y (c) (resultados/conclusiones.md, §2; D-25). Si el reloj va atrasado
+% en la slide 13, el segundo paso de la 19 es lo que se recorta, nunca las limitaciones.
+\begin{frame}{Entrenado con el pasado, Random Forest cae de \aucRfVal{} a \aucRfAdelante}
+  \renewcommand{\figgrandealto}{0.68}
+  \centrado{\figgrande[0.97]{robustez-modelos.png}}
+  \vspace{0.2em}
+  \onslide<2->{\veredicto{Barajado, AUC \aucOofEntreAnios{} entre años distintos y
+    \aucOofDentroAnio{} dentro de un mismo año}}
+  \note{El hallazgo. Validamos hacia adelante dentro de train: cada fold entrena con el pasado y
+    valida con el bloque siguiente. Barajados, los cuatro están entre \aucSvmVal{} y \aucRfVal;
+    hacia adelante, ninguno pasa de \aucNbAdelante, y Random Forest cae a \aucRfAdelante.
+    \avanza ¿Por qué tanto? Parte del \aucRfVal{} es distinguir años: el \pctParesEntreAnios{}
+    de los pares «yes»–«no» son de años distintos, y ahí el AUC es \aucOofEntreAnios; dentro de
+    un mismo año, \aucOofDentroAnio.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cómo se validó hacia adelante? \texttt{TimeSeriesSplit} con 5 folds
+    sobre train ordenado: cada fold valida con \filasBloqueAdelante{} filas y entrena con todo lo
+    anterior (D-25). ¿Por qué el desvío es tan grande? Porque los bloques son muy distintos: de
+    \pctYesBloqueUno{} a \pctYesBloqueCinco{} de «yes».}
+\end{frame}
+
+% ---------------------------------------------------------------------
+\begin{frame}{En 2008 no sirve; en 2009--2010 pierde, pero no cae al azar}
+  \renewcommand{\figgrandealto}{0.90}
+  \centrado{%
+    \only<1>{\figgrande[0.97]{robustez-folds.png}}%
+    \only<2->{\figgrande[0.97]{robustez-folds-2.png}}}
+  \note{Bloque a bloque: en los tres bloques de 2008, hacia adelante da \aucRfAdelanteFoldUno,
+    \aucRfAdelanteFoldDos{} y \aucRfAdelanteFoldTres, azar; el primero entrena con
+    \yesEntrenamientoAdelanteUno{} «yes».
+    \avanza Pero barajado, en esas mismas filas, tampoco pasa de \aucRfBarajadoBloqueTres: en
+    2008 el modelo no sirve ni mezclando épocas. En 2009 y 2010, en cambio, pierde
+    \caidaAucRfBloqueCuatro{} y \caidaAucRfBloqueCinco: una caída real, no el azar. Por eso el
+    test vale para estas campañas.\\[0.4em]
+    \textbf{Si preguntan.} ¿Es porque las variables macro fechan las filas? No: sin ellas, hacia
+    adelante da \aucRfSinMacroAdelante, y sin ellas ni \texttt{month},
+    \aucRfSinMacroNiMonthAdelante{} (respaldo R4). ¿Por qué no validar así desde el principio?
+    El enunciado plantea k-fold; un esquema temporal habría entrenado con 2008, con
+    \pctYesDosMilOcho{} de «yes», para predecir 2010, con \pctYesDosMilDiez{} (D-25). Es la
+    primera mejora.}
+\end{frame}
+
+% =====================================================================
+\section{Preguntas}
+% =====================================================================
+% 20 · La pantalla que queda puesta durante las preguntas: el mismo vocabulario que la portada.
+% La sección «Preguntas» no está en el índice del encabezado (este frame no lo muestra); sólo
+% pone su nombre en el pie.
+\begin{frame}
+  \vspace{0.4em}
+  {\fontsize{7.5}{9}\selectfont\volanta{Gracias}\par}
+  \vskip1.0em
+  {\usebeamerfont{title}\color{tinta}¿Preguntas?\par}
+  \vskip0.9em
+  {\color{azul}\rule{4.5em}{2.2pt}\par}
+  \vskip1.2em
+  {\small\color{tintasec}\insertauthor\par}
+  \vskip0.15em
+  {\small\color{tintasec}\insertinstitute\par}
+  \vskip1.5em
+  {\footnotesize\color{apagado}\insertsubtitle{} --- \insertdate\par}
+  \note{Gracias; quedamos a disposición para las preguntas.\\[0.4em]
+    \textbf{Respaldo, después de esta slide:} R1, la curva de ganancia; R2, la sensibilidad al
+    presupuesto; R3, las ablaciones del análisis exploratorio; R4, el hallazgo sin las variables
+    de época. El detalle de cada cifra está en \texttt{resultados/conclusiones.md} y en
+    \texttt{DECISIONES.md}.}
+\end{frame}
+
+% =====================================================================
+% RESPALDO. Fuera del recorrido: numerado R1 a R4, el pie dice «Respaldo», la barra va entera y
+% el índice no resalta ninguna sección. Son las figuras de reserva de la lista canónica.
+% =====================================================================
+\appendix
+
+\begin{frame}{Con el \presupuesto{} de la lista, Random Forest alcanza el \gananciaRfVeinte{} de
+  los «yes»}
+  \centrado{\figgrande[0.97]{ganancia.png}}
+  \note{La curva de ganancia fuera de fold: llamando en orden de puntaje, Random Forest alcanza
+    el \gananciaRfVeinte{} de los «yes» con el 20~\% de las llamadas; sin modelo, el
+    \gananciaSinModeloVeinte. La mitad de los «yes» está en el primer \pctListaYesMitadRf{} de la
+    lista, y con la mitad de la lista se alcanza el \gananciaRfCincuenta. Los cuatro modelos
+    casi se superponen. Hacia adelante en el tiempo, ese recall cae a \recallRfAdelante{}
+    (D-25).}
+\end{frame}
+
+\begin{frame}{Con el \presupuestoBajo{} o el \presupuestoAlto{} de la lista, Random Forest sigue
+  primero}
+  \centrado{\figgrande[0.97]{sensibilidad-q.png}}
+  \note{Con el \presupuestoBajo, el \presupuesto{} y el \presupuestoAlto{} de la lista, Random
+    Forest alcanza \recallRfDiez, \recallRfVal{} y \recallRfTreinta{} de los «yes», contra
+    \recallSinModeloDiez, \recallSinModelo{} y \recallSinModeloTreinta{} sin modelo; su
+    precisión baja de \precisionRfDiez{} a \precisionRfTreinta. Random Forest queda primero con
+    los tres; los otros tres cambian de orden entre sí. El presupuesto es un supuesto de negocio
+    (D-20).}
+\end{frame}
+
+\begin{frame}{Doce ablaciones: se adoptan dos, y dos alimentan el hallazgo}
+  \renewcommand{\figgrandealto}{0.72}
+  \centrado{\figgrande[0.97]{ablaciones.png}}
+  \referencia{\rotuloLineaBase: AUC de validación \aucSinModelo}
+  \note{Cada fila cambia una sola cosa respecto de la referencia A0, en los mismos folds, y el
+    número es el $\Delta$AUC pareado por fold. Se adopta si sube más que su desvío, o si es
+    neutra y simplifica: A3, \texttt{default} como indicadora (Random Forest
+    \deltaAucDefaultIndicadoraRf), y A4, fundir las categorías raras (Naive Bayes
+    \deltaAucRarasNbGaussiano). A8, sin macro ni \texttt{month}, empeora a los cuatro, y A7,
+    sin macro, a tres: son material del hallazgo. A12, KNN sin escalar, mejora \deltaAucSinEscalarKnn{} por
+    la razón equivocada (D-12).}
+\end{frame}
+
+\begin{frame}{Sin las variables de época, hacia adelante no mejora}
+  \centrado{\figgrande[0.97]{robustez-variantes.png}}
+  \note{Sin las variables que fechan las filas, barajado se pierde (de \aucRfVal{} a
+    \aucRfSinMacroBarajado{} sin macro y a \aucRfSinMacroNiMonthBarajado{} sin macro ni
+    \texttt{month}), y hacia adelante no se gana nada: \aucRfAdelante, \aucRfSinMacroAdelante{}
+    y \aucRfSinMacroNiMonthAdelante. No es sólo que fechen a los clientes: la relación entre las
+    variables y el «yes» cambia con el tiempo (inferencia).}
+\end{frame}
+
+\end{document}

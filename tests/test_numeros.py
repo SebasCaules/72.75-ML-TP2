@@ -21,14 +21,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
 from src.ablaciones import VARIANTES
 from src.datos import RAIZ, cargar_train
 from src.eda_html import analizar, leer_names
 from src.evaluar_test import MACROS as MACROS_TEST
-from src.evaluar_test import N_TEST
-from src.metricas import METRICAS
+from src.evaluar_test import N_BOOTSTRAP, N_TEST
+from src.metricas import METRICAS, llamadas
 from src.numeros import (
     DEFINICION_MENOS,
     DESCONOCIDO,
@@ -75,6 +76,15 @@ ESPERADOS = {
     "errorEstandarKnnMejor", "cortesNb", "alfaNb", "predictorasDisponibles",
     "desvioPctYesTestSinEstratificar", "pctYesTestSinEstratificarMinimo",
     "pctYesTestSinEstratificarMaximo", "pctYesTrainTemporal", "pctYesTestTemporal",
+    # Los que agregó el deck (paso 7.1): el nivel y los remuestreos del intervalo de test (D-24),
+    # las llamadas por «yes» de la matriz fuera de fold, y las tres lecturas del hallazgo
+    # (resultados/conclusiones.md, §2): pares de años distintos, el AUC barajado en las filas de
+    # cada bloque hacia adelante, cuánto pierde hacia adelante y con cuántos «yes» entrena.
+    "nivelIntervalo", "remuestreosBootstrap", "llamadasPorYesRf", "llamadasPorYesSinModelo",
+    "pctParesEntreAnios", "aucOofEntreAnios", "aucOofDentroAnio", "aucOofDosMilOcho",
+    "aucRfBarajadoBloqueUno", "aucRfBarajadoBloqueDos", "aucRfBarajadoBloqueTres",
+    "aucRfBarajadoBloqueCuatro", "aucRfBarajadoBloqueCinco", "caidaAucRfBloqueCuatro",
+    "caidaAucRfBloqueCinco", "yesEntrenamientoAdelanteUno",
 }
 MACROS_DE_TEST = ("yesTest", "pctYesTest", "diferenciaAucTestValidacion",
                   "diferenciaRecallTestValidacion")
@@ -641,7 +651,62 @@ def _recalculados():
     def desvio_delta(x):
         return formatear_decimal(x, 3 if abs(x) >= 0.01 else 4)
 
+    # El hallazgo (conclusiones.md, §2), por otro camino que src/numeros.py: el año se infiere aquí
+    # a mano (el CSV va por fecha y el año cambia cada vez que el mes retrocede) y el AUC de los
+    # pares de años distintos se mide par de años por par de años, con roc_auc_score sobre los «yes»
+    # de un año y los «no» del otro, en lugar de por diferencia con el AUC de todo junto.
+    meses = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    por_fila = train.sort_values("fila")
+    vuelta = np.diff(por_fila["month"].map(meses.index).to_numpy()) < 0
+    anio_de = pd.Series(leer_names().anio_ini + np.concatenate([[0], np.cumsum(vuelta)]),
+                        index=por_fila["fila"].to_numpy())
+    oof = _leer("oof_final_rf.csv", float_precision="round_trip")
+    oof["y"] = oof["fila"].map(pd.Series(y.astype(int), index=train["fila"].to_numpy()))
+    oof["anio"] = oof["fila"].map(anio_de)
+    sumas = {"dentro": [0.0, 0], "entre": [0.0, 0]}
+    auc_2008 = None
+    for a in sorted(oof["anio"].unique()):
+        for b in sorted(oof["anio"].unique()):
+            si = oof.loc[(oof["anio"] == a) & (oof["y"] == 1), "puntaje"].to_numpy()
+            no = oof.loc[(oof["anio"] == b) & (oof["y"] == 0), "puntaje"].to_numpy()
+            if not len(si) or not len(no):
+                continue
+            auc_ab = roc_auc_score(np.r_[np.ones(len(si)), np.zeros(len(no))], np.r_[si, no])
+            clave = "dentro" if a == b else "entre"
+            sumas[clave][0] += auc_ab * len(si) * len(no)
+            sumas[clave][1] += len(si) * len(no)
+            if a == b == 2008:
+                auc_2008 = auc_ab
+    pares = sumas["dentro"][1] + sumas["entre"][1]
+    assert pares == int(y.sum()) * int((~y).sum())
+
+    def barajado_en_bloque(fold):
+        b = bloques.loc[("hacia_adelante", fold)]
+        filas = oof[oof["fila"].between(b["fila_min_validacion"], b["fila_max_validacion"])]
+        return roc_auc_score(filas["y"], filas["puntaje"])
+
+    adelante_cinco = por_fold[(por_fold["modelo"] == "rf") & (por_fold["esquema"] == "hacia_adelante")
+                              & (por_fold["variante"] == "todas") & (por_fold["fold"] == 5)
+                              & (por_fold["conjunto"] == "validacion")
+                              & (por_fold["metrica"] == "auc")]["valor"].item()
+    primer_corte = bloques.loc[("hacia_adelante", 1), "fila_max_train"]
+    # La matriz fuera de fold: los llamados son las llamadas(n) filas de mayor puntaje.
+    k = llamadas(len(oof))
+    vp = int(oof.sort_values("puntaje", ascending=False, kind="stable")["y"].iloc[:k].sum())
+
     return {
+        "pctParesEntreAnios": formatear_porcentaje(100 * sumas["entre"][1] / pares),
+        "aucOofEntreAnios": formatear_decimal(sumas["entre"][0] / sumas["entre"][1]),
+        "aucOofDentroAnio": formatear_decimal(sumas["dentro"][0] / sumas["dentro"][1]),
+        "aucOofDosMilOcho": formatear_decimal(auc_2008),
+        "aucRfBarajadoBloqueCuatro": formatear_decimal(barajado_en_bloque(4)),
+        "caidaAucRfBloqueCinco": formatear_decimal(barajado_en_bloque(5) - adelante_cinco),
+        "yesEntrenamientoAdelanteUno": formatear_miles(int(y[train["fila"] <= primer_corte].sum())),
+        "llamadasPorYesRf": formatear_decimal(k / vp, 1),
+        "llamadasPorYesSinModelo": formatear_decimal(
+            1 / final.loc[("sin_modelo", "validacion", "precision_q"), "media"], 1),
+        "nivelIntervalo": r"95\,\%",
+        "remuestreosBootstrap": formatear_miles(N_BOOTSTRAP),
         "aucKnnVal": formatear_decimal(final.loc[("knn", "validacion", "auc"), "media"]),
         "recallRfVal": formatear_decimal(final.loc[("rf", "validacion", "recall_q"), "media"]),
         "recallRfValDesvio": formatear_decimal(final.loc[("rf", "validacion", "recall_q"), "desvio"]),

@@ -82,7 +82,7 @@ from src.eda_html import (
 )
 from src.estilo import ROTULO_LINEA_BASE
 from src.evaluar_test import MACROS as MACROS_TEST
-from src.evaluar_test import N_TOTAL
+from src.evaluar_test import N_BOOTSTRAP, N_TOTAL, PERCENTILES
 from src.experimentos import con_objetivo
 from src.metricas import PRESUPUESTO, en_presupuesto, llamadas
 from src.modelos import GRILLAS
@@ -600,6 +600,76 @@ def _matriz_oof(modelo, celda):
             vp = r["recall_q"] * positivos
             return {"vp": vp, "fp": k - vp, "fn": positivos - vp, "vn": len(y) - k - (positivos - vp)}
         return f.memoria(("matriz", modelo), calcular)[celda]
+    return dato
+
+
+def _oof_rf(f):
+    """Los puntajes fuera de fold de RF (configuración final) con la `y` (0/1) de train."""
+    return f.memoria("oof_rf", lambda: con_objetivo(f.csv("oof_final_rf.csv"), f.train()))
+
+
+def _pares_por_anio(clave):
+    """El AUC fuera de fold de RF separado en los pares «yes»–«no» del mismo año y los de años
+    distintos, con el año inferido como eda.html: la lectura (a) del hallazgo
+    (resultados/conclusiones.md, §2 y «Cómo se calculó»). El AUC es la proporción de pares bien
+    ordenados (un empate, medio), así que el de los pares del mismo año es el AUC de cada año
+    ponderado por sus pares, y el de los pares de años distintos sale por diferencia con el AUC de
+    todo junto. Claves: pct_entre, auc_entre, auc_dentro y auc_<año>."""
+    def dato(f):
+        def calcular():
+            train = f.train()
+            anio = pd.Series(anio_inferido(train, f.names()["names"]), index=train[FILA].to_numpy())
+            d = _oof_rf(f)
+            d = d.assign(anio=d[FILA].map(anio).to_numpy())
+            y = d["y"].to_numpy()
+            positivos = int(y.sum())
+            pares = positivos * (len(y) - positivos)
+            if not pares:
+                raise Faltante("resultados/oof_final_rf.csv: sin «yes» o sin «no»")
+            r, dentro, suma = {}, 0, 0.0
+            for a, g in d.groupby("anio"):
+                p = int(g["y"].sum())
+                pares_anio = p * (len(g) - p)
+                if pares_anio:
+                    r[f"auc_{int(a)}"] = roc_auc_score(g["y"], g["puntaje"])
+                    dentro += pares_anio
+                    suma += r[f"auc_{int(a)}"] * pares_anio
+            if not dentro or dentro == pares:
+                raise Faltante("resultados/oof_final_rf.csv: no hay pares de un solo año y de dos")
+            r["pct_entre"] = 100 * (pares - dentro) / pares
+            r["auc_dentro"] = suma / dentro
+            r["auc_entre"] = (roc_auc_score(y, d["puntaje"]) * pares - suma) / (pares - dentro)
+            return r
+        pares_por_anio = f.memoria("pares_por_anio", calcular)
+        if clave not in pares_por_anio:
+            raise Faltante(f"resultados/oof_final_rf.csv: {clave}")
+        return pares_por_anio[clave]
+    return dato
+
+
+def _barajado_en_bloque(fold):
+    """El AUC fuera de fold de RF (validación barajada) sólo sobre las filas del bloque `fold` de
+    la validación hacia adelante (resultados/robustez_folds.csv): la referencia «barajado, en las
+    mismas filas» de la slide 19, lecturas (b) y (c) del hallazgo."""
+    def dato(f):
+        bloque = _una_fila(f.csv("robustez_folds.csv"), "resultados/robustez_folds.csv",
+                           esquema=ESQUEMA_ADELANTE, fold=fold)
+        d = _oof_rf(f)
+        en_bloque = d[d[FILA].between(bloque["fila_min_validacion"], bloque["fila_max_validacion"])]
+        if en_bloque["y"].nunique() < 2:
+            raise Faltante(f"resultados/oof_final_rf.csv: el bloque {fold} no tiene las dos clases")
+        return roc_auc_score(en_bloque["y"], en_bloque["puntaje"])
+    return dato
+
+
+def _yes_entrenamiento_adelante(fold):
+    """Los «yes» de train con que entrena el fold `fold` hacia adelante: los de las filas hasta su
+    fila_max_train (resultados/robustez_folds.csv)."""
+    def dato(f):
+        bloque = _una_fila(f.csv("robustez_folds.csv"), "resultados/robustez_folds.csv",
+                           esquema=ESQUEMA_ADELANTE, fold=fold)
+        train = f.train()
+        return int(((train[FILA] <= bloque["fila_max_train"]) & (train[OBJETIVO] == "yes")).sum())
     return dato
 
 
@@ -1369,6 +1439,20 @@ def _seccion_test():
         numeros.append(_num(f"{celda}RfVal", f"resultados/oof_final_rf.csv con la y de {TRAIN}: "
                             f"{celda.upper()} llamando al 20 % de la lista fuera de fold",
                             _matriz_oof("rf", celda), _conteo))
+    numeros += [
+        _num("llamadasPorYesRf", f"resultados/oof_final_rf.csv con la y de {TRAIN}: llamadas por "
+             "cada VP, llamando al 20 % de la lista fuera de fold, (VP + FP) / VP",
+             _cociente(lambda f: _matriz_oof("rf", "vp")(f) + _matriz_oof("rf", "fp")(f),
+                       _matriz_oof("rf", "vp")), _uno),
+        _num("llamadasPorYesSinModelo", f"{CV_FINAL}: 1 / (sin_modelo, validacion, precision_q, "
+             "media), las llamadas por cada «yes» sin modelo",
+             lambda f: 1 / _cv("final", "sin_modelo", "validacion", "precision_q")(f), _uno),
+        _num("nivelIntervalo", "src/evaluar_test.py: PERCENTILES, el nivel del intervalo por "
+             "bootstrap del AUC y del recall de test (D-24)",
+             _constante(PERCENTILES[1] - PERCENTILES[0]), _pct_entero),
+        _num("remuestreosBootstrap", "src/evaluar_test.py: N_BOOTSTRAP, los remuestreos de ese "
+             "intervalo (D-24)", _constante(N_BOOTSTRAP), formatear_miles),
+    ]
     return numeros
 
 
@@ -1451,6 +1535,35 @@ def _seccion_hallazgo():
     numeros.append(_num("filasBloqueAdelante", "resultados/robustez_folds.csv: hacia_adelante, "
                         "fold 1, n_validacion", _bloque(ESQUEMA_ADELANTE, 1, "n_validacion"),
                         formatear_miles))
+    # Las tres lecturas del hallazgo (resultados/conclusiones.md, §2): (a) cuánto del AUC barajado
+    # es ordenar años; (b) y (c), el AUC barajado en las filas de cada bloque hacia adelante, cuánto
+    # pierde hacia adelante en esas mismas filas y con cuántos «yes» entrena cada bloque.
+    oof_anio = f"resultados/oof_final_rf.csv con la y y el año inferido de {TRAIN}"
+    numeros += [
+        _num("pctParesEntreAnios", f"{oof_anio}: % de los pares «yes»–«no» que son de años "
+             "distintos", _pares_por_anio("pct_entre"), _pct),
+        _num("aucOofEntreAnios", f"{oof_anio}: AUC fuera de fold de RF sobre los pares de años "
+             "distintos", _pares_por_anio("auc_entre"), _metrica),
+        _num("aucOofDentroAnio", f"{oof_anio}: AUC fuera de fold de RF sobre los pares del mismo año",
+             _pares_por_anio("auc_dentro"), _metrica),
+    ]
+    for anio in (2008, 2009, 2010):
+        numeros.append(_num(nombre_de_macro("auc oof", anio), f"{oof_anio}: AUC fuera de fold de RF "
+                            f"en las filas de {anio}", _pares_por_anio(f"auc_{anio}"), _metrica))
+    for fold in range(1, K + 1):
+        donde = (f"resultados/oof_final_rf.csv con la y de {TRAIN}, en las filas del bloque {fold} "
+                 "hacia adelante (resultados/robustez_folds.csv)")
+        numeros += [
+            _num(nombre_de_macro("auc rf barajado bloque", fold), f"{donde}: AUC fuera de fold de RF "
+                 "(barajado)", _barajado_en_bloque(fold), _metrica),
+            _num(nombre_de_macro("caida auc rf bloque", fold), f"{donde}: AUC barajado menos el "
+                 f"hacia adelante (resultados/robustez_temporal.csv: rf, todas, fold {fold})",
+                 _resta(_barajado_en_bloque(fold), _robustez_fold("rf", ESQUEMA_ADELANTE, "todas",
+                                                                   fold)), _metrica),
+            _num(nombre_de_macro("yes entrenamiento adelante", fold), f"{TRAIN}: «yes» con fila <= "
+                 f"fila_max_train del fold {fold} hacia adelante (resultados/robustez_folds.csv)",
+                 _yes_entrenamiento_adelante(fold), formatear_miles),
+        ]
     return numeros
 
 
