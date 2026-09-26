@@ -96,9 +96,10 @@ ESPERADOS = {
     "caidaAucRfBloqueCinco", "yesEntrenamientoAdelanteUno",
 } | {
     # Los que agregó el cierre de la ola 8 para el guion: RF eligiendo a quién llamar dentro de
-    # cada año y de cada mes (pregunta 27), la profundidad 6 con cuatro decimales contra el umbral
+    # cada año y de cada mes (entonces la pregunta 27), la profundidad 6 con cuatro decimales contra el umbral
     # de 1 ES (slide 10), la calibración de Naive Bayes (slide 16), las filas con las mismas
-    # predictoras (pregunta 7) y las diferencias pareadas de los pesos de clase (D-21, N0-12).
+    # predictoras (pregunta 7) y las diferencias pareadas de los pesos de clase (D-21, N0-12). Con
+    # N0-15 el guion ya no cita varios de ellos, porque no se ven en las slides; siguen en la tabla.
     "recallRfDentroAnio", "llamadasPorYesRfDentroAnio", "recallRfDentroAnioDosMilOcho",
     "recallRfDentroAnioDosMilNueve", "recallRfDentroAnioDosMilDiez", "llamadasDentroAnioDosMilDiez",
     "yesDosMilDiez", "recallTopeDosMilDiez", "recallRfDentroMes", "aucOofDentroMes",

@@ -41,7 +41,7 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 6.1 Tabla por modelo | DONE | c343cd3 | `resultados/conclusiones.md` §1 |
 | 6.2 Hallazgo | DONE | c343cd3 | H1 en tres partes (a) ordenar épocas, (b) 2008 no sirve, (c) 2009–2010 pierde 0,05–0,08 |
 | 6.3 Limitaciones y mejoras | DONE | c343cd3 | `conclusiones.md` §4 y §5 |
-| 7.1 Deck | DONE | 61dff32 | 20 frames + 4 de respaldo, 49 páginas; G3 en verde; los medios del verificador se corrigen en la ola 8 |
+| 7.1 Deck | DONE | 61dff32 | 20 frames + 4 de respaldo, 49 páginas; G3 en verde; los medios del verificador se corrigen en la ola 8. Con N0-15, sin respaldo: 20 frames y 45 páginas |
 | 7.2 `numeros.py` | DONE | 6ef5dac | 468 macros; `--verificar` para el gate G3 |
 | 7.3 Figuras de proyección | DONE | 91a351f | 18 figuras en `figuras/presentacion/`, con revelados |
 | 7.4 Guion | DONE | 8eb008b | 1 492 palabras, 9:13; 27 preguntas; medios pendientes en la ola 8 |
@@ -88,12 +88,13 @@ Cada decisión de contrato que no estaba en el plan, con su porqué.
 | N0-12 | RF sin pesos de clase (la regla daba «balanced» por +0,0006 ± 0,0009, positiva en los 5 folds) | D-21: sólo si la mejora vale la pena; ésta es despreciable por su tamaño, no por ruido |
 | N0-13 | En `seleccion.py`, la configuración vigente (`src/configuracion.py`) prevalece sobre la propuesta mecánica de `hiperparametros.json`; el JSON sólo completa lo que la vigente no fija | Sin esto, N0-11 y N0-12 no se podían aplicar |
 | N0-14 | `experimentos --etiqueta referencia` mide siempre con `REFERENCIA` de `src/modelos.py` (como las ablaciones, N0-9) y no con `configuracion.py`; así los comandos del README reconstruyen `cv_referencia_*` desde cero | Hallazgo L2-metodologia-04 de la auditoría; lo cambió el corrector del grupo código |
+| N0-15 | Sin slides de respaldo: el deck queda en 20 slides (45 páginas) y toda respuesta preparada (aclaraciones del guion, banco de preguntas y «Si preguntan» de las notas) se contesta sólo con lo que se ve en esas 20 slides, más la teoría de lo que se ve con sus citas. Se quitan las cuatro figuras de reserva de `graficos_presentacion.py` (18 → 14) | Pedido del usuario, 26/09/2026: «todas las preguntas deben ser sobre las slides mostradas y se deberá contestar únicamente con esas» |
 
 ## Veredicto final
 
 **Estado al 26/09/2026:** el TP2 está completo salvo lo que depende de una fecha o del grupo.
 
-- Hecho y verificado: partición, EDA, ablaciones y D-07 a D-17, métricas y presupuesto (D-19 a D-21), Naive Bayes categórico (D-18), curvas e hiperparámetros (D-22, N0-11, N0-12), modelo final RF (D-23), robustez temporal (D-25), conclusiones y hallazgo H1, figuras de análisis y de proyección, deck de 20 frames más 4 de respaldo, guion de 9:00 con 31 preguntas, cuadernillo de ensayo, README de entrega, GLOSARIO, entregables con prueba de clon limpio, auditoría adversarial en cinco lentes con sus correcciones. Los 12 gates pasan.
+- Hecho y verificado: partición, EDA, ablaciones y D-07 a D-17, métricas y presupuesto (D-19 a D-21), Naive Bayes categórico (D-18), curvas e hiperparámetros (D-22, N0-11, N0-12), modelo final RF (D-23), robustez temporal (D-25), conclusiones y hallazgo H1, figuras de análisis y de proyección, deck de 20 frames (sin respaldo desde N0-15), guion de 9:00 con 27 preguntas que se contestan sólo con lo que muestran las slides, cuadernillo de ensayo, README de entrega, GLOSARIO, entregables con prueba de clon limpio, auditoría adversarial en cinco lentes con sus correcciones. Los 12 gates pasan.
 - Pendiente con fecha: la evaluación única del test (5.3 y 5.4), después de la clase del 30/09 y de las respuestas de la cátedra (N0-1). Comando: `python -m src.evaluar_test` (abre el test una sola vez, escribe `evaluacion_test.json` y `resultados-test.tex`); después `python -m src.numeros`, recompilar el deck, completar las slides 14 y 15 del guion y regenerar el cuadernillo y los entregables.
 - Pendiente del grupo: enviar `plan/consultas.md` a la cátedra (0.2), leer `resultados/eda/eda.html` (1.1), los dos ensayos (8.4) y el envío (8.5).
 - Deuda registrada: `plan/SUGERENCIAS.md`, S-01 a S-15; ninguna bloquea la entrega.

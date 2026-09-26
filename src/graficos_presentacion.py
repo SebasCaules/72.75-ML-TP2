@@ -40,10 +40,6 @@ Lista canónica (FIGURAS), en figuras/presentacion/:
   robustez-modelos.png         slide 18: AUC barajado contra hacia adelante, por modelo
   robustez-folds.png, -2.png   slide 19: RF hacia adelante bloque a bloque; + el barajado en las
                                mismas filas (la lectura b y c de H1)
-  ganancia.png                 reserva: curva de ganancia con el presupuesto del 20 %
-  sensibilidad-q.png           reserva: recall llamando al 10, 20 y 30 %
-  ablaciones.png               reserva: el efecto de cada ablación por modelo, en grilla
-  robustez-variantes.png       reserva: RF sin las variables que fechan la fila
 
 Opciones: `--solo` dibuja sólo esos grupos (los nombres de FIGURAS); `--figuras DIR` cambia el
 directorio de salida y `--resultados DIR` el de entrada. Un archivo de entrada que falta o no se
@@ -52,7 +48,6 @@ código 1, porque sin esa figura el deck no compila.
 """
 
 import argparse
-from dataclasses import fields
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -76,12 +71,11 @@ from src.estilo import (
 
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.patches import Patch, Rectangle  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter  # noqa: E402
 from sklearn.metrics import roc_auc_score  # noqa: E402
 
-from src.ablaciones import VARIANTES  # noqa: E402
-from src.configuracion import HIPERPARAMETROS_FINALES, OPCIONES_FINALES  # noqa: E402
+from src.configuracion import HIPERPARAMETROS_FINALES  # noqa: E402
 from src.datos import FILA, OBJETIVO, cargar_train  # noqa: E402
 from src.eda_html import (  # noqa: E402
     BLOQUE,
@@ -94,32 +88,24 @@ from src.eda_html import (  # noqa: E402
 from src.graficos import (  # noqa: E402
     ALFA_BANDA,
     AUC_SIN_MODELO,
-    COLOR_EFECTO,
     DIR_FIGURAS,
     DIR_RESULTADOS,
-    EFECTOS,
     ESQUEMA_ADELANTE,
     ESQUEMA_BARAJADO,
     LINEA_BASE_POR_DEFECTO,
     MARCADOR_MODELO,
-    ROTULO_VARIANTE_ROBUSTEZ,
     SIN_MODELO,
-    TINTA_EFECTO,
     VARIANTE_COMPLETA,
     _auc_por_fold,
     _bloques,
     _colocar,
-    _curva_ganancia,
     _decimales,
     _fijar_diseno,
     _mostrar,
-    _tabla_ablaciones,
     _tabla_robustez,
-    _tabla_sensibilidad,
     _texto_folds,
     _x,
     color_modelo,
-    delta,
     eje_x,
     identidad_curva,
     leer_csv,
@@ -127,14 +113,11 @@ from src.graficos import (  # noqa: E402
     miles,
     numero,
     ordenar_modelos,
-    ordenar_variantes,
     porcentaje,
     resumen_curva,
     rotulo_modelo,
-    rotulo_variante,
 )
 from src.metricas import PRESUPUESTO  # noqa: E402
-from src.preproceso import Opciones  # noqa: E402
 
 DIR_PRESENTACION = DIR_FIGURAS / "presentacion"
 
@@ -169,7 +152,8 @@ MODELO_ELEGIDO = "rf"  # D-23
 
 MESES_ES = dict(zip(MESES_CALENDARIO, MESES_EN_ES.values()))  # 'aug' -> 'ago'
 
-# Qué figuras lleva cada grupo del CLI: la lista canónica de la ola 7.
+# Qué figuras lleva cada grupo del CLI: la lista canónica del deck, la de la ola 7 sin las cuatro
+# figuras de reserva (N0-15).
 FIGURAS = {
     "duration-techo": ("duration-techo.png",),
     "orden-temporal": ("orden-temporal.png",),
@@ -181,18 +165,13 @@ FIGURAS = {
     "modelos-final": ("modelos-final.png",),
     "robustez-modelos": ("robustez-modelos.png",),
     "robustez-folds": ("robustez-folds.png", "robustez-folds-2.png"),
-    "ganancia": ("ganancia.png",),
-    "sensibilidad-q": ("sensibilidad-q.png",),
-    "ablaciones": ("ablaciones.png",),
-    "robustez-variantes": ("robustez-variantes.png",),
 }
 # Las que llevan la línea de base «sin modelo», con ese rótulo (guía C1; gate G11). Las curvas de
 # hiperparámetros no: comparan train contra validación dentro de un modelo, y un eje que llegara a
 # 0,5 aplastaría la forma de la curva de validación, que es lo que se usa para elegir.
 CON_LINEA_BASE = frozenset({
     "duration-techo.png", "modelos-referencia.png", "modelos-final.png", "robustez-modelos.png",
-    "robustez-folds.png", "robustez-folds-2.png", "ganancia.png", "sensibilidad-q.png",
-    "robustez-variantes.png",
+    "robustez-folds.png", "robustez-folds-2.png",
 })
 
 
@@ -226,15 +205,11 @@ def _rotulo_eje(ax, x=None, y=None):
         ax.set_ylabel(y, fontsize=TAM_EJE, labelpad=10)
 
 
-def _leyenda_arriba(ax, manijas, ncol=None, figura=False):
-    """Leyenda en una fila (o en `ncol` columnas), ARRIBA y fuera del área de datos, sin marco. En
-    una figura de dos paneles va sobre los dos (figura=True)."""
-    comunes = dict(handles=manijas, ncol=ncol or len(manijas), frameon=False,
-                   fontsize=TAM_LEYENDA, handlelength=1.8, handletextpad=0.5, columnspacing=1.4,
-                   borderaxespad=0.2)
-    if figura:
-        return ax.figure.legend(loc="outside upper center", **comunes)
-    return ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), **comunes)
+def _leyenda_arriba(ax, manijas, ncol=None):
+    """Leyenda en una fila (o en `ncol` columnas), ARRIBA y fuera del área de datos, sin marco."""
+    return ax.legend(handles=manijas, ncol=ncol or len(manijas), frameon=False,
+                     fontsize=TAM_LEYENDA, handlelength=1.8, handletextpad=0.5, columnspacing=1.4,
+                     borderaxespad=0.2, loc="lower center", bbox_to_anchor=(0.5, 1.0))
 
 
 def _marcas(ax, eje, paso, decimales=None, formato=None):
@@ -1026,29 +1001,29 @@ LEYENDA_ESQUEMA = {ESQUEMA_BARAJADO: "barajado (mezcla las épocas)",
 DESPLAZAMIENTO_ESQUEMA = {ESQUEMA_BARAJADO: -0.17, ESQUEMA_ADELANTE: 0.17}
 
 
-def _panel_pares(ax, t, columna, categorias, rotulos, titulo_eje=""):
-    """Una fila por categoría (un modelo o una variante de columnas): el AUC barajado arriba (azul)
-    y el de hacia adelante abajo (naranja), media ± 1 desvío entre folds, y «sin modelo» en 0,5.
-    Devuelve los puntos (x, y, desvío, esquema, categoría) para rotularlos con el diseño fijo."""
-    _filas_modelo(ax, categorias, rotulos)
+def _panel_pares(ax, t, modelos, rotulos):
+    """Una fila por modelo: el AUC barajado arriba (azul) y el de hacia adelante abajo (naranja),
+    media ± 1 desvío entre folds, y «sin modelo» en 0,5. Devuelve los puntos (x, y, desvío,
+    esquema, modelo) para rotularlos con el diseño fijo."""
+    _filas_modelo(ax, modelos, rotulos)
     _linea_base_vertical(ax)
     puntos = []
     for esquema in (ESQUEMA_BARAJADO, ESQUEMA_ADELANTE):
-        filas = t[t["esquema"] == esquema].set_index(columna)
-        for i, c in enumerate(categorias):
-            if c not in filas.index:
+        filas = t[t["esquema"] == esquema].set_index("modelo")
+        for i, m in enumerate(modelos):
+            if m not in filas.index:
                 continue
-            media, desvio = float(filas.at[c, "media"]), float(filas.at[c, "desvio"])
+            media, desvio = float(filas.at[m, "media"]), float(filas.at[m, "desvio"])
             y = i + DESPLAZAMIENTO_ESQUEMA[esquema]
             _punto_con_barra(ax, media, y, desvio, COLOR_ESQUEMA[esquema],
-                             gid=f"{esquema}:{c}")
-            puntos.append((media, y, desvio, esquema, c))
-    dibujadas = t[t[columna].isin(categorias)]
+                             gid=f"{esquema}:{m}")
+            puntos.append((media, y, desvio, esquema, m))
+    dibujadas = t[t["modelo"].isin(modelos)]
     lo = min(AUC_SIN_MODELO, float((dibujadas["media"] - dibujadas["desvio"]).min())) - 0.04
     hi = max(AUC_SIN_MODELO, float((dibujadas["media"] + dibujadas["desvio"]).max())) + 0.075
     ax.set_xlim(lo, hi)
     _marcas(ax, "x", 0.1, 1)
-    _rotulo_eje(ax, x=f"AUC de validación{titulo_eje}, media ± 1 desvío entre folds")
+    _rotulo_eje(ax, x="AUC de validación, media ± 1 desvío entre folds")
     _leyenda_arriba(ax, [Line2D([], [], ls="none", marker="o", ms=MARCADOR + 1,
                                 color=COLOR_ESQUEMA[e], mec=SUPERFICIE, label=LEYENDA_ESQUEMA[e])
                          for e in (ESQUEMA_BARAJADO, ESQUEMA_ADELANTE)])
@@ -1056,8 +1031,8 @@ def _panel_pares(ax, t, columna, categorias, rotulos, titulo_eje=""):
 
 
 def _rotular_pares(ax, puntos):
-    for x, y, d, esquema, c in puntos:
-        _valor_a_la_derecha(ax, x, y, d, numero(x, 3), f"valor:{esquema}:{c}")
+    for x, y, d, esquema, m in puntos:
+        _valor_a_la_derecha(ax, x, y, d, numero(x, 3), f"valor:{esquema}:{m}")
     _rotular_vertical(ax, AUC_SIN_MODELO, ROTULO_LINEA_BASE, "rotulo-linea-base")
 
 
@@ -1074,27 +1049,7 @@ def figura_robustez_modelos(resumen, variante=VARIANTE_COMPLETA):
     orden = sorted(modelos, key=lambda m: (-barajado.get(m, -np.inf), modelos.index(m)))
     fig, ejes = _lienzo()
     ax = ejes[0, 0]
-    puntos = _panel_pares(ax, t, "modelo", orden, [rotulo_modelo(m) for m in orden])
-    _fijar_diseno(fig)
-    _rotular_pares(ax, puntos)
-    return fig
-
-
-def figura_robustez_variantes(resumen, modelo=MODELO_ELEGIDO):
-    """Reserva: el mismo par barajado contra hacia adelante para `modelo` (RF), con todas las
-    variables, sin el bloque macro y sin él ni month, las variables que fechan la fila."""
-    t = _tabla_robustez(resumen)
-    t = t[t["modelo"] == modelo]
-    variantes = [v for v in ROTULO_VARIANTE_ROBUSTEZ if v in set(t["variante"])]
-    variantes += sorted(set(t["variante"]) - set(variantes))
-    if not variantes:
-        raise ValueError(f"el resumen de robustez no tiene variantes de {modelo}")
-    fig, ejes = _lienzo()
-    ax = ejes[0, 0]
-    rotulos = [ROTULO_VARIANTE_ROBUSTEZ.get(v, str(v)).replace("\n", " ") for v in variantes]
-    rotulos = [r if r != "todas" else "todas las variables" for r in rotulos]
-    puntos = _panel_pares(ax, t, "variante", variantes, rotulos,
-                          titulo_eje=f" de {rotulo_modelo(modelo)}")
+    puntos = _panel_pares(ax, t, orden, [rotulo_modelo(m) for m in orden])
     _fijar_diseno(fig)
     _rotular_pares(ax, puntos)
     return fig
@@ -1240,210 +1195,6 @@ def _rotulo_bloque(fold, fila=None, periodo=None):
     return "\n".join(partes)
 
 
-# --- Reserva ------------------------------------------------------------------------------------
-
-def figura_ganancia(tabla, resaltado=MODELO_ELEGIDO, presupuesto=PRESUPUESTO):
-    """Reserva (H3): qué % de los «yes» se alcanza llamando al p % de la lista, por modelo, contra
-    la diagonal «sin modelo», con el presupuesto del 20 % marcado y el valor de `resaltado` (RF)
-    y el de «sin modelo» en ese corte. `tabla` es ganancia_final.csv."""
-    faltan = [c for c in ("modelo", "p", "pct_yes_alcanzado") if c not in tabla.columns]
-    if faltan:
-        raise ValueError(f"a la curva de ganancia le faltan columnas: {', '.join(faltan)}")
-    t = tabla.dropna(subset=["p", "pct_yes_alcanzado"])
-    modelos = ordenar_modelos(set(t["modelo"]) - {SIN_MODELO})
-    if not modelos:
-        raise ValueError("la curva de ganancia no tiene ningún modelo")
-    curvas = {m: _curva_ganancia(t[t["modelo"] == m]) for m in modelos}
-    sin = t[t["modelo"] == SIN_MODELO]
-    base = (_curva_ganancia(sin) if len(sin)
-            else (np.array([0.0, 100.0]), np.array([0.0, 100.0])))
-    x_q = 100 * presupuesto
-    en_q = {m: float(np.interp(x_q, *curvas[m])) for m in modelos}
-    base_q = float(np.interp(x_q, *base))
-
-    fig, ejes = _lienzo()
-    ax = ejes[0, 0]
-    ax.plot(*base, color=COLOR_LINEA_BASE, ls=":", lw=2.4, zorder=2, gid="linea-base")
-    ax.axvline(x_q, color=TINTA_SECUNDARIA, ls="--", lw=1.8, zorder=1, gid="presupuesto")
-    for m in modelos:
-        ax.plot(*curvas[m], color=color_modelo(m), lw=LINEA + 1.2 if m == resaltado else 2.0,
-                zorder=4 if m == resaltado else 3, gid=f"ganancia:{m}")
-    ax.plot([x_q], [base_q], ls="none", marker="o", ms=MARCADOR, color=COLOR_LINEA_BASE,
-            mec=SUPERFICIE, mew=ANILLO, zorder=5, gid=f"cruce:{SIN_MODELO}")
-    if resaltado in curvas:
-        ax.plot([x_q], [en_q[resaltado]], ls="none", marker="o", ms=MARCADOR + 3,
-                color=color_modelo(resaltado), mec=SUPERFICIE, mew=ANILLO, zorder=6,
-                gid=f"cruce:{resaltado}")
-    ax.set_xlim(-1.5, 101.5)
-    ax.set_ylim(-3, 104)
-    _marcas(ax, "x", 20, formato=_formato_pct)
-    _marcas(ax, "y", 20, formato=_formato_pct)
-    _rotulo_eje(ax, x="parte de la lista llamada, de mayor a menor puntaje",
-                y="% de los «yes» alcanzado")
-    _leyenda_arriba(ax, [Line2D([], [], color=color_modelo(m),
-                                lw=LINEA + 1.2 if m == resaltado else 2.4,
-                                label=rotulo_modelo(m)) for m in modelos])
-
-    _fijar_diseno(fig)
-    _rotular_vertical(ax, x_q, f"presupuesto: {porcentaje(x_q, 0)} de la lista",
-                      "rotulo-presupuesto")
-    if resaltado in curvas:
-        _colocar(ax, _creador(ax, f"{rotulo_modelo(resaltado)}: {porcentaje(en_q[resaltado], 1)}",
-                              f"valor-presupuesto:{resaltado}"),
-                 [((x_q, en_q[resaltado]), 14, -8, "left", "top"),
-                  ((x_q, en_q[resaltado]), -14, 8, "right", "bottom"),
-                  ((x_q, en_q[resaltado]), 16, 0, "left", "center")])
-    _colocar(ax, _creador(ax, f"{ROTULO_LINEA_BASE}: {porcentaje(base_q, 1)}",
-                          "rotulo-linea-base", fontsize=TAM_ROTULO, color=TINTA_SECUNDARIA),
-             [((x_q, base_q), 14, -6, "left", "top"), ((x_q, base_q), 14, 0, "left", "center"),
-              ((x_q, base_q), -14, 6, "right", "bottom")])
-    return fig
-
-
-def figura_sensibilidad(tabla, resaltado=MODELO_ELEGIDO, presupuesto=PRESUPUESTO):
-    """Reserva (D-20): el recall de validación de cada modelo llamando al 10, 20 y 30 % de cada
-    fold, media ± 1 desvío entre folds, lado a lado dentro de cada q, contra «sin modelo»
-    (recall = q) como un segmento punteado. Se anotan los valores de `resaltado` (RF) y el
-    presupuesto va en negrita. `tabla` es sensibilidad_q_final.csv."""
-    r = _tabla_sensibilidad(tabla)
-    r = r[r["metrica"] == "recall_q"]
-    if r.empty:
-        raise ValueError("la sensibilidad a q no tiene recall_q")
-    qs = sorted(r["q"].unique())
-    modelos = ordenar_modelos(set(r["modelo"]) - {SIN_MODELO})
-    if not modelos:
-        raise ValueError("la sensibilidad a q no tiene ningún modelo")
-    paso = min(0.17, 0.72 / len(modelos))
-    desplazamiento = {m: (j - (len(modelos) - 1) / 2) * paso for j, m in enumerate(modelos)}
-    ancho = paso * len(modelos) / 2 + 0.06
-    filas = r.set_index(["modelo", "q"])
-    sin = {q: float(filas.at[(SIN_MODELO, q), "media"]) if (SIN_MODELO, q) in filas.index
-           else float(q) for q in qs}
-
-    fig, ejes = _lienzo()
-    ax = ejes[0, 0]
-    xs, ys_base = [], []
-    for i, q in enumerate(qs):
-        xs += [i - ancho, i + ancho, np.nan]
-        ys_base += [sin[q], sin[q], np.nan]
-    ax.plot(xs, ys_base, color=COLOR_LINEA_BASE, ls=":", lw=2.4, zorder=2, gid="linea-base")
-    puntos = []
-    for m in modelos:
-        presentes = [(i, q) for i, q in enumerate(qs) if (m, q) in filas.index]
-        px = [i + desplazamiento[m] for i, _ in presentes]
-        medias = [float(filas.at[(m, q), "media"]) for _, q in presentes]
-        desvios = [float(filas.at[(m, q), "desvio"]) for _, q in presentes]
-        barras = ax.errorbar(px, medias, yerr=desvios, fmt=MARCADOR_MODELO.get(m, "o"),
-                             ms=MARCADOR + 4, color=color_modelo(m), mec=SUPERFICIE, mew=ANILLO,
-                             elinewidth=2.2, capsize=5, capthick=2.0, zorder=4)
-        barras.lines[0].set_gid(f"recall:{m}")
-        if m == resaltado:
-            puntos = list(zip(px, medias, desvios, [q for _, q in presentes]))
-    todos = [v for m in modelos for q in qs if (m, q) in filas.index
-             for v in (filas.at[(m, q), "media"] - filas.at[(m, q), "desvio"],
-                       filas.at[(m, q), "media"] + filas.at[(m, q), "desvio"])]
-    lo, hi = min(todos + list(sin.values())), max(todos + list(sin.values()))
-    alto = (hi - lo) or 0.1
-    ax.set_ylim(lo - 0.08 * alto, hi + 0.14 * alto)
-    _marcas(ax, "y", _paso_marcas(*ax.get_ylim()))
-    ax.set_xticks(range(len(qs)), [f"llamando al {porcentaje(100 * q, 0)}" for q in qs])
-    ax.set_xlim(-0.6, len(qs) - 0.4)
-    ax.tick_params(axis="x", length=0)
-    ax.grid(axis="x", visible=False)
-    _rotulo_eje(ax, y="recall de validación")
-    _leyenda_arriba(ax, [Line2D([], [], ls="none", marker=MARCADOR_MODELO.get(m, "o"),
-                                ms=MARCADOR + 3, color=color_modelo(m), mec=SUPERFICIE,
-                                label=rotulo_modelo(m)) for m in modelos])
-
-    _fijar_diseno(fig)
-    for i, q in enumerate(qs):
-        if np.isclose(q, presupuesto):
-            ax.get_xticklabels()[i].set_fontweight("bold")
-    for x, media, desvio, q in puntos:
-        _colocar(ax, _creador(ax, numero(media, 3), f"valor:{resaltado}:{numero(100 * q, 0)}"),
-                 [((x, media + desvio), 0, 8, "center", "bottom"),
-                  ((x, media), 14, 0, "left", "center"),
-                  ((x, media - desvio), 0, -8, "center", "top")])
-    i0 = 0
-    _colocar(ax, _creador(ax, f"{ROTULO_LINEA_BASE}: recall = q", "rotulo-linea-base",
-                          fontsize=TAM_ROTULO, color=TINTA_SECUNDARIA),
-             [((i0 - ancho, sin[qs[0]]), 0, 6, "left", "bottom"),
-              ((i0 - ancho, sin[qs[0]]), 0, -6, "left", "top")])
-    return fig
-
-
-def variantes_adoptadas(vigentes=OPCIONES_FINALES):
-    """Las ablaciones cuyo cambio quedó en la configuración vigente (src/configuracion.py): las que
-    la ola 1 adoptó. Hoy, A3 (default como indicadora) y A4 (categorías raras fundidas)."""
-    base = Opciones()
-    adoptadas = set()
-    for nombre, variante in VARIANTES.items():
-        cambios = {f.name: getattr(variante.opciones, f.name) for f in fields(Opciones)
-                   if getattr(variante.opciones, f.name) != getattr(base, f.name)}
-        if cambios and all(getattr(vigentes, k) == v for k, v in cambios.items()):
-            adoptadas.add(nombre)
-    return adoptadas
-
-
-def figura_ablaciones(tabla, excluidas=("A1",), adoptadas=None):
-    """Reserva (paso 1.6, versión compacta de la 01): una celda por ablación y modelo con el ΔAUC
-    de validación contra la referencia A0, azul si la variante mejora, naranja si empeora y gris
-    si es neutra según el criterio del paso 1.5 (|Δ| contra el desvío de las diferencias
-    pareadas); las que la ola 1 adoptó llevan su rótulo en negrita. A1 (duration) queda fuera:
-    tiene su propia figura, duration-techo. `tabla` es ablaciones_resumen.csv."""
-    t = _tabla_ablaciones(tabla)
-    t = t[~t["variante"].isin(excluidas)]
-    if t.empty:
-        raise ValueError("no quedan ablaciones que dibujar")
-    adoptadas = variantes_adoptadas() if adoptadas is None else set(adoptadas)
-    variantes = ordenar_variantes(t["variante"])
-    modelos = ordenar_modelos(t["modelo"])
-    celdas = t.set_index(["variante", "modelo"])
-
-    fig, ejes = _lienzo()
-    ax = ejes[0, 0]
-    for i, v in enumerate(variantes):
-        for j, m in enumerate(modelos):
-            if (v, m) not in celdas.index:
-                ax.text(j, i, "—", ha="center", va="center", fontsize=TAM_VALOR,
-                        color=GRIS_REFERENCIA, gid=f"sin-medir:{m}:{v}")
-                continue
-            f = celdas.loc[(v, m)]
-            ax.add_patch(Rectangle((j - 0.47, i - 0.43), 0.94, 0.86, lw=0,
-                                   facecolor=COLOR_EFECTO[f["efecto"]],
-                                   gid=f"celda:{m}:{v}:{f['efecto']}"))
-            ax.text(j, i, delta(f["delta_media"]), ha="center", va="center",
-                    fontsize=TAM_MARCAS, color=TINTA_EFECTO[f["efecto"]],
-                    fontweight="bold" if f["efecto"] != "neutra" else "normal",
-                    gid=f"valor:{m}:{v}")
-    ax.set_xlim(-0.5, len(modelos) - 0.5)
-    ax.set_ylim(len(variantes) - 0.5, -0.5)
-    ax.set_xticks(range(len(modelos)), [rotulo_modelo(m) for m in modelos])
-    ax.xaxis.tick_top()
-    ax.set_yticks(range(len(variantes)),
-                  [rotulo_variante(v) + ("  · adoptada" if v in adoptadas else "")
-                   for v in variantes])
-    for rotulo, v in zip(ax.get_yticklabels(), variantes):
-        if v in adoptadas:
-            rotulo.set_fontweight("bold")
-            rotulo.set_color(TINTA)
-    ax.tick_params(length=0, labelsize=TAM_MARCAS)
-    ax.tick_params(axis="x", labelcolor=TINTA, labelsize=TAM_EJE)
-    ax.grid(False)
-    for lado in ax.spines.values():
-        lado.set_visible(False)
-    ax.set_xlabel("ΔAUC de validación contra A0", fontsize=TAM_EJE, labelpad=8)
-    ax.xaxis.set_label_position("bottom")
-    rotulo_efecto = {"mejora": "mejora (Δ > desvío)", "empeora": "empeora (Δ < −desvío)",
-                     "neutra": "neutra"}
-    _leyenda_arriba(ax, [Patch(facecolor=COLOR_EFECTO[e], label=rotulo_efecto[e])
-                         for e in EFECTOS]
-                    + [Line2D([], [], ls="none", marker="$—$", ms=14, color=GRIS_REFERENCIA,
-                              label="no se mide")], figura=True)
-    _fijar_diseno(fig)
-    return fig
-
-
 # --- Lectura de resultados/ y CLI ---------------------------------------------------------------
 
 class EntradaFaltante(FileNotFoundError):
@@ -1532,11 +1283,6 @@ def _dibujos(ctx):
         "robustez-modelos": lambda: [figura_robustez_modelos(
             ctx.csv("robustez_temporal_resumen.csv"))],
         "robustez-folds": robustez_folds,
-        "ganancia": lambda: [figura_ganancia(ctx.csv("ganancia_final.csv"))],
-        "sensibilidad-q": lambda: [figura_sensibilidad(ctx.csv("sensibilidad_q_final.csv"))],
-        "ablaciones": lambda: [figura_ablaciones(ctx.csv("ablaciones_resumen.csv"))],
-        "robustez-variantes": lambda: [figura_robustez_variantes(
-            ctx.csv("robustez_temporal_resumen.csv"))],
     }
 
 

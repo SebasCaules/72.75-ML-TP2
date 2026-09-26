@@ -34,21 +34,20 @@ from src.datos import FILA, OBJETIVO, cargar_train
 from src.estilo import COLOR_LINEA_BASE, ROTULO_LINEA_BASE
 from src.graficos import numero
 from src.metricas import METRICAS
-from src.preproceso import Opciones
 from src.resultados import CAMPOS, configuracion_json
 
 DESPLAZAMIENTOS = (-2, -1, 0, 1, 2)  # cinco folds: media exacta, desvío d·√(10/4)
 RAIZ = np.sqrt(10 / 4)
 ALFA_BANDA = 0.16
 
-# La lista canónica de la ola 7, escrita aquí y no tomada del módulo: si el módulo cambia un
-# nombre, el deck deja de encontrar la figura, y este test lo tiene que ver.
+# La lista canónica del deck (la de la ola 7 sin las cuatro figuras de reserva, N0-15), escrita
+# aquí y no tomada del módulo: si el módulo cambia un nombre, el deck deja de encontrar la figura,
+# y este test lo tiene que ver.
 CANONICAS = [
     "duration-techo.png", "orden-temporal.png", "pdays-999.png", "modelos-referencia.png",
     "curva-rf-1.png", "curva-rf-2.png", "curva-rf-3.png", "curva-knn.png", "curva-svm.png",
     "curva-svm-2.png", "modelos-final.png", "robustez-modelos.png", "robustez-folds.png",
-    "robustez-folds-2.png", "ganancia.png", "sensibilidad-q.png", "ablaciones.png",
-    "robustez-variantes.png",
+    "robustez-folds-2.png",
 ]
 
 
@@ -202,8 +201,9 @@ def _sin_linea_base(fig):
 # AUC de validación sin duration (A0) y con ella (A1), por modelo, como ablaciones_resumen.csv.
 A1 = {"nb_gaussiano": (0.768, 0.831), "svm": (0.701, 0.907), "knn": (0.755, 0.911),
       "rf": (0.770, 0.939)}
-# ΔAUC (media, desvío) de las demás variantes: los efectos se fijan a mano con el criterio del
-# paso 1.5 (|media| contra desvío).
+# ΔAUC (media, desvío) de las demás variantes, que duration-techo tiene que dejar fuera: sólo
+# dibuja A1. Los efectos se fijan a mano con el criterio del paso 1.5 (|media| contra desvío),
+# para que las filas tengan el formato de ablaciones_resumen.csv.
 DELTAS = {
     "A2": {"nb_gaussiano": (-0.0012, 0.0003), "svm": (0.0023, 0.0037)},
     "A3": {"rf": (0.0029, 0.0021), "knn": (0.0, 0.0028)},
@@ -316,7 +316,8 @@ def _esperado(valores, medias, conjunto):
     return {str(v): (m, _paso(i, conjunto) * RAIZ) for i, (v, m) in enumerate(zip(valores, medias))}
 
 
-# Robustez temporal: AUC (media, desvío) por modelo, esquema y variante.
+# Robustez temporal: AUC (media, desvío) por modelo, esquema y variante. Las variantes de RF sin
+# macro están para comprobar que robustez-modelos dibuja sólo la de todas las variables.
 ROBUSTEZ = {
     ("rf", "barajado", "todas"): (0.795, 0.006), ("rf", "hacia_adelante", "todas"): (0.558, 0.123),
     ("knn", "barajado", "todas"): (0.784, 0.008),
@@ -397,31 +398,6 @@ def _train_pdays():
                       grupo(20, 13, [3, 6, 9, 12] * 5, 1)], ignore_index=True)
 
 
-def _ganancia():
-    filas = []
-    for p in range(1, 101):
-        filas += [{"modelo": "rf", "p": p, "pct_yes_alcanzado": min(100.0, 3.0 * p)},
-                  {"modelo": "knn", "p": p, "pct_yes_alcanzado": min(100.0, 2.5 * p)},
-                  {"modelo": "sin_modelo", "p": p, "pct_yes_alcanzado": float(p)}]
-    return pd.DataFrame(filas)
-
-
-RECALL = {"rf": (0.446, 0.629, 0.705), "knn": (0.414, 0.617, 0.690), "sin_modelo": (0.1, 0.2, 0.3)}
-
-
-def _sensibilidad():
-    filas = []
-    for modelo, valores in RECALL.items():
-        for q, v in zip((0.1, 0.2, 0.3), valores):
-            for fold, k in enumerate(DESPLAZAMIENTOS, start=1):
-                d = 0.0 if modelo == "sin_modelo" else 0.004
-                filas.append({"modelo": modelo, "q": q, "fold": fold, "metrica": "recall_q",
-                              "valor": v + d * k})
-                filas.append({"modelo": modelo, "q": q, "fold": fold, "metrica": "precision_q",
-                              "valor": 0.3})
-    return pd.DataFrame(filas)
-
-
 # --- Tests ----------------------------------------------------------------------------------------
 
 def test_lista_canonica_y_linea_base():
@@ -430,7 +406,7 @@ def test_lista_canonica_y_linea_base():
     assert gp.CON_LINEA_BASE <= set(CANONICAS)
     assert not {a for a in gp.CON_LINEA_BASE if a.startswith("curva-")}
     assert gp.ASPECTO_SLIDE == (10.6, 5.0) and gp.DPI == 200 and gp.TAM_MINIMO >= 14
-    print("ok  la lista canónica tiene las 18 figuras de la ola 7, en 16:9 apaisado a 200 dpi")
+    print("ok  la lista canónica tiene las 14 figuras del deck, en 16:9 apaisado a 200 dpi")
 
 
 def test_duration_techo():
@@ -693,7 +669,7 @@ def test_curva_svm_dos_pasos_con_el_mismo_encuadre():
     print("ok  curva-svm y -2: la lineal con C = 0,001 marcado y, en el mismo encuadre, la RBF")
 
 
-def test_robustez_modelos_y_variantes():
+def test_robustez_modelos():
     with _abierta(gp.figura_robustez_modelos(_robustez_resumen())) as fig:
         _comprobar_proyeccion(fig)
         _comprobar_linea_base(fig)
@@ -707,18 +683,7 @@ def test_robustez_modelos_y_variantes():
                 media, desvio = ROBUSTEZ[(m, esquema, "todas")]
                 _comprobar_barra_horizontal(ax, f"{esquema}:{m}", media, i + dy, desvio, color)
                 assert _texto(fig, f"valor:{esquema}:{m}").get_text() == numero(media, 3)
-    with _abierta(gp.figura_robustez_variantes(_robustez_resumen())) as fig:
-        _comprobar_proyeccion(fig)
-        _comprobar_linea_base(fig)
-        ax = fig.axes[0]
-        assert [t.get_text() for t in ax.get_yticklabels()] == \
-            ["todas las variables", "sin macro", "sin macro ni month"]
-        media, desvio = ROBUSTEZ[("rf", "hacia_adelante", "sin_macro_ni_month")]
-        _comprobar_barra_horizontal(ax, "hacia_adelante:sin_macro_ni_month", media, 2.17,
-                                    desvio, estilo.NARANJA)
-        assert "RF" in ax.get_xlabel()
-    print("ok  robustez-modelos y -variantes: barajado azul contra hacia adelante naranja, con "
-          "«sin modelo»")
+    print("ok  robustez-modelos: barajado azul contra hacia adelante naranja, con «sin modelo»")
 
 
 def test_auc_barajado_por_bloque_y_periodos():
@@ -794,62 +759,6 @@ def test_robustez_folds_dos_pasos():
           "barajado en las mismas filas")
 
 
-def test_ganancia_y_sensibilidad():
-    with _abierta(gp.figura_ganancia(_ganancia())) as fig:
-        _comprobar_proyeccion(fig)
-        _comprobar_linea_base(fig)
-        rf = _linea(fig, "ganancia:rf")
-        assert rf.get_xdata()[0] == 0 and np.allclose(rf.get_ydata()[20], 60.0)
-        assert _mismo_color(rf.get_color(), estilo.COLOR_MODELO["rf"])
-        assert _mismo_color(_linea(fig, "ganancia:knn").get_color(), estilo.COLOR_MODELO["knn"])
-        assert _texto(fig, "valor-presupuesto:rf").get_text() == "RF: 60,0 %"
-        assert _texto(fig, "rotulo-linea-base").get_text() == f"{ROTULO_LINEA_BASE}: 20,0 %"
-        assert np.allclose(_linea(fig, "presupuesto").get_xdata(), [20, 20])
-    with _abierta(gp.figura_sensibilidad(_sensibilidad())) as fig:
-        _comprobar_proyeccion(fig)
-        _comprobar_linea_base(fig)
-        ax = fig.axes[0]
-        puntos, segmentos, _ = _barra(ax, "recall:rf")
-        assert np.allclose(puntos.get_ydata(), RECALL["rf"])
-        for segmento, v in zip(segmentos, RECALL["rf"]):
-            assert np.allclose(segmento[:, 1], [v - 0.004 * RAIZ, v + 0.004 * RAIZ])
-        assert _mismo_color(puntos.get_color(), estilo.COLOR_MODELO["rf"])
-        for q, v in zip((10, 20, 30), RECALL["rf"]):
-            assert _texto(fig, f"valor:rf:{q}").get_text() == numero(v, 3)
-        base = _linea(fig, "linea-base")
-        assert np.allclose(sorted(set(np.round(base.get_ydata()[~np.isnan(base.get_ydata())], 6))),
-                           [0.1, 0.2, 0.3])
-        negrita = [t.get_text() for t in ax.get_xticklabels() if t.get_fontweight() == "bold"]
-        assert negrita == ["llamando al 20 %"], negrita
-    print("ok  ganancia y sensibilidad-q: RF resaltado, el presupuesto y «sin modelo»")
-
-
-def test_ablaciones_y_adoptadas():
-    assert gp.variantes_adoptadas() == {"A3", "A4"}
-    assert gp.variantes_adoptadas(Opciones()) == set()
-    assert gp.variantes_adoptadas(Opciones(macro="sin", month=False)) == {"A7", "A8"}
-    with _abierta(gp.figura_ablaciones(_ablaciones(), adoptadas={"A3"})) as fig:
-        _comprobar_proyeccion(fig)
-        ax = fig.axes[0]
-        celdas = {p.get_gid(): p for p in ax.patches}
-        assert not [g for g in celdas if ":A1:" in g], "A1 va en duration-techo, no aquí"
-        for (modelo, variante), efecto in EFECTOS.items():
-            celda = celdas[f"celda:{modelo}:{variante}:{efecto}"]
-            assert _mismo_color(celda.get_facecolor(), gp.COLOR_EFECTO[efecto])
-            media = DELTAS[variante][modelo][0]
-            assert _texto(fig, f"valor:{modelo}:{variante}").get_text() == gp.delta(media)
-        assert _texto(fig, "sin-medir:rf:A2").get_text() == "—"
-        assert gp.COLOR_EFECTO == {"mejora": estilo.AZUL, "empeora": estilo.NARANJA,
-                                   "neutra": estilo.REJILLA}
-        rotulos = {t.get_text(): t for t in ax.get_yticklabels()}
-        adoptada = [r for r in rotulos if r.startswith("A3")][0]
-        assert "adoptada" in adoptada and rotulos[adoptada].get_fontweight() == "bold"
-        assert [t.get_text() for t in ax.get_xticklabels()] == \
-            [gp.rotulo_modelo(m) for m in ("nb_gaussiano", "svm", "knn", "rf")]
-    print("ok  ablaciones: grilla sin A1, color por efecto, «—» sin medir y las adoptadas "
-          "(A3, A4) en negrita")
-
-
 def test_marcas_sin_menos_cero():
     fig, ejes = gp._lienzo()
     try:
@@ -881,8 +790,6 @@ def _resultados_sinteticos(directorio):
     _svm("rbf").to_csv(d / "curvas" / "svm_C_balanced.csv", index=False)
     _robustez_resumen().to_csv(d / "robustez_temporal_resumen.csv", index=False)
     _robustez_largo().to_csv(d / "robustez_temporal.csv", index=False)
-    _ganancia().to_csv(d / "ganancia_final.csv", index=False)
-    _sensibilidad().to_csv(d / "sensibilidad_q_final.csv", index=False)
     filas = np.sort(cargar_train()[FILA].to_numpy())
     seis = np.array_split(filas, 6)
     _robustez_folds([(int(b[0]), int(b[-1])) for b in seis[1:]]).to_csv(
@@ -906,19 +813,19 @@ def test_cli_escribe_la_lista_canonica():
         for nombre in CANONICAS:
             with Image.open(figuras / nombre) as im:
                 assert im.size == (2120, 1000), (nombre, im.size)
-        assert "18 figuras" in salida.getvalue()
+        assert "14 figuras" in salida.getvalue()
 
         # Una entrada que falta es un error: se informa, se siguen las demás, y sale con 1.
-        (resultados / "ganancia_final.csv").unlink()
+        (resultados / "cv_final_resumen.csv").unlink()
         otras = Path(tmp) / "otras"
         with contextlib.redirect_stdout(io.StringIO()) as salida:
             codigo = gp.main(["--resultados", str(resultados), "--figuras", str(otras),
-                              "--solo", "ganancia", "sensibilidad-q"])
+                              "--solo", "modelos-final", "modelos-referencia"])
         assert codigo == 1
-        assert sorted(p.name for p in otras.glob("*.png")) == ["sensibilidad-q.png"]
-        assert "ganancia" in salida.getvalue() and "con error" in salida.getvalue()
+        assert sorted(p.name for p in otras.glob("*.png")) == ["modelos-referencia.png"]
+        assert "modelos-final" in salida.getvalue() and "con error" in salida.getvalue()
     assert not plt.get_fignums(), f"quedaron figuras abiertas: {plt.get_fignums()}"
-    print("ok  el CLI escribe las 18 figuras de la lista canónica a 2 120 × 1 000 píxeles; una "
+    print("ok  el CLI escribe las 14 figuras de la lista canónica a 2 120 × 1 000 píxeles; una "
           "entrada que falta sale con código 1")
 
 
@@ -932,11 +839,9 @@ def main():
     test_curva_rf_tres_pasos_con_el_mismo_encuadre()
     test_curva_knn()
     test_curva_svm_dos_pasos_con_el_mismo_encuadre()
-    test_robustez_modelos_y_variantes()
+    test_robustez_modelos()
     test_auc_barajado_por_bloque_y_periodos()
     test_robustez_folds_dos_pasos()
-    test_ganancia_y_sensibilidad()
-    test_ablaciones_y_adoptadas()
     test_marcas_sin_menos_cero()
     test_cli_escribe_la_lista_canonica()
     assert not plt.get_fignums(), f"quedaron figuras abiertas: {plt.get_fignums()}"
