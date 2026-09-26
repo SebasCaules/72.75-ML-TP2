@@ -41,14 +41,14 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 6.1 Tabla por modelo | DONE | c343cd3 | `resultados/conclusiones.md` §1 |
 | 6.2 Hallazgo | DONE | c343cd3 | H1 en tres partes (a) ordenar épocas, (b) 2008 no sirve, (c) 2009–2010 pierde 0,05–0,08 |
 | 6.3 Limitaciones y mejoras | DONE | c343cd3 | `conclusiones.md` §4 y §5 |
-| 7.1 Deck | DOING | | Workflow ola 7, relanzado tras el límite de sesión (22:30) |
+| 7.1 Deck | DONE | 61dff32 | 20 frames + 4 de respaldo, 49 páginas; G3 en verde; los medios del verificador se corrigen en la ola 8 |
 | 7.2 `numeros.py` | DONE | 6ef5dac | 468 macros; `--verificar` para el gate G3 |
 | 7.3 Figuras de proyección | DONE | 91a351f | 18 figuras en `figuras/presentacion/`, con revelados |
-| 7.4 Guion | DOING | | Workflow ola 7 |
-| 7.5 Cuadernillo de ensayo | DOING | | Workflow ola 7, generado desde el fuente |
+| 7.4 Guion | DONE | 8eb008b | 1 492 palabras, 9:13; 27 preguntas; medios pendientes en la ola 8 |
+| 7.5 Cuadernillo de ensayo | DONE | 3287282 | `python -m src.cuadernillo`, 27 páginas; se regenera al cerrar la ola 8 |
 | 7.6 README y GLOSARIO | DONE | 7aa844a | `informe/README-entrega.md`, README del repo, GLOSARIO |
 | 7.7 Informe de respaldo (opcional) | TODO | | S-05 |
-| 8.1 Auditoría adversarial | TODO | | |
+| 8.1 Auditoría adversarial | DOING | | Workflow ola 8: arreglos conocidos → 5 lentes → refutación → corrección |
 | 8.2 Entregables y clon limpio | TODO | 1a5b4ec | Módulo listo |
 | 8.3 Gates | TODO | | |
 | 8.4 Ensayos | TODO | | Del grupo |
