@@ -48,7 +48,7 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 7.5 Cuadernillo de ensayo | DONE | 3287282 | `python -m src.cuadernillo`, 27 páginas; se regenera al cerrar la ola 8 |
 | 7.6 README y GLOSARIO | DONE | 7aa844a | `informe/README-entrega.md`, README del repo, GLOSARIO |
 | 7.7 Informe de respaldo (opcional) | TODO | | S-05 |
-| 8.1 Auditoría adversarial | DOING | | Workflow ola 8: arreglos conocidos → 5 lentes → refutación → corrección |
+| 8.1 Auditoría adversarial | DOING | 47355bc | 5 lentes: 80 hallazgos (34 altos o medios, 46 bajos); 30 confirmados y 4 refutados; correcciones por grupo aplicadas; cierre de pendientes cruzados en curso |
 | 8.2 Entregables y clon limpio | TODO | 1a5b4ec | Módulo listo |
 | 8.3 Gates | TODO | | |
 | 8.4 Ensayos | TODO | | Del grupo |
@@ -87,6 +87,7 @@ Cada decisión de contrato que no estaba en el plan, con su porqué.
 | N0-11 | RF con 200 árboles, no los 25 que daba la regla de 1 ES (DECISIONES.md §6) | El número de árboles es un eje de estabilidad, no de complejidad |
 | N0-12 | RF sin pesos de clase (la regla daba «balanced» por +0,0006) | D-21: sólo si mejora más que el ruido |
 | N0-13 | En `seleccion.py`, la configuración vigente (`src/configuracion.py`) prevalece sobre la propuesta mecánica de `hiperparametros.json`; el JSON sólo completa lo que la vigente no fija | Sin esto, N0-11 y N0-12 no se podían aplicar |
+| N0-14 | `experimentos --etiqueta referencia` mide siempre con `REFERENCIA` de `src/modelos.py` (como las ablaciones, N0-9) y no con `configuracion.py`; así los comandos del README reconstruyen `cv_referencia_*` desde cero | Hallazgo L2-metodologia-04 de la auditoría; lo cambió el corrector del grupo código |
 
 ## Veredicto final
 
