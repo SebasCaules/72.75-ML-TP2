@@ -41,12 +41,12 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 6.1 Tabla por modelo | DONE | c343cd3 | `resultados/conclusiones.md` §1 |
 | 6.2 Hallazgo | DONE | c343cd3 | H1 en tres partes (a) ordenar épocas, (b) 2008 no sirve, (c) 2009–2010 pierde 0,05–0,08 |
 | 6.3 Limitaciones y mejoras | DONE | c343cd3 | `conclusiones.md` §4 y §5 |
-| 7.1 Deck | DOING | | Workflow ola 7 |
-| 7.2 `numeros.py` | DOING | | En re-verificación |
-| 7.3 Figuras de proyección | DOING | | Workflow ola 7 |
+| 7.1 Deck | DOING | | Workflow ola 7, relanzado tras el límite de sesión (22:30) |
+| 7.2 `numeros.py` | DONE | 6ef5dac | 468 macros; `--verificar` para el gate G3 |
+| 7.3 Figuras de proyección | DONE | 91a351f | 18 figuras en `figuras/presentacion/`, con revelados |
 | 7.4 Guion | DOING | | Workflow ola 7 |
 | 7.5 Cuadernillo de ensayo | DOING | | Workflow ola 7, generado desde el fuente |
-| 7.6 README y GLOSARIO | DOING | | Workflow ola 7 |
+| 7.6 README y GLOSARIO | DONE | 7aa844a | `informe/README-entrega.md`, README del repo, GLOSARIO |
 | 7.7 Informe de respaldo (opcional) | TODO | | S-05 |
 | 8.1 Auditoría adversarial | TODO | | |
 | 8.2 Entregables y clon limpio | TODO | 1a5b4ec | Módulo listo |
