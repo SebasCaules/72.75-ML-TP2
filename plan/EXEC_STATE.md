@@ -20,33 +20,33 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 1.3 D-07, momento en que opera el modelo | DONE | (este) | Redactor y refutador en la ola A; 8 hallazgos aplicados por N0 al integrar |
 | 1.4 Ablaciones A1 a A12 | DONE | 2ecee39 | 4 modelos × hasta 12 variantes × 5 folds; `resultados/ablaciones_resumen.csv` |
 | 1.5 D-08 a D-17 | DONE | 2ecee39 | Adoptadas A3 (default indicadora) y A4 (raras fundidas); A12 rechazada por juicio (D-12); el resto nulo o peor |
-| 1.6 Figura de ablaciones | DOING | | Workflow `graficos` en curso |
+| 1.6 Figura de ablaciones | DONE | c20bab6 | `figuras/01-ablaciones.png`, `01b` |
 | 2.1 D-19, métricas | DONE | 9a6347f | |
 | 2.2 D-20, presupuesto de llamadas | DONE (texto); tabla de sensibilidad en curso | 9a6347f | `experimentos --sensibilidad-q` corre tras el 3.3 (N0-10) |
 | 2.3 D-21, desbalance | DONE (texto); `pesos_clase` en curso | 9a6347f | Curvas rf/svm `pesos_clase` corriendo |
 | 3.1 Pipelines definitivos | DONE | 2ecee39 | `OPCIONES_FINALES = Opciones(default="indicadora", raras=True)`, 58 columnas |
 | 3.2 D-18, variante de Naive Bayes | DONE | 2519d9b | Categórico: +0,0132 ± 0,0024 sobre el gaussiano |
 | 3.3 CV de los cuatro modelos | DONE | 2519d9b, 0be05cb | `cv_referencia_*` (5 modelos) y `cv_final_*` (4 modelos con los hiperparámetros elegidos) |
-| 3.4 Figura de los cuatro modelos | DOING | | Workflow `graficos` |
+| 3.4 Figura de los cuatro modelos | DONE | 9552f04 | `02` (final) y `02b` (referencia) |
 | 4.1 Curvas de RF | DONE | f476258, d694d40 | max_depth (a 300 árboles), n_estimators y pesos (a profundidad 8) |
 | 4.2 Curvas de KNN | DONE | d694d40 | Grilla extendida a 801; uniform y distance |
 | 4.3 Curvas de la SVM | DONE | d694d40 | C con RBF (sin y con pesos), kernels, C con lineal |
 | 4.4 D-22, hiperparámetros | DONE | d694d40 | Con los desvíos N0-11 (200 árboles) y N0-12 (RF sin pesos) |
-| 4.5 Figuras de las curvas | TODO | | |
+| 4.5 Figuras de las curvas | DONE | c20bab6, 9552f04 | 16 curvas; las de proyección con revelado van en la ola 7 |
 | 4.6 Grilla C × γ (opcional) | TODO | | S-04; el kernel final es lineal, así que γ no aplica |
 | 5.1 D-23, modelo final | DONE | 0be05cb | RF 0,7952 ± ES 0,0025; sin empate |
 | 5.2 D-25, robustez temporal | DONE | 42f5aba | Hacia adelante, RF 0,558 ± 0,123; sin macro no lo arregla |
 | 5.3 D-24, evaluación única del test | TODO | 9df4545 | Módulo construido y probado sin abrir el test; NO se ejecuta (N0-1). `informe/resultados-test.tex` con marcadores |
-| 5.4 Análisis de errores | DOING | | Sobre validación (OOF), en `resultados/conclusiones.md`; sobre test, después del 30/09 |
-| 6.1 Tabla por modelo | DOING | | Workflow `conclusiones` |
-| 6.2 Hallazgo | DOING | | Workflow `conclusiones`; la evidencia favorece H1 |
-| 6.3 Limitaciones y mejoras | DOING | | Workflow `conclusiones` |
-| 7.1 Deck | TODO | | |
-| 7.2 `numeros.py` | DOING | | Workflow `numeros` |
-| 7.3 Figuras de proyección | TODO | | |
-| 7.4 Guion | TODO | | |
-| 7.5 Cuadernillo de ensayo | TODO | | |
-| 7.6 README y GLOSARIO | TODO | | |
+| 5.4 Análisis de errores | DONE (sobre validación) | c343cd3 | `conclusiones.md` §3; sobre test, después del 30/09 |
+| 6.1 Tabla por modelo | DONE | c343cd3 | `resultados/conclusiones.md` §1 |
+| 6.2 Hallazgo | DONE | c343cd3 | H1 en tres partes (a) ordenar épocas, (b) 2008 no sirve, (c) 2009–2010 pierde 0,05–0,08 |
+| 6.3 Limitaciones y mejoras | DONE | c343cd3 | `conclusiones.md` §4 y §5 |
+| 7.1 Deck | DOING | | Workflow ola 7 |
+| 7.2 `numeros.py` | DOING | | En re-verificación |
+| 7.3 Figuras de proyección | DOING | | Workflow ola 7 |
+| 7.4 Guion | DOING | | Workflow ola 7 |
+| 7.5 Cuadernillo de ensayo | DOING | | Workflow ola 7, generado desde el fuente |
+| 7.6 README y GLOSARIO | DOING | | Workflow ola 7 |
 | 7.7 Informe de respaldo (opcional) | TODO | | S-05 |
 | 8.1 Auditoría adversarial | TODO | | |
 | 8.2 Entregables y clon limpio | TODO | 1a5b4ec | Módulo listo |
