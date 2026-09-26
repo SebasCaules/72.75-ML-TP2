@@ -1,0 +1,785 @@
+"""Correr con: python3 -m tests.test_numeros
+
+src/numeros.py (paso 7.2, gate G3): el formato español de las cifras contra casos calculados a
+mano, que los macros se lean igual en texto y dentro de $…$ (compilando con pdflatex si está), los
+nombres de los macros, el verificador de números escritos a mano (lo que marca y lo que no), la
+línea de comandos sobre un directorio de resultados sintético (dos corridas idénticas, «?» cuando
+falta un archivo) y la generación sobre los resultados reales: sólo falta lo que tiene que faltar, y
+una cifra de cada familia de macros se recalcula aquí con pandas, sin las funciones del módulo.
+"""
+
+import functools
+import io
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from contextlib import redirect_stdout
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold
+
+from src.ablaciones import VARIANTES
+from src.datos import RAIZ, cargar_train
+from src.eda_html import analizar, leer_names
+from src.evaluar_test import MACROS as MACROS_TEST
+from src.evaluar_test import N_TEST
+from src.metricas import METRICAS
+from src.numeros import (
+    DEFINICION_MENOS,
+    DESCONOCIDO,
+    MENOS,
+    PERMITIDOS,
+    RUTA_RESULTADOS_TEST,
+    Fuentes,
+    _columnas_de,
+    a_texto,
+    catalogo,
+    formatear_decimal,
+    formatear_delta,
+    formatear_miles,
+    formatear_parametro,
+    formatear_porcentaje,
+    generar,
+    nombre_de_macro,
+    numero_en_palabras,
+    numeros_a_mano,
+)
+from src.numeros import main as numeros_main
+from src.resultados import DIR
+
+# Los que nombra el esqueleto del deck (plan, paso 7.2): tienen que existir con este nombre.
+ESPERADOS = {
+    "filasTrain", "pctYesTrain", "aucRfVal", "aucRfValDesvio", "aucKnnVal", "aucNbVal",
+    "aucSvmVal", "aucSinModelo", "recallRfVal", "recallSinModelo", "brechaRf", "profundidadRf",
+    "arbolesRf", "vecinosKnn", "cSvm", "aucRfAdelante", "aucRfAdelanteDesvio",
+    "aucRfAdelanteFoldUno", "aucRfAdelanteFoldDos", "aucRfAdelanteFoldTres",
+    "aucRfAdelanteFoldCuatro", "aucRfAdelanteFoldCinco", "pctYesBloqueUno", "pctYesBloqueDos",
+    "pctYesBloqueTres", "pctYesBloqueCuatro", "pctYesBloqueCinco", "aucRfSinMacroAdelante",
+    "deltaAucDurationRf", "aucRfConDuration", "deltaAucSinMacroRf", "deltaAucSinMacroNiMonthRf",
+    "gananciaRfVeinte", "recallRfDiez", "recallRfTreinta", "precisionRfVeinte",
+    "aucNbGaussianoVal", "deltaAucNbCategorico", "columnasReferencia", "columnasFinales",
+    "filasAtipicasIqr", "pctAtipicasIqr", "aucRfProfundidadSinLimite", "aucRfProfundidadDos",
+    "aucKnnUno", "aucSvmRbfReferencia", "aucSvmBalanceada", "filasTest", "llamadasTest",
+    "yesTrain", "noTrain", "exactitudSiempreNo",
+    # Cifras del esqueleto y de DECISIONES.md que la primera versión no tenía: el 999 del título
+    # de la slide 6, el factor del IQR, los extremos de las grillas, la regla de 1 ES de los
+    # árboles (N0-11), los parámetros del NB categórico (D-18), las 19 predictoras (D-07) y la
+    # evidencia de la partición (D-02, D-03).
+    "pdaysCentinela", "factorIqr", "profundidadRfMinima", "vecinosKnnMinimo", "vecinosKnnMeseta",
+    "arbolesRfRegla", "umbralUnoEsRfArboles", "errorEstandarRfProfundidadMejor",
+    "errorEstandarKnnMejor", "cortesNb", "alfaNb", "predictorasDisponibles",
+    "desvioPctYesTestSinEstratificar", "pctYesTestSinEstratificarMinimo",
+    "pctYesTestSinEstratificarMaximo", "pctYesTrainTemporal", "pctYesTestTemporal",
+}
+MACROS_DE_TEST = ("yesTest", "pctYesTest", "diferenciaAucTestValidacion",
+                  "diferenciaRecallTestValidacion")
+MACROS_DE_PARTICION = ("semillasSinEstratificar", "desvioPctYesTestSinEstratificar",
+                       "pctYesTestSinEstratificarMinimo", "pctYesTestSinEstratificarMaximo",
+                       "pctYesTrainTemporal", "pctYesTestTemporal")
+
+
+def _macros(texto_tex):
+    return dict(re.findall(r"^\\newcommand\{\\([A-Za-z]+)\}\{(.*?)\}\s*%", texto_tex, re.M))
+
+
+@functools.lru_cache(maxsize=1)
+def _generado_real():
+    return generar(Fuentes())
+
+
+# --- Formato ------------------------------------------------------------------------------------
+
+def test_formato_espanol_con_casos_a_mano():
+    # En LaTeX la coma decimal va entre llaves, para que dentro de $…$ no deje un espacio detrás;
+    # en el guion (a_texto) es una coma.
+    assert formatear_decimal(0.7952) == "0{,}795" and a_texto("0{,}795") == "0,795"
+    assert formatear_decimal(0.7952, 4) == "0{,}7952"
+    assert formatear_decimal(0.5, 1) == "0{,}5"
+    assert formatear_decimal(1234.5, 1) == r"1\,234{,}5"
+    assert formatear_decimal(-0.0276) == r"\signoMenos 0{,}028"
+    assert formatear_porcentaje(11.2663) == r"11{,}3\,\%"
+    assert formatear_porcentaje(0.0) == r"0{,}0\,\%"
+    assert formatear_porcentaje(20, 0) == r"20\,\%"
+    assert formatear_miles(32940) == r"32\,940"
+    assert formatear_miles(928) == "928"
+    assert formatear_miles(1647) == r"1\,647"
+    assert formatear_miles(1234567) == r"1\,234\,567"
+    assert formatear_miles(32940.0) == r"32\,940"
+    assert formatear_miles(-12) == r"\signoMenos 12"
+    # Los Δ con la regla de src/graficos.py: tres decimales desde 0,01 y cuatro por debajo.
+    assert formatear_delta(0.1697) == "+0{,}170"
+    assert formatear_delta(-0.0276) == r"\signoMenos 0{,}028"
+    assert formatear_delta(-0.0012327) == r"\signoMenos 0{,}0012"
+    assert formatear_delta(0.00029) == "+0{,}0003"
+    assert formatear_delta(0.0) == "+0{,}0000"
+    assert formatear_parametro(0.001) == "0{,}001"
+    assert formatear_parametro(0.01) == "0{,}01"
+    assert formatear_parametro(801) == "801"
+    assert formatear_parametro(1.0) == "1"
+    assert formatear_parametro("balanced") == "balanced"
+    for malo in (lambda: formatear_miles(3.5), lambda: formatear_decimal(float("nan"))):
+        try:
+            malo()
+        except ValueError:
+            continue
+        raise AssertionError("un valor inválido se escribió como cifra")
+    # En el guion: coma, espacio común y el menos tipográfico, como en el TP1.
+    assert a_texto(r"32\,940") == "32 940"
+    assert a_texto(r"11{,}3\,\%") == "11,3 %"
+    assert a_texto(r"\signoMenos 0{,}028") == "\N{MINUS SIGN}0,028"
+    assert a_texto(r"1\,234{,}5") == "1 234,5"
+    print("ok  formato español: 0{,}795, 11{,}3\\,\\%, 32\\,940, +0{,}170 y \\signoMenos 0{,}0012; "
+          "en el guion, 0,795, 11,3 %, 32 940 y −0,028")
+
+
+def test_los_macros_se_leen_igual_en_texto_y_en_modo_matematico():
+    """El hallazgo del verificador: con «0,795» y \\textminus, $\\aucRfVal$ se veía «0, 795» y
+    $\\deltaAucSinMacroRf$ perdía el signo. Se comprueba en el .tex y, si hay pdflatex, compilando
+    todos los macros de los resultados reales en texto y en $…$."""
+    generado = _generado_real()
+    assert DEFINICION_MENOS in generado.tex
+    assert "\\ifmmode-\\else\\textminus\\fi" in DEFINICION_MENOS
+    assert "DeclareRobustCommand" in DEFINICION_MENOS, "robusto: sirve en títulos y en tablas"
+    assert generado.tex.index(DEFINICION_MENOS) < generado.tex.index("\\newcommand")
+    for nombre, valor in generado.valores.items():
+        sin_llaves = valor.replace("{,}", "")
+        assert "\\textminus" not in valor, (nombre, valor)
+        if re.search(r"\d", valor) and nombre != "rotuloLineaBase":
+            assert not re.search(r"\d,\d", sin_llaves), f"coma decimal suelta en \\{nombre}: {valor}"
+        if valor.startswith("\\"):
+            assert valor.startswith(MENOS), (nombre, valor)
+    assert generado.valores["deltaAucSinMacroRf"].startswith(MENOS)
+
+    if not shutil.which("pdflatex"):
+        print("ok  los macros usan {,} y \\signoMenos (sin pdflatex: no se compiló)")
+        return
+    nombres = list(generado.valores)
+    positivos = [n for n, v in generado.valores.items()
+                 if re.search(r"\d(?:\{,\}|,)\d", v) and not v.startswith("\\")]
+    anchos = "\n".join(f"\\setbox0\\hbox{{\\{n}}}\\setbox2\\hbox{{$\\{n}$}}"
+                       f"\\typeout{{ANCHO {n} \\the\\wd0 \\space y \\the\\wd2}}" for n in positivos)
+    cuerpo = "\n".join(f"\\noindent\\{n}{{}} y ${{\\{n}}}$\\par" for n in nombres)
+    documento = ("\\documentclass{article}\n\\usepackage[T1]{fontenc}\n"
+                 "\\usepackage[spanish]{babel}\n\\spanishplainpercent\n\\input{numeros.tex}\n"
+                 "\\begin{document}\n" + anchos + "\n" + cuerpo + "\n"
+                 "\\noindent PRUEBA $\\Delta = \\deltaAucSinMacroRf$ y $\\aucRfVal \\pm "
+                 "\\aucRfValDesvio$ FIN\n\\end{document}\n")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "numeros.tex").write_text(generado.tex, encoding="utf-8")
+        (tmp / "prueba.tex").write_text(documento, encoding="utf-8")
+        r = subprocess.run(["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "prueba.tex"],
+                           cwd=tmp, capture_output=True, text=True, timeout=300)
+        log = (tmp / "prueba.log").read_text(encoding="utf-8", errors="replace")
+        if r.returncode != 0 and re.search(r"not found|! Font .* not loadable", log):
+            # Una instalación mínima de LaTeX (sin babel-spanish o sin las fuentes T1) no dice
+            # nada sobre los macros: la prueba se saltea en lugar de fallar por el entorno.
+            print("ok  los macros usan {,} y \\signoMenos (a esta instalación de LaTeX le falta un "
+                  "paquete o una fuente: no se compiló)")
+            return
+        assert r.returncode == 0, log[-3000:]
+        problemas = [l for l in log.splitlines()
+                     if "invalid in math mode" in l or "Missing character" in l or l.startswith("!")]
+        assert not problemas, problemas
+        medidas = re.findall(r"^ANCHO (\w+) ([\d.]+)pt y ([\d.]+)pt$", log, re.M)
+        assert len(medidas) == len(positivos), (len(medidas), len(positivos))
+        distintos = [(n, a, b) for n, a, b in medidas if abs(float(a) - float(b)) > 0.1]
+        assert not distintos, f"se ven distinto en $…$ que en texto: {distintos[:5]}"
+        if shutil.which("pdftotext"):
+            texto = subprocess.run(["pdftotext", str(tmp / "prueba.pdf"), "-"], capture_output=True,
+                                   text=True).stdout
+            prueba = " ".join(texto[texto.index("PRUEBA"):texto.index("FIN")].split())
+            esperado = (a_texto(generado.valores["deltaAucSinMacroRf"]) + " y "
+                        + a_texto(generado.valores["aucRfVal"]) + " ± "
+                        + a_texto(generado.valores["aucRfValDesvio"]))
+            assert esperado in prueba, (esperado, prueba)
+    print(f"ok  los {len(nombres)} macros compilan en texto y en $…$ sin avisos; los "
+          f"{len(positivos)} con decimales miden lo mismo en los dos modos, y un negativo "
+          "conserva su signo dentro de $…$")
+
+
+def test_numeros_en_palabras():
+    casos = {0: "cero", 1: "uno", 16: "dieciséis", 21: "veintiuno", 31: "treinta y uno",
+             100: "cien", 101: "ciento uno", 151: "ciento cincuenta y uno", 800: "ochocientos",
+             1000: "mil", 2008: "dos mil ocho", 2010: "dos mil diez", 32940: "treinta y dos mil "
+             "novecientos cuarenta"}
+    for n, palabras in casos.items():
+        assert numero_en_palabras(n) == palabras, (n, numero_en_palabras(n))
+    try:
+        numero_en_palabras(-1)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("un negativo no tiene nombre de macro")
+    print("ok  los números en palabras: 21 veintiuno, 151 ciento cincuenta y uno, 2008 dos mil ocho")
+
+
+def test_nombres_de_macro_solo_letras():
+    casos = {("auc", "rf", "val"): "aucRfVal", ("auc", "RF", "val"): "aucRfVal",
+             ("pct yes bloque", 1): "pctYesBloqueUno",
+             ("auc rf adelante fold", 5): "aucRfAdelanteFoldCinco",
+             ("ganancia rf", 20): "gananciaRfVeinte", ("recall rf", 30): "recallRfTreinta",
+             ("auc rf profundidad", "sin límite"): "aucRfProfundidadSinLimite",
+             ("auc rf profundidad", 2): "aucRfProfundidadDos",
+             ("atípicos", "cons.conf.idx"): "atipicosConsConfIdx",
+             ("pct yes", 2008): "pctYesDosMilOcho", ("auc knn", 801): "aucKnnOchocientosUno",
+             ("delta auc", "SinMacroNiMonth", "Rf"): "deltaAucSinMacroNiMonthRf",
+             ("x", "16"): "xDieciseis"}
+    for partes, nombre in casos.items():
+        assert nombre_de_macro(*partes) == nombre, (partes, nombre_de_macro(*partes))
+        assert re.fullmatch(r"[A-Za-z]+", nombre)
+    try:
+        nombre_de_macro("", "  ")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("un nombre vacío tiene que fallar")
+
+    nombres = [numero.nombre for _, numeros in catalogo() for numero in numeros]
+    assert all(re.fullmatch(r"[A-Za-z]+", n) for n in nombres)
+    assert len(nombres) == len(set(nombres)), "hay macros repetidos"
+    assert not set(nombres) & set(MACROS_TEST), "choca con un macro de resultados-test.tex"
+    assert "signoMenos" not in nombres
+    faltan = ESPERADOS - set(nombres)
+    assert not faltan, f"faltan macros del esqueleto: {sorted(faltan)}"
+    print(f"ok  {len(nombres)} macros, todos de letras, sin repetir ni chocar con los de test; "
+          f"están los {len(ESPERADOS)} que nombran el esqueleto y DECISIONES.md")
+
+
+def test_los_titulos_del_esqueleto_se_escriben_con_macros():
+    """El plan (§5, ola 7) proyecta el título «999 no significa "nunca contactado"»: con el macro
+    pasa el verificador, y tipeado no."""
+    frame = "\\begin{document}\n\\begin{frame}{%s no significa «nunca contactado»}\n\\end{frame}\n"
+    assert numeros_a_mano(frame % "999") == [(2, "999")]
+    assert numeros_a_mano(frame % "\\pdaysCentinela{}") == []
+    assert _generado_real().valores["pdaysCentinela"] == "999"
+    print("ok  el título de la slide 6 pasa el verificador con \\pdaysCentinela, y con 999 no")
+
+
+# --- Verificador --------------------------------------------------------------------------------
+
+DECK_LIMPIO = r"""\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[scaled=0.96]{FiraSans}
+\definecolor{azul}{HTML}{2A78D6}
+\setbeamerfont{title}{size=\fontsize{20}{24}}
+\newcommand{\figgrandealto}{0.90}
+\newcommand{\figgrande}[2][0.9]{\includegraphics[width=#1\textwidth]{#2}}
+\input{numeros}
+\begin{document}
+\section[Métricas]{Dos métricas que no premian decir siempre «no»}
+\begin{frame}<2->[t]{El modelo aprende la época}
+  \setbeamerfont{frametitle}{size=\fontsize{18}{22}}
+  \includegraphics[width=0.8\textwidth]{03-curva-rf-max-depth.png}
+  \figgrande[0.99]{01-ablaciones.png}
+  \figgrande{figuras/presentacion/03-curva-rf}
+  \renewcommand{\figgrandealto}{0.86}
+  \begin{itemize}[<+->]
+    \item<2-> Validación con 5 folds, 80/20 y $k = 5$, en 10 minutos.
+    \item<3->[a)] \only<3>{Se llama al 20\,\% de la lista con un presupuesto del 20\,\%.}
+    \item[1.] Recall al 20\,\%: el 20\,\% de las llamadas. \item [(2)] Otro.
+  \end{itemize}
+  De 2008 a 2010 (Clase~7, slide~50; Alpaydin §8.3, p.~192; D-22, N0-11).
+  Datos de Moro et al., 2014; KNN en Mitchell 1997, cap.~8, pp.~230--236.
+  Clase 4, slides 45–51 y slides 26 y 27; atributos 1 a 7; punto 2.3; pasos 6.1 a 6.3.
+  El fold 3 y el bloque 5; entrega el 06/10/2026 y consulta el 30/09.
+  \vspace{0.6em}\hspace*{-1.5em}{\color{azul!20}texto} \textcolor{naranja!80}{\aucRfVal}
+  \kern2pt\phantom{0}\hphantom{00}\vphantom{1}\transduration{2}
+  % un comentario con 0,79 no cuenta
+  \begin{tikzpicture}[x=1cm]
+    \foreach \x in {1,...,5} { \draw (\x,0) circle (0.1); }
+    \node[above=1.6mm,visible on=<2->] (a) at (6.025,1.05) {\filasTrain{} filas};
+    \draw[azul!20] (0,0) -- node[pos=0.5] {\pctYesTrain} (3,4);
+    \matrix (m) [matrix of nodes, row sep=2mm] {
+      |[fill=azul!10]| \vpRfVal & \fpRfVal \\ \fnRfVal & \vnRfVal \\ };
+  \end{tikzpicture}
+  \tikz[baseline] \node[inner sep=2pt] at (0.5,0.5) {\aucRfVal};
+  \begin{tabular}{lrr} \rowcolors{2}{azul!10}{white} \multicolumn{2}{c}{\aucKnnVal} \\ \end{tabular}
+  \begin{columns}[T]\begin{column}{0.48\textwidth} euribor3m, A7, H1 y TP2 \end{column}
+  \end{columns}
+  \\[0.4em] \pause[3] $F_1$, $F_{1}$ y $x^2$; \verb|x = 0,79|
+  \note{Se dice \aucRfVal{} en voz alta.}
+\end{frame}
+\end{document}
+"""
+
+
+def _con_linea(deck, linea):
+    """El deck limpio con una línea más antes de \\end{frame}; devuelve el texto y su número."""
+    lineas = deck.split("\n")
+    donde = lineas.index(r"\end{frame}")
+    lineas.insert(donde, linea)
+    return "\n".join(lineas), donde + 1
+
+
+def test_el_verificador_no_marca_sintaxis():
+    assert numeros_a_mano(DECK_LIMPIO) == [], numeros_a_mano(DECK_LIMPIO)
+    print("ok  el verificador no marca preámbulo, \\newcommand con un factor de medida, "
+          "\\includegraphics ni \\figgrande sin extensión, \\definecolor, \\setbeamerfont, "
+          "\\phantom, \\rowcolors, overlays, opciones, la sintaxis de TikZ ni los nodos con macros, "
+          "comentarios, años, fechas, referencias, rótulos de \\item ni el 20 % del presupuesto")
+
+
+def test_el_verificador_detecta_numeros_tipeados():
+    deck, n = _con_linea(DECK_LIMPIO, "  El AUC de RF es 0,79 en validación.")
+    assert numeros_a_mano(deck) == [(n, "0,79")]
+
+    deck, n = _con_linea(DECK_LIMPIO, r"  Train: 32\,940 filas y 11,3\,\% de «yes».")
+    assert numeros_a_mano(deck) == [(n, r"32\,940"), (n, "11,3")]
+
+    deck, n = _con_linea(DECK_LIMPIO, r"  \note{Sin modelo acierta el 88,7\,\%.}")
+    assert numeros_a_mano(deck) == [(n, "88,7")], "el guion dentro de \\note también cuenta"
+
+    deck, n = _con_linea(DECK_LIMPIO, r"\begin{frame}{Decir siempre «no» acierta el 88,7\,\%}")
+    assert numeros_a_mano(deck) == [(n, "88,7")]
+
+    deck, n = _con_linea(DECK_LIMPIO, "  Con k = 801 vecinos y datos de 2011.")
+    assert numeros_a_mano(deck) == [(n, "801"), (n, "2011")]
+    assert numeros_a_mano(deck, list(PERMITIDOS) + [r"\b2011\b"]) == [(n, "801")]
+
+    casos = {
+        # Un número después de una referencia con un conector (hallazgo del verificador, a).
+        "Según la Clase 7, slide 61 y 200 árboles bastan.": ["200"],
+        "Como dice la clase 7, 0,79 es el AUC.": ["0,79"],
+        "En el punto 4, 0,795 de AUC.": ["0,795"],
+        "En la ola 4, 801 vecinos.": ["801"],
+        "En los slides 45, 0,79 de AUC.": ["0,79"],
+        # Un número pegado a una letra que no es una unidad de TeX (b).
+        "Tardó 600s.": ["600"],
+        "La tasa se multiplica por x27.": ["27"],
+        "Son 33k filas.": ["33"],
+        "Sube 0,31pp.": ["0,31"],
+        # El opcional de \item y el título corto de una sección son texto (c).
+        r"\item[0,79] AUC": ["0,79"],
+        r"\section[Hallazgo 2]{El modelo aprende la época}": ["2"],
+        # Una fracción no es una fecha (d).
+        "Con 1/3 de los «yes».": ["1", "3"],
+        "Entre 4/5 y 1/5.": ["4", "5", "1", "5"],
+        # El texto de un nodo de TikZ se proyecta.
+        r"\begin{tikzpicture}\node[font=\small] at (4.75,0.525) {1070 filas};\end{tikzpicture}":
+            ["1070"],
+        r"\tikz \node {32};": ["32"],
+        r"\begin{tikzpicture}\matrix [matrix of nodes] { |[fill=azul!10]| 0,79 & \x \\ };"
+        r"\end{tikzpicture}": ["0,79"],
+        # Una definición cuyo cuerpo es una cifra (hallazgo bajo).
+        r"\newcommand{\miauc}{0,79}": ["0,79"],
+        r"\def\miauc{0.795}": ["0.795"],
+        # El 20 % que es un resultado, no la definición del presupuesto.
+        r"Sin modelo se alcanza el 20\,\% de los «yes».": ["20"],
+    }
+    for linea, esperados in casos.items():
+        deck, n = _con_linea(DECK_LIMPIO, linea)
+        hallados = numeros_a_mano(deck)
+        assert hallados == [(n, e) for e in esperados], (linea, hallados)
+
+    # En el preámbulo, una definición con una cifra también cuenta; en los macros generados, no.
+    deck = DECK_LIMPIO.replace("\\input{numeros}", "\\input{numeros}\n\\newcommand{\\otro}{0,79}")
+    assert numeros_a_mano(deck) == [(8, "0,79")]
+    assert numeros_a_mano("\\newcommand{\\x}{0{,}79}", generado=True) == []
+    print(f"ok  el verificador marca un 0,79 tipeado en un frame, un 32\\,940, un número en un "
+          f"título, en \\note o en un nodo de TikZ, un año fuera de 2008–2010 y {len(casos)} casos "
+          "que la primera versión dejaba pasar; --permitir lo amplía")
+
+
+def test_el_verificador_sin_preambulo_y_en_los_macros_generados():
+    # Un fragmento sin \begin{document} se lee entero, salvo comentarios.
+    fragmento = "\\newcommand{\\x}{0,79}\n% 0,79\n\\x y 0,79"
+    assert numeros_a_mano(fragmento) == [(1, "0,79"), (3, "0,79")]
+    assert numeros_a_mano(fragmento, generado=True) == [(3, "0,79")]
+    # Un tikzpicture sin cerrar oculta su sintaxis hasta el final, sin fallar; su nodo se lee.
+    assert numeros_a_mano("\\begin{tikzpicture}\n\\draw (0,0) -- (3,4);\n\\node at (1,2) {32};") \
+        == [(3, "32")]
+    assert numeros_a_mano(RUTA_RESULTADOS_TEST.read_text(encoding="utf-8"), generado=True) == []
+    print("ok  un fragmento sin preámbulo se lee entero; informe/resultados-test.tex no tiene "
+          "números a mano")
+
+
+def _verificar_cli(*argumentos):
+    salida = io.StringIO()
+    with redirect_stdout(salida):
+        codigo = numeros_main(["--verificar", *map(str, argumentos)])
+    return codigo, salida.getvalue()
+
+
+def test_cli_verificar_da_archivo_linea_y_codigo():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "frames.tex").write_text("\\begin{frame}{Título}\n  AUC de 0,79.\n\\end{frame}\n",
+                                        encoding="utf-8")
+        (tmp / "numeros.tex").write_text("\\newcommand{\\x}{0,79}\n", encoding="utf-8")
+        (tmp / "deck.tex").write_text("\\documentclass{beamer}\n\\input{numeros}\n"
+                                      "\\begin{document}\n\\input{frames}\n\\end{document}\n",
+                                      encoding="utf-8")
+        codigo, salida = _verificar_cli(tmp / "deck.tex")
+        assert codigo == 1
+        assert re.search(r"frames\.tex:2: 0,79", salida), salida
+        assert _verificar_cli(tmp / "deck.tex", "--permitir", r"\b0,79\b")[0] == 0
+        # Los macros generados se verifican solos: sus definiciones no cuentan.
+        assert _verificar_cli(tmp / "numeros.tex")[0] == 0
+        assert _verificar_cli(RUTA_RESULTADOS_TEST)[0] == 0
+
+        # Dos niveles de \input, cada uno relativo a la carpeta del .tex raíz, como en LaTeX.
+        secciones = tmp / "v" / "secciones"
+        secciones.mkdir(parents=True)
+        (secciones / "eda.tex").write_text("\\begin{frame}{EDA}Sin números.\\end{frame}\n"
+                                           "\\input{secciones/fuga}\n", encoding="utf-8")
+        (secciones / "fuga.tex").write_text("\\begin{frame}{Fuga}\nEl AUC es 0,94.\\end{frame}\n",
+                                            encoding="utf-8")
+        (tmp / "v" / "deck.tex").write_text("\\documentclass{beamer}\n\\begin{document}\n"
+                                            "\\input{secciones/eda}\n\\end{document}\n",
+                                            encoding="utf-8")
+        codigo, salida = _verificar_cli(tmp / "v" / "deck.tex")
+        assert codigo == 1 and re.search(r"fuga\.tex:2: 0,94", salida), salida
+        # Un \input que no se encuentra no se saltea en silencio.
+        (tmp / "v" / "deck.tex").write_text("\\documentclass{beamer}\n\\begin{document}\n"
+                                            "\\input{secciones/no-existe}\n\\end{document}\n",
+                                            encoding="utf-8")
+        codigo, salida = _verificar_cli(tmp / "v" / "deck.tex")
+        assert codigo == 1 and re.search(r"deck\.tex:3: \\input\{secciones/no-existe\} no se "
+                                         r"encuentra", salida), salida
+        # Babel en español sin \spanishplainpercent: aviso, sin fallar.
+        (tmp / "babel.tex").write_text("\\documentclass{beamer}\n\\usepackage[spanish,"
+                                       "es-noquoting]{babel}\n\\begin{document}\nHola.\n"
+                                       "\\end{document}\n", encoding="utf-8")
+        codigo, salida = _verificar_cli(tmp / "babel.tex")
+        assert codigo == 0 and "AVISO" in salida and "spanishplainpercent" in salida, salida
+        texto = (tmp / "babel.tex").read_text(encoding="utf-8")
+        (tmp / "babel.tex").write_text(texto.replace("{babel}\n", "{babel}\n\\spanishplainpercent\n"),
+                                       encoding="utf-8")
+        assert "AVISO" not in _verificar_cli(tmp / "babel.tex")[1]
+    print("ok  --verificar sigue los \\input del cuerpo a cualquier profundidad, relativos a la "
+          "carpeta del .tex raíz; informa archivo:línea y termina con código 1 si hay números o un "
+          "\\input que no se encuentra; avisa si falta \\spanishplainpercent")
+
+
+# --- Línea de comandos sobre resultados sintéticos -----------------------------------------------
+
+def _resultados_sinteticos(carpeta):
+    """El mínimo: cv_final_resumen.csv y modelo_elegido.json. Todo lo demás falta."""
+    medias = {"rf": 0.8123, "knn": 0.8012, "nb_categorico": 0.7901, "svm": 0.7812,
+              "sin_modelo": 0.5}
+    configuracion = {"rf": {"max_depth": 6, "n_estimators": 100}, "knn": {"n_neighbors": 51},
+                     "nb_categorico": {"alpha": 1.0, "n_cortes": 10},
+                     "svm": {"C": 0.01, "kernel": "linear"}, "sin_modelo": {"estrategia": "prior"}}
+    filas = []
+    for modelo, auc in medias.items():
+        for conjunto, desplazamiento in (("train", 0.02), ("validacion", 0.0)):
+            for metrica in METRICAS:
+                filas.append({"modelo": modelo, "conjunto": conjunto, "metrica": metrica,
+                              "media": (auc if metrica == "auc" else auc / 2) + desplazamiento})
+        filas.append({"modelo": modelo, "conjunto": "brecha", "metrica": "auc", "media": 0.02})
+    tabla = pd.DataFrame(filas).assign(
+        etiqueta="final", configuracion=lambda t: t["modelo"].map(lambda m: json.dumps(configuracion[m])),
+        desvio=0.006, n=5, error_estandar=0.0027)
+    tabla[["etiqueta", "modelo", "configuracion", "conjunto", "metrica", "media", "desvio", "n",
+           "error_estandar"]].to_csv(carpeta / "cv_final_resumen.csv", index=False)
+    ranking = [{"modelo": m, "auc": medias[m], "auc_error_estandar": 0.0027,
+                "recall_q": medias[m] / 2} for m in ("rf", "knn", "nb_categorico", "svm")]
+    elegido = {"modelo": "rf", "k_folds": 5, "semilla": 42, "ranking": ranking,
+               "empate_dentro_1es": [], "linea_base": {"auc": 0.5, "recall_q": 0.2},
+               "metricas": {"validacion": {"auc": {"media": 0.8123, "error_estandar": 0.0027},
+                                           "recall_q": {"media": 0.40615}}}}
+    (carpeta / "modelo_elegido.json").write_text(json.dumps(elegido), encoding="utf-8")
+
+
+def _correr(*argumentos):
+    return subprocess.run([sys.executable, "-m", "src.numeros", *map(str, argumentos)], cwd=RAIZ,
+                          capture_output=True, text=True, timeout=300)
+
+
+def test_cli_sintetico_es_determinista_y_escribe_interrogacion_si_falta_un_archivo():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        resultados = tmp / "resultados"
+        resultados.mkdir()
+        _resultados_sinteticos(resultados)
+        salidas = []
+        for corrida in (1, 2):
+            tex, md = tmp / f"numeros{corrida}.tex", tmp / f"numeros{corrida}.md"
+            r = _correr("--resultados", resultados, "--salida-tex", tex, "--salida-md", md,
+                        "--resultados-test", tmp / "no-existe.tex")
+            assert r.returncode == 0, r.stderr
+            salidas.append((tex.read_bytes(), md.read_bytes()))
+        assert salidas[0] == salidas[1], "dos corridas seguidas no dan los mismos bytes"
+
+        texto_tex, texto_md = (s.decode("utf-8") for s in salidas[0])
+        macros = _macros(texto_tex)
+        assert macros["aucRfVal"] == "0{,}812" and macros["aucSinModelo"] == "0{,}500"
+        assert macros["profundidadRf"] == "6" and macros["cSvm"] == "0{,}01"
+        assert macros["margenAucFinal"] == "0{,}011" and macros["modeloFinal"] == "Random Forest"
+        assert macros["cortesNb"] == "10" and macros["alfaNb"] == "1"
+        assert macros["filasTrain"] == r"32\,940", "el EDA sale de train aunque falten resultados"
+        assert macros["aucRfAdelante"] == DESCONOCIDO, "robustez_temporal_resumen.csv falta"
+        assert macros["gananciaRfVeinte"] == DESCONOCIDO and macros["yesTest"] == DESCONOCIDO
+        assert all(macros[n] == DESCONOCIDO for n in MACROS_DE_PARTICION)
+        assert "resultados/robustez_temporal_resumen.csv" in texto_md
+        assert "`resultados/evaluacion_test.json`: `\\yesTest`" in texto_md
+        assert "`resultados/evidencia_particion.json`: `\\semillasSinEstratificar`" in texto_md
+        assert "Falta `" in texto_md and "no-existe.tex" in texto_md
+        assert all(f"`\\{n}` | ? |" in texto_md for n in MACROS_TEST)
+        assert numeros_a_mano(texto_tex, generado=True) == [], "numeros.tex no pasa su verificador"
+
+        # Con resultados de otro lado no se pisan los macros del deck.
+        r = _correr("--resultados", resultados)
+        assert r.returncode == 1 and "--salida-tex" in r.stderr
+    print("ok  sobre resultados sintéticos, dos corridas dan bytes idénticos; lo que falta vale «?» "
+          "y se anota en el .md; otro --resultados sin --salida-* se niega")
+
+
+def test_con_la_evaluacion_de_test_y_la_evidencia_de_la_particion_se_derivan_sus_macros():
+    """Con un evaluacion_test.json sintético, con las claves que escribe src/evaluar_test.py, y un
+    evidencia_particion.json con el contrato que documenta src/numeros.py."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        _resultados_sinteticos(tmp)
+        registro = {"n_test": 8236, "n_yes_test": 928,
+                    "metricas": {"auc": {"valor": 0.8234, "ic95": [0.8121, 0.8339]},
+                                 "recall_q": {"valor": 0.5462, "ic95": [0.5102, 0.5768]}}}
+        (tmp / "evaluacion_test.json").write_text(json.dumps(registro), encoding="utf-8")
+        evidencia = {"n_semillas": 400,
+                     "sin_estratificar": {"desvio_pp": 0.3123, "minimo_pct": 10.4199,
+                                          "maximo_pct": 12.1297},
+                     "temporal": {"pct_yes_train": 6.3812, "pct_yes_test": 30.8287}}
+        (tmp / "evidencia_particion.json").write_text(json.dumps(evidencia), encoding="utf-8")
+        muestra = cargar_train().iloc[::8].reset_index(drop=True)
+        generado = generar(Fuentes(tmp, train=muestra, resultados_test=tmp / "no.tex"))
+    v = generado.valores
+    assert v["yesTest"] == "928" and v["pctYesTest"] == r"11{,}3\,\%"
+    assert v["diferenciaAucTestValidacion"] == "+0{,}011"       # 0,8234 − 0,8123
+    assert v["diferenciaRecallTestValidacion"] == "+0{,}140"    # 0,5462 − 0,40615
+    assert v["semillasSinEstratificar"] == "400"
+    assert v["desvioPctYesTestSinEstratificar"] == "0{,}31"
+    assert v["pctYesTestSinEstratificarMinimo"] == r"10{,}4\,\%"
+    assert v["pctYesTestSinEstratificarMaximo"] == r"12{,}1\,\%"
+    assert v["pctYesTrainTemporal"] == r"6{,}4\,\%" and v["pctYesTestTemporal"] == r"30{,}8\,\%"
+    assert not {"resultados/evaluacion_test.json", "resultados/evidencia_particion.json"} \
+        & set(generado.faltan)
+    print("ok  con evaluacion_test.json y evidencia_particion.json, sus macros se calculan: 928, "
+          "11,3 %, +0,011 y +0,140; 400 semillas, 0,31 pp, 10,4 % a 12,1 %, 6,4 % y 30,8 %")
+
+
+def test_sin_ningun_resultado_no_falla():
+    with tempfile.TemporaryDirectory() as tmp:
+        muestra = cargar_train().iloc[::8].reset_index(drop=True)
+        generado = generar(Fuentes(Path(tmp), train=muestra, resultados_test=Path(tmp) / "no.tex"))
+    valores = generado.valores
+    assert valores["filasTrain"] == formatear_miles(len(muestra))
+    assert valores["aucRfVal"] == DESCONOCIDO and valores["columnasFinales"] == "58"
+    assert valores["pdaysCentinela"] == "999" and valores["factorIqr"] == "1{,}5"
+    assert valores["vecinosKnnMeseta"] == DESCONOCIDO, "sin hiperparametros.json no se valida"
+    assert "resultados/cv_final_resumen.csv" in generado.faltan
+    assert "## Pendientes" in generado.md
+    print(f"ok  sin ningún archivo de resultados, {sum(v == DESCONOCIDO for v in valores.values())} "
+          f"macros valen «?» y los {sum(v != DESCONOCIDO for v in valores.values())} de train y de "
+          "código se calculan")
+
+
+def test_la_meseta_de_knn_vale_interrogacion_si_deja_de_estar_dentro_de_un_error_estandar():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        curva = {"puntos_dentro_1es": ["401", "601", "801"], "mejor": "601", "valor": 801}
+        (tmp / "hiperparametros.json").write_text(
+            json.dumps({"curvas": {"knn_n_neighbors_uniform": curva}}), encoding="utf-8")
+        muestra = cargar_train().iloc[::8].reset_index(drop=True)
+        generado = generar(Fuentes(tmp, train=muestra, resultados_test=tmp / "no.tex"))
+    assert generado.valores["vecinosKnnMeseta"] == DESCONOCIDO
+    assert any("D-22" in que and "vecinosKnnMeseta" in nombres
+               for que, nombres in generado.faltan.items()), generado.faltan
+    print("ok  \\vecinosKnnMeseta, copiado de D-22, vale «?» si el punto sale de 1 error estándar")
+
+
+# --- Sobre los resultados reales ----------------------------------------------------------------
+
+def _leer(nombre, **kwargs):
+    return pd.read_csv(DIR / nombre, **kwargs)
+
+
+def _curva(nombre):
+    """Media por punto de una curva, sin src/curvas.py: `punto` como texto («None» incluido)."""
+    tabla = _leer(f"curvas/{nombre}.csv", dtype={"punto": str}, keep_default_na=False)
+    tabla["valor"] = tabla["valor"].astype(float)
+    return tabla[tabla["metrica"] == "auc"].groupby(["punto", "conjunto"])["valor"].mean()
+
+
+def _recalculados():
+    """{macro: valor esperado}: una cifra de cada familia de macros, calculada aquí con pandas desde
+    su archivo, sin las funciones de src/numeros.py (sólo las de formato, que tienen sus casos a
+    mano). Cubre las columnas que la primera versión de la suite no distinguía."""
+    final = _leer("cv_final_resumen.csv").set_index(["modelo", "conjunto", "metrica"])
+    referencia = _leer("cv_referencia_resumen.csv").set_index(["modelo", "conjunto", "metrica"])
+    ablaciones = _leer("ablaciones_resumen.csv").set_index(["modelo", "variante"])
+    robustez = _leer("robustez_temporal_resumen.csv").set_index(
+        ["modelo", "esquema", "variante", "metrica"])
+    por_fold = _leer("robustez_temporal.csv")
+    bloques = _leer("robustez_folds.csv").set_index(["esquema", "fold"])
+    sensibilidad = _leer("sensibilidad_q_final.csv")
+    ganancia = _leer("ganancia_final.csv").set_index(["modelo", "p"])["pct_yes_alcanzado"]
+    hiper = json.loads((DIR / "hiperparametros.json").read_text(encoding="utf-8"))["curvas"]
+    pareado = _leer("cv_referencia.csv")
+    pareado = pareado[(pareado["conjunto"] == "validacion") & (pareado["metrica"] == "auc")]
+    pareado = pareado.pivot_table(index="fold", columns="modelo", values="valor")
+    profundidad, pesos = _curva("rf_max_depth"), _curva("rf_pesos_clase_depth8")
+
+    train = cargar_train()
+    y = (train["y"] == "yes").to_numpy()
+    campaign = train["campaign"]
+    q1, q3 = campaign.quantile(0.25), campaign.quantile(0.75)
+    fuera = (campaign < q1 - 1.5 * (q3 - q1)) | (campaign > q3 + 1.5 * (q3 - q1))
+    barajado = StratifiedKFold(5, shuffle=True, random_state=42)
+    euribor = [train["euribor3m"].iloc[v].mean() for _, v in barajado.split(train, y)]
+    nb = json.loads(final.loc[("nb_categorico", "validacion", "auc"), "configuracion"])
+    adelante = por_fold[(por_fold["modelo"] == "rf") & (por_fold["esquema"] == "hacia_adelante")
+                        & (por_fold["variante"] == "todas") & (por_fold["fold"] == 3)
+                        & (por_fold["conjunto"] == "validacion") & (por_fold["metrica"] == "auc")]
+    rf_diez = sensibilidad[(sensibilidad["modelo"] == "rf") & np.isclose(sensibilidad["q"], 0.1)
+                           & (sensibilidad["metrica"] == "recall_q")]["valor"]
+
+    def desvio_delta(x):
+        return formatear_decimal(x, 3 if abs(x) >= 0.01 else 4)
+
+    return {
+        "aucKnnVal": formatear_decimal(final.loc[("knn", "validacion", "auc"), "media"]),
+        "recallRfVal": formatear_decimal(final.loc[("rf", "validacion", "recall_q"), "media"]),
+        "recallRfValDesvio": formatear_decimal(final.loc[("rf", "validacion", "recall_q"), "desvio"]),
+        "brechaRf": formatear_decimal(final.loc[("rf", "brecha", "auc"), "media"]),
+        "aucTrainSvm": formatear_decimal(final.loc[("svm", "train", "auc"), "media"]),
+        "aucRfReferencia": formatear_decimal(referencia.loc[("rf", "validacion", "auc"), "media"]),
+        "aucKnnReferenciaDesvio": formatear_decimal(
+            referencia.loc[("knn", "validacion", "auc"), "desvio"]),
+        "deltaAucSinMacroRf": formatear_delta(ablaciones.loc[("rf", "A7"), "delta_media"]),
+        "deltaAucSinMacroRfDesvio": desvio_delta(ablaciones.loc[("rf", "A7"), "delta_desvio"]),
+        "aucRfConDuration": formatear_decimal(ablaciones.loc[("rf", "A1"), "auc_variante"]),
+        "columnasSinMacro": formatear_miles(ablaciones.loc[("rf", "A7"), "columnas"]),
+        "aucRfAdelante": formatear_decimal(
+            robustez.loc[("rf", "hacia_adelante", "todas", "auc"), "media"]),
+        "aucRfAdelanteDesvio": formatear_decimal(
+            robustez.loc[("rf", "hacia_adelante", "todas", "auc"), "desvio"]),
+        "aucKnnSinMacroNiMonthAdelante": formatear_decimal(
+            robustez.loc[("knn", "hacia_adelante", "sin_macro_ni_month", "auc"), "media"]),
+        "aucRfAdelanteFoldTres": formatear_decimal(adelante["valor"].item()),
+        "pctYesBloqueCinco": formatear_porcentaje(
+            bloques.loc[("hacia_adelante", 5), "pct_yes_validacion"]),
+        "recallRfDiez": formatear_decimal(rf_diez.mean()),
+        "gananciaRfVeinte": formatear_porcentaje(ganancia[("rf", 20)]),
+        "gananciaSinModeloVeinte": formatear_porcentaje(ganancia[("sin_modelo", 20)]),
+        "deltaAucNbCategorico": formatear_delta(
+            (pareado["nb_categorico"] - pareado["nb_gaussiano"]).mean()),
+        "aucRfProfundidadDiez": formatear_decimal(profundidad[("10", "validacion")]),
+        "aucRfProfundidadSinLimite": formatear_decimal(profundidad[("None", "validacion")]),
+        "deltaAucPesosRf": formatear_delta(pesos[("balanced", "validacion")]
+                                           - pesos[("None", "validacion")]),
+        "aucRfProfundidadElegida": formatear_decimal(hiper["rf_max_depth"]["auc_validacion_media"]),
+        "errorEstandarRfProfundidadMejor": formatear_decimal(
+            hiper["rf_max_depth"]["error_estandar_mejor"], 4),
+        "arbolesRfRegla": formatear_miles(hiper["rf_n_estimators_depth8"]["valor"]),
+        "umbralUnoEsRfArboles": formatear_decimal(hiper["rf_n_estimators_depth8"]["umbral_1es"], 4),
+        "errorEstandarKnnMejor": formatear_decimal(
+            hiper["knn_n_neighbors_uniform"]["error_estandar_mejor"], 4),
+        "cortesNb": formatear_miles(nb["n_cortes"]),
+        "alfaNb": formatear_parametro(nb["alpha"]),
+        "euriborFoldBarajadoMinimo": formatear_decimal(min(euribor), 2),
+        "atipicosCampaign": formatear_miles(int(fuera.sum())),
+        "desvioPdays": formatear_decimal(train["pdays"].std(), 1),
+        "pdaysCentinela": "999",
+        "profundidadRfMinima": "2",
+        "vecinosKnnMinimo": "1",
+        "predictorasDisponibles": "19",
+    }
+
+
+def test_resultados_reales_coinciden_con_las_otras_fuentes():
+    generado = _generado_real()
+    v = generado.valores
+    assert generar(Fuentes()).tex == generado.tex, "dos generaciones no dan el mismo .tex"
+
+    # Sólo falta lo que tiene que faltar: la evaluación del test (N0-1) y la evidencia de la
+    # partición, mientras no existan. Si un filtro deja de encontrar su fila, aparece aquí.
+    esperados = {f"resultados/{n}" for n in ("evaluacion_test.json", "evidencia_particion.json")
+                 if not (DIR / n).exists()}
+    assert set(generado.faltan) == esperados, generado.faltan
+    assert sum(len(n) for n in generado.faltan.values()) == sum(x == DESCONOCIDO for x in v.values())
+
+    # La partición (D-01, D-02) y el presupuesto (D-20).
+    assert v["filasTrain"] == r"32\,940" and v["yesTrain"] == r"3\,711"
+    assert v["filasTest"] == formatear_miles(N_TEST) == r"8\,236"
+    assert v["llamadasTest"] == r"1\,647" and v["duplicados"] == "12"
+
+    # Las columnas: la cuenta pura de src/preproceso.py contra la de las ablaciones.
+    resumen = pd.read_csv(DIR / "ablaciones_resumen.csv")
+    for variante, var in VARIANTES.items():
+        if variante == "A0":
+            continue
+        medidas = set(resumen.loc[resumen["variante"] == variante, "columnas"])
+        assert medidas == {_columnas_de(var.opciones)}, (variante, medidas)
+    assert v["columnasReferencia"] == "62" and v["columnasFinales"] == "58"
+
+    # El modelo final: cv_final_resumen.csv y modelo_elegido.json dicen lo mismo.
+    elegido = json.loads((DIR / "modelo_elegido.json").read_text(encoding="utf-8"))
+    assert v["aucRfVal"] == formatear_decimal(elegido["metricas"]["validacion"]["auc"]["media"])
+    assert v["profundidadRf"] == str(elegido["hiperparametros"]["max_depth"])
+    assert v["arbolesRf"] == str(elegido["hiperparametros"]["n_estimators"])
+
+    # Las cifras del EDA, contra src/eda_html.py (analizar), que publica eda.html.
+    r = analizar(cargar_train(), leer_names())
+    assert v["exactitudSiempreNo"] == formatear_porcentaje(r.acc_base)
+    assert v["pctYesTrain"] == formatear_porcentaje(r.tasa)
+    assert v["filasCentinelaConPrevio"] == formatear_miles(r.n_contra)
+    assert v["pctPdaysCentinela"] == formatear_porcentaje(r.pct999)
+    assert v["pctYesPrimerBloqueEda"] == formatear_porcentaje(r.bloques["tasa"].iloc[0])
+    assert v["pctYesUltimoBloqueEda"] == formatear_porcentaje(r.bloques["tasa"].iloc[-1])
+    assert v["pctYesDosMilOcho"] == formatear_porcentaje(r.tasa_anio[2008])
+    assert v["pctYesDosMilDiez"] == formatear_porcentaje(r.tasa_anio[2010])
+    assert v["pctYesDurationDecilLargo"] == formatear_porcentaje(r.dur_dec["tasa"].iloc[-1])
+    assert v["aucDurationSola"] == formatear_decimal(r.auc_dur)
+    assert v["razonDesviosNumericas"] == formatear_decimal(r.sd_ratio, 0)
+    assert v["correlacionMacroMinima"] == formatear_decimal(min(r.r_trio), 2)
+    assert v["correlacionMacroMaxima"] == formatear_decimal(max(r.r_trio), 2)
+    # El factor del IQR es el de resultados/eda/reporte.txt, §5.
+    assert "1.5 IQR" in (DIR / "eda" / "reporte.txt").read_text(encoding="utf-8")
+    assert v["factorIqr"] == "1{,}5"
+
+    # Una cifra de cada familia, recalculada aquí con pandas.
+    distintos = {n: (v[n], esperado) for n, esperado in _recalculados().items() if v[n] != esperado}
+    assert not distintos, distintos
+
+    # La matriz fuera de fold cierra: VP + FN son los «yes» y VP + FP, las llamadas; FP > FN
+    # porque se llama a más clientes (6 588) de los que contratan (3 711).
+    vp, fp, fn = (int(v[c].replace("\\,", "")) for c in ("vpRfVal", "fpRfVal", "fnRfVal"))
+    assert vp + fn == 3711 and vp + fp == int(v["llamadasTrain"].replace("\\,", ""))
+
+    # La meseta de KNN que copia D-22 sigue dentro de 1 error estándar.
+    assert v["vecinosKnnMeseta"] == "301"
+
+    # El test no se evaluó (N0-1): sus macros valen «?» mientras falte evaluacion_test.json.
+    evaluado = (DIR / "evaluacion_test.json").exists()
+    assert all((v[n] == DESCONOCIDO) != evaluado for n in MACROS_DE_TEST)
+    assert numeros_a_mano(generado.tex, generado=True) == []
+    print(f"ok  sobre resultados/: {len(v)} macros; sólo faltan {sorted(esperados)}; partición, "
+          f"columnas, modelo final y EDA coinciden con las otras fuentes; {len(_recalculados())} "
+          "cifras recalculadas con pandas coinciden; la matriz fuera de fold cierra")
+
+
+def main():
+    test_formato_espanol_con_casos_a_mano()
+    test_los_macros_se_leen_igual_en_texto_y_en_modo_matematico()
+    test_numeros_en_palabras()
+    test_nombres_de_macro_solo_letras()
+    test_los_titulos_del_esqueleto_se_escriben_con_macros()
+    test_el_verificador_no_marca_sintaxis()
+    test_el_verificador_detecta_numeros_tipeados()
+    test_el_verificador_sin_preambulo_y_en_los_macros_generados()
+    test_cli_verificar_da_archivo_linea_y_codigo()
+    test_cli_sintetico_es_determinista_y_escribe_interrogacion_si_falta_un_archivo()
+    test_con_la_evaluacion_de_test_y_la_evidencia_de_la_particion_se_derivan_sus_macros()
+    test_sin_ningun_resultado_no_falla()
+    test_la_meseta_de_knn_vale_interrogacion_si_deja_de_estar_dentro_de_un_error_estandar()
+    test_resultados_reales_coinciden_con_las_otras_fuentes()
+    print("TODOS LOS TESTS OK")
+
+
+if __name__ == "__main__":
+    main()

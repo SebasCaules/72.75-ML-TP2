@@ -1,0 +1,534 @@
+% GENERADO POR src/numeros.py; no editar a mano. Se regenera con: python3 -m src.numeros
+% Cada macro es una cifra de resultados/ (o de train, para el EDA) en el formato del deck:
+% coma decimal, miles y % con espacio fino, menos tipográfico. Su fuente está en el
+% comentario de su línea y, legible, en informe/numeros.md. Los números de test están en
+% informe/resultados-test.tex (src/evaluar_test.py).
+% Se leen igual en texto y dentro de $…$: la coma decimal va como {,} (en modo matemático
+% una coma suelta deja un espacio detrás) y el menos es \signoMenos, definido aquí: en
+% texto es \textminus, que dentro de $…$ LaTeX compone mal, y en matemática es «-».
+% Con babel-spanish, \% ya agrega su propio espacio fino y \,\% queda doble: el preámbulo
+% del deck lleva \spanishplainpercent después de \usepackage[spanish]{babel}.
+% Valen «?» porque falta su entrada: resultados/evidencia_particion.json (6); resultados/evaluacion_test.json (4).
+
+\DeclareRobustCommand{\signoMenos}{\ifmmode-\else\textminus\fi}
+
+% --- Slide 2 · El problema -------------------------------------------------------------------------
+\newcommand{\filasCsv}{41\,188}                             % data/raw/bank-additional-names.txt, §5: Number of Instances
+\newcommand{\predictoras}{20}                               % data/raw/bank-additional-names.txt, §6: Number of Attributes (sin y)
+\newcommand{\filasTrain}{32\,940}                           % train (cargar_train()): filas
+\newcommand{\yesTrain}{3\,711}                              % train (cargar_train()): filas con y = yes
+\newcommand{\noTrain}{29\,229}                              % train (cargar_train()): filas con y = no
+\newcommand{\pctYesTrain}{11{,}3\,\%}                       % train (cargar_train()): % de y = yes
+\newcommand{\exactitudSiempreNo}{88{,}7\,\%}                % train (cargar_train()): % de y = no, la exactitud de decir siempre «no»
+\newcommand{\razonNoYes}{7{,}9}                             % train (cargar_train()): filas «no» por cada «yes»
+
+% --- Slide 3 · Qué datos deciden -------------------------------------------------------------------
+\newcommand{\filasSinDuplicados}{41\,176}                   % src/evaluar_test.py: N_TOTAL, el CSV sin duplicados (D-01)
+\newcommand{\duplicados}{12}                                % data/raw/bank-additional-names.txt, §5, menos N_TOTAL de src/evaluar_test.py (D-01)
+\newcommand{\filasTest}{8\,236}                             % src/evaluar_test.py: N_TOTAL menos filasTrain (D-02)
+\newcommand{\llamadasTest}{1\,647}                          % src/metricas.py: llamadas(filasTest), el presupuesto de D-20
+\newcommand{\proporcionTrain}{80\,\%}                       % src/datos.py: 1 − PROP_TEST
+\newcommand{\proporcionTest}{20\,\%}                        % src/datos.py: PROP_TEST
+\newcommand{\kFolds}{5}                                     % resultados/modelo_elegido.json: k_folds
+\newcommand{\semilla}{42}                                   % resultados/modelo_elegido.json: semilla
+\newcommand{\filasFoldEntrenamiento}{26\,352}               % resultados/robustez_folds.csv: barajado, fold 1, n_train
+\newcommand{\filasFoldValidacion}{6\,588}                   % resultados/robustez_folds.csv: barajado, fold 1, n_validacion
+\newcommand{\llamadasFoldValidacion}{1\,318}                % src/metricas.py: llamadas(filasFoldValidacion)
+\newcommand{\llamadasTrain}{6\,588}                         % src/metricas.py: llamadas(filasTrain), el corte de la lista fuera de fold
+\newcommand{\semillasSinEstratificar}{?}                    % resultados/evidencia_particion.json: n_semillas, las particiones sin estratificar (D-02)
+\newcommand{\desvioPctYesTestSinEstratificar}{?}            % resultados/evidencia_particion.json: sin_estratificar.desvio_pp, el desvío del % de «yes» del test entre semillas, en puntos porcentuales (D-02)
+\newcommand{\pctYesTestSinEstratificarMinimo}{?}            % resultados/evidencia_particion.json: sin_estratificar.minimo_pct, el menor % de «yes» del test entre semillas (D-02)
+\newcommand{\pctYesTestSinEstratificarMaximo}{?}            % resultados/evidencia_particion.json: sin_estratificar.maximo_pct, el mayor (D-02)
+\newcommand{\pctYesTrainTemporal}{?}                        % resultados/evidencia_particion.json: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03)
+\newcommand{\pctYesTestTemporal}{?}                         % resultados/evidencia_particion.json: temporal.pct_yes_test, el del test (D-03)
+
+% --- Slide 4 · EDA: la duración es fuga ------------------------------------------------------------
+\newcommand{\durationDecilCorto}{59}                        % train (cargar_train()): duration, borde superior del primer decil (s)
+\newcommand{\durationDecilLargo}{551}                       % train (cargar_train()): duration, borde inferior del último decil (s)
+\newcommand{\pctYesDurationDecilCorto}{0{,}0\,\%}           % train (cargar_train()): % de «yes» en el primer decil de duration
+\newcommand{\pctYesDurationDecilLargo}{46{,}1\,\%}          % train (cargar_train()): % de «yes» en el último decil de duration
+\newcommand{\filasDurationCero}{4}                          % train (cargar_train()): filas con duration = 0 (todas «no»)
+\newcommand{\aucDurationSola}{0{,}818}                      % train (cargar_train()): AUC de duration sola como puntaje
+\newcommand{\predictorasDisponibles}{19}                    % data/raw/bank-additional-names.txt, §6, menos las predictoras que src/datos.py deja fuera del modelo (EXCLUIDAS sin fila: duration); D-05 y D-07
+\newcommand{\aucRfConDuration}{0{,}939}                     % resultados/ablaciones_resumen.csv: rf, A1, auc_variante (techo con duration)
+\newcommand{\aucNbGaussianoConDuration}{0{,}831}            % resultados/ablaciones_resumen.csv: nb_gaussiano, A1, auc_variante (techo con duration)
+\newcommand{\aucSvmConDuration}{0{,}907}                    % resultados/ablaciones_resumen.csv: svm, A1, auc_variante (techo con duration)
+\newcommand{\aucKnnConDuration}{0{,}911}                    % resultados/ablaciones_resumen.csv: knn, A1, auc_variante (techo con duration)
+\newcommand{\deltaAucDurationNbGaussiano}{+0{,}063}         % resultados/ablaciones_resumen.csv: nb_gaussiano, A1, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDurationNbGaussianoDesvio}{0{,}0055}   % resultados/ablaciones_resumen.csv: nb_gaussiano, A1, delta_desvio
+\newcommand{\deltaAucDurationSvm}{+0{,}206}                 % resultados/ablaciones_resumen.csv: svm, A1, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDurationSvmDesvio}{0{,}016}            % resultados/ablaciones_resumen.csv: svm, A1, delta_desvio
+\newcommand{\deltaAucDurationKnn}{+0{,}156}                 % resultados/ablaciones_resumen.csv: knn, A1, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDurationKnnDesvio}{0{,}013}            % resultados/ablaciones_resumen.csv: knn, A1, delta_desvio
+\newcommand{\deltaAucDurationRf}{+0{,}170}                  % resultados/ablaciones_resumen.csv: rf, A1, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDurationRfDesvio}{0{,}0072}            % resultados/ablaciones_resumen.csv: rf, A1, delta_desvio
+
+% --- Slide 5 · EDA: el archivo está ordenado por fecha ---------------------------------------------
+\newcommand{\anioInicio}{2008}                              % data/raw/bank-additional-names.txt, §4: primer año del archivo
+\newcommand{\anioFin}{2010}                                 % data/raw/bank-additional-names.txt, §4: último año del archivo
+\newcommand{\filasBloqueEda}{2\,000}                        % src/eda_html.py: BLOQUE, filas del CSV original por bloque
+\newcommand{\pctYesPrimerBloqueEda}{1{,}9\,\%}              % train (cargar_train()): % de «yes» en el primer bloque de BLOQUE filas
+\newcommand{\pctYesUltimoBloqueEda}{50{,}9\,\%}             % train (cargar_train()): % de «yes» en el último bloque de BLOQUE filas
+\newcommand{\factorYesBloquesEda}{27{,}1}                   % train (cargar_train()): % de «yes» del último bloque / del primero
+\newcommand{\pctYesDosMilOcho}{4{,}9\,\%}                   % train (cargar_train()): % de «yes» en 2008 (año inferido del orden de los meses, como eda.html)
+\newcommand{\pctYesDosMilNueve}{19{,}2\,\%}                 % train (cargar_train()): % de «yes» en 2009 (año inferido del orden de los meses, como eda.html)
+\newcommand{\pctYesDosMilDiez}{51{,}9\,\%}                  % train (cargar_train()): % de «yes» en 2010 (año inferido del orden de los meses, como eda.html)
+\newcommand{\factorYesAnios}{10{,}5}                        % train (cargar_train()): % de «yes» de 2010 / de 2008
+\newcommand{\euriborPrimerBloqueEda}{4{,}86}                % train (cargar_train()): euribor3m medio del primer bloque de BLOQUE filas
+\newcommand{\euriborMinimoBloqueEda}{0{,}71}                % train (cargar_train()): euribor3m medio del bloque más bajo
+\newcommand{\euriborFoldSinBarajarPrimero}{4{,}87}          % train (cargar_train()): euribor3m medio del fold 1 con StratifiedKFold(5) sin barajar, cv=5 (D-06)
+\newcommand{\euriborFoldSinBarajarUltimo}{1{,}10}           % train (cargar_train()): ídem, fold 5 (D-06)
+\newcommand{\euriborFoldBarajadoMinimo}{3{,}58}             % train (cargar_train()): euribor3m medio, el menor de los folds() (D-06)
+\newcommand{\euriborFoldBarajadoMaximo}{3{,}64}             % train (cargar_train()): ídem, el mayor (D-06)
+\newcommand{\pctSeptiembreUltimoTramo}{100{,}0\,\%}         % train (cargar_train()): % de las filas de month = sep que caen en el último 20 % de train por fecha (A8)
+\newcommand{\pctOctubreUltimoTramo}{90{,}9\,\%}             % train (cargar_train()): % de las filas de month = oct que caen en el último 20 % de train por fecha (A8)
+\newcommand{\pctDiciembreUltimoTramo}{94{,}5\,\%}           % train (cargar_train()): % de las filas de month = dec que caen en el último 20 % de train por fecha (A8)
+
+% --- Slide 6 · EDA: 999 no es «nunca contactado» ---------------------------------------------------
+\newcommand{\pdaysCentinela}{999}                           % src/eda_html.py: PDAYS_CENTINELA, el pdays de quien no fue contactado en una campaña anterior (D-10)
+\newcommand{\pctPdaysCentinela}{96{,}3\,\%}                 % train (cargar_train()): % de filas con pdays = 999
+\newcommand{\filasCentinelaConPrevio}{3\,302}               % train (cargar_train()): filas con pdays = 999 y previous >= 1
+\newcommand{\filasPdaysContactados}{1\,207}                 % train (cargar_train()): filas con pdays < 999
+\newcommand{\pctYesPdaysContactados}{64{,}6\,\%}            % train (cargar_train()): % de «yes» con pdays < 999
+\newcommand{\pctYesPdaysCentinela}{9{,}2\,\%}               % train (cargar_train()): % de «yes» con pdays = 999
+\newcommand{\pctPoutcomeInexistente}{86{,}3\,\%}            % train (cargar_train()): % de filas con poutcome = nonexistent
+\newcommand{\pctYesPoutcomeExito}{66{,}0\,\%}               % train (cargar_train()): % de «yes» con poutcome = success
+\newcommand{\deltaAucSinPdaysNbGaussiano}{\signoMenos 0{,}0012} % resultados/ablaciones_resumen.csv: nb_gaussiano, A2, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinPdaysNbGaussianoDesvio}{0{,}0003}   % resultados/ablaciones_resumen.csv: nb_gaussiano, A2, delta_desvio
+\newcommand{\deltaAucSinPdaysSvm}{+0{,}0023}                % resultados/ablaciones_resumen.csv: svm, A2, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinPdaysSvmDesvio}{0{,}0037}           % resultados/ablaciones_resumen.csv: svm, A2, delta_desvio
+\newcommand{\deltaAucSinPdaysKnn}{\signoMenos 0{,}0019}     % resultados/ablaciones_resumen.csv: knn, A2, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinPdaysKnnDesvio}{0{,}0007}           % resultados/ablaciones_resumen.csv: knn, A2, delta_desvio
+\newcommand{\deltaAucSinPdaysRf}{+0{,}0003}                 % resultados/ablaciones_resumen.csv: rf, A2, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinPdaysRfDesvio}{0{,}0022}            % resultados/ablaciones_resumen.csv: rf, A2, delta_desvio
+
+% --- Slide 7 · EDA: el pipeline y la consecuencia de cada decisión ---------------------------------
+\newcommand{\columnasReferencia}{62}                        % src/preproceso.py: columnas del one-hot con Opciones(), la referencia de las ablaciones
+\newcommand{\columnasFinales}{58}                           % src/preproceso.py: columnas del one-hot con OPCIONES_FINALES (src/configuracion.py)
+\newcommand{\columnasDuration}{63}                          % resultados/ablaciones_resumen.csv: A1, columnas
+\newcommand{\columnasSinPdays}{61}                          % resultados/ablaciones_resumen.csv: A2, columnas
+\newcommand{\columnasDefaultIndicadora}{60}                 % resultados/ablaciones_resumen.csv: A3, columnas
+\newcommand{\columnasRaras}{60}                             % resultados/ablaciones_resumen.csv: A4, columnas
+\newcommand{\columnasLogCampaign}{62}                       % resultados/ablaciones_resumen.csv: A5, columnas
+\newcommand{\columnasMacroReducido}{59}                     % resultados/ablaciones_resumen.csv: A6, columnas
+\newcommand{\columnasSinMacro}{57}                          % resultados/ablaciones_resumen.csv: A7, columnas
+\newcommand{\columnasSinMacroNiMonth}{47}                   % resultados/ablaciones_resumen.csv: A8, columnas
+\newcommand{\columnasSinDiaSemana}{57}                      % resultados/ablaciones_resumen.csv: A9, columnas
+\newcommand{\columnasEdadTramos}{70}                        % resultados/ablaciones_resumen.csv: A10, columnas
+\newcommand{\columnasImputarModa}{56}                       % resultados/ablaciones_resumen.csv: A11, columnas
+\newcommand{\columnasSinEscalar}{62}                        % resultados/ablaciones_resumen.csv: A12, columnas
+\newcommand{\aucReferenciaAblacionRf}{0{,}770}              % resultados/ablaciones_resumen.csv: rf, auc_referencia (A0)
+\newcommand{\aucReferenciaAblacionNbGaussiano}{0{,}768}     % resultados/ablaciones_resumen.csv: nb_gaussiano, auc_referencia (A0)
+\newcommand{\aucReferenciaAblacionSvm}{0{,}701}             % resultados/ablaciones_resumen.csv: svm, auc_referencia (A0)
+\newcommand{\aucReferenciaAblacionKnn}{0{,}755}             % resultados/ablaciones_resumen.csv: knn, auc_referencia (A0)
+\newcommand{\aucRfSinMacro}{0{,}742}                        % resultados/ablaciones_resumen.csv: rf, A7, auc_variante
+\newcommand{\aucNbGaussianoSinMacro}{0{,}746}               % resultados/ablaciones_resumen.csv: nb_gaussiano, A7, auc_variante
+\newcommand{\aucSvmSinMacro}{0{,}697}                       % resultados/ablaciones_resumen.csv: svm, A7, auc_variante
+\newcommand{\aucKnnSinMacro}{0{,}708}                       % resultados/ablaciones_resumen.csv: knn, A7, auc_variante
+\newcommand{\aucRfSinMacroNiMonth}{0{,}676}                 % resultados/ablaciones_resumen.csv: rf, A8, auc_variante
+\newcommand{\aucNbGaussianoSinMacroNiMonth}{0{,}718}        % resultados/ablaciones_resumen.csv: nb_gaussiano, A8, auc_variante
+\newcommand{\aucSvmSinMacroNiMonth}{0{,}653}                % resultados/ablaciones_resumen.csv: svm, A8, auc_variante
+\newcommand{\aucKnnSinMacroNiMonth}{0{,}679}                % resultados/ablaciones_resumen.csv: knn, A8, auc_variante
+\newcommand{\deltaAucDefaultIndicadoraNbGaussiano}{\signoMenos 0{,}0003} % resultados/ablaciones_resumen.csv: nb_gaussiano, A3, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDefaultIndicadoraNbGaussianoDesvio}{0{,}0017} % resultados/ablaciones_resumen.csv: nb_gaussiano, A3, delta_desvio
+\newcommand{\deltaAucDefaultIndicadoraSvm}{+0{,}0004}       % resultados/ablaciones_resumen.csv: svm, A3, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDefaultIndicadoraSvmDesvio}{0{,}0012}  % resultados/ablaciones_resumen.csv: svm, A3, delta_desvio
+\newcommand{\deltaAucDefaultIndicadoraKnn}{+0{,}0000}       % resultados/ablaciones_resumen.csv: knn, A3, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDefaultIndicadoraKnnDesvio}{0{,}0028}  % resultados/ablaciones_resumen.csv: knn, A3, delta_desvio
+\newcommand{\deltaAucDefaultIndicadoraRf}{+0{,}0029}        % resultados/ablaciones_resumen.csv: rf, A3, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucDefaultIndicadoraRfDesvio}{0{,}0021}   % resultados/ablaciones_resumen.csv: rf, A3, delta_desvio
+\newcommand{\deltaAucRarasNbGaussiano}{+0{,}0008}           % resultados/ablaciones_resumen.csv: nb_gaussiano, A4, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucRarasNbGaussianoDesvio}{0{,}0006}      % resultados/ablaciones_resumen.csv: nb_gaussiano, A4, delta_desvio
+\newcommand{\deltaAucRarasSvm}{+0{,}0002}                   % resultados/ablaciones_resumen.csv: svm, A4, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucRarasSvmDesvio}{0{,}0007}              % resultados/ablaciones_resumen.csv: svm, A4, delta_desvio
+\newcommand{\deltaAucRarasKnn}{+0{,}0001}                   % resultados/ablaciones_resumen.csv: knn, A4, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucRarasKnnDesvio}{0{,}0006}              % resultados/ablaciones_resumen.csv: knn, A4, delta_desvio
+\newcommand{\deltaAucRarasRf}{\signoMenos 0{,}0000}         % resultados/ablaciones_resumen.csv: rf, A4, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucRarasRfDesvio}{0{,}0014}               % resultados/ablaciones_resumen.csv: rf, A4, delta_desvio
+\newcommand{\deltaAucLogCampaignSvm}{\signoMenos 0{,}0006}  % resultados/ablaciones_resumen.csv: svm, A5, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucLogCampaignSvmDesvio}{0{,}0020}        % resultados/ablaciones_resumen.csv: svm, A5, delta_desvio
+\newcommand{\deltaAucLogCampaignKnn}{+0{,}0008}             % resultados/ablaciones_resumen.csv: knn, A5, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucLogCampaignKnnDesvio}{0{,}0026}        % resultados/ablaciones_resumen.csv: knn, A5, delta_desvio
+\newcommand{\deltaAucMacroReducidoNbGaussiano}{\signoMenos 0{,}0041} % resultados/ablaciones_resumen.csv: nb_gaussiano, A6, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucMacroReducidoNbGaussianoDesvio}{0{,}0016} % resultados/ablaciones_resumen.csv: nb_gaussiano, A6, delta_desvio
+\newcommand{\deltaAucMacroReducidoSvm}{+0{,}0030}           % resultados/ablaciones_resumen.csv: svm, A6, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucMacroReducidoSvmDesvio}{0{,}0083}      % resultados/ablaciones_resumen.csv: svm, A6, delta_desvio
+\newcommand{\deltaAucMacroReducidoKnn}{\signoMenos 0{,}0083} % resultados/ablaciones_resumen.csv: knn, A6, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucMacroReducidoKnnDesvio}{0{,}0030}      % resultados/ablaciones_resumen.csv: knn, A6, delta_desvio
+\newcommand{\deltaAucMacroReducidoRf}{+0{,}0005}            % resultados/ablaciones_resumen.csv: rf, A6, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucMacroReducidoRfDesvio}{0{,}0028}       % resultados/ablaciones_resumen.csv: rf, A6, delta_desvio
+\newcommand{\deltaAucSinMacroNbGaussiano}{\signoMenos 0{,}023} % resultados/ablaciones_resumen.csv: nb_gaussiano, A7, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroNbGaussianoDesvio}{0{,}0037}   % resultados/ablaciones_resumen.csv: nb_gaussiano, A7, delta_desvio
+\newcommand{\deltaAucSinMacroSvm}{\signoMenos 0{,}0037}     % resultados/ablaciones_resumen.csv: svm, A7, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroSvmDesvio}{0{,}011}            % resultados/ablaciones_resumen.csv: svm, A7, delta_desvio
+\newcommand{\deltaAucSinMacroKnn}{\signoMenos 0{,}048}      % resultados/ablaciones_resumen.csv: knn, A7, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroKnnDesvio}{0{,}0080}           % resultados/ablaciones_resumen.csv: knn, A7, delta_desvio
+\newcommand{\deltaAucSinMacroRf}{\signoMenos 0{,}028}       % resultados/ablaciones_resumen.csv: rf, A7, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroRfDesvio}{0{,}0041}            % resultados/ablaciones_resumen.csv: rf, A7, delta_desvio
+\newcommand{\deltaAucSinMacroNiMonthNbGaussiano}{\signoMenos 0{,}050} % resultados/ablaciones_resumen.csv: nb_gaussiano, A8, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroNiMonthNbGaussianoDesvio}{0{,}0046} % resultados/ablaciones_resumen.csv: nb_gaussiano, A8, delta_desvio
+\newcommand{\deltaAucSinMacroNiMonthSvm}{\signoMenos 0{,}048} % resultados/ablaciones_resumen.csv: svm, A8, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroNiMonthSvmDesvio}{0{,}0060}    % resultados/ablaciones_resumen.csv: svm, A8, delta_desvio
+\newcommand{\deltaAucSinMacroNiMonthKnn}{\signoMenos 0{,}076} % resultados/ablaciones_resumen.csv: knn, A8, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroNiMonthKnnDesvio}{0{,}0073}    % resultados/ablaciones_resumen.csv: knn, A8, delta_desvio
+\newcommand{\deltaAucSinMacroNiMonthRf}{\signoMenos 0{,}093} % resultados/ablaciones_resumen.csv: rf, A8, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinMacroNiMonthRfDesvio}{0{,}0048}     % resultados/ablaciones_resumen.csv: rf, A8, delta_desvio
+\newcommand{\deltaAucSinDiaSemanaNbGaussiano}{\signoMenos 0{,}0000} % resultados/ablaciones_resumen.csv: nb_gaussiano, A9, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinDiaSemanaNbGaussianoDesvio}{0{,}0002} % resultados/ablaciones_resumen.csv: nb_gaussiano, A9, delta_desvio
+\newcommand{\deltaAucSinDiaSemanaSvm}{\signoMenos 0{,}0074} % resultados/ablaciones_resumen.csv: svm, A9, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinDiaSemanaSvmDesvio}{0{,}0021}       % resultados/ablaciones_resumen.csv: svm, A9, delta_desvio
+\newcommand{\deltaAucSinDiaSemanaKnn}{\signoMenos 0{,}0014} % resultados/ablaciones_resumen.csv: knn, A9, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinDiaSemanaKnnDesvio}{0{,}0061}       % resultados/ablaciones_resumen.csv: knn, A9, delta_desvio
+\newcommand{\deltaAucSinDiaSemanaRf}{\signoMenos 0{,}0034}  % resultados/ablaciones_resumen.csv: rf, A9, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinDiaSemanaRfDesvio}{0{,}0038}        % resultados/ablaciones_resumen.csv: rf, A9, delta_desvio
+\newcommand{\deltaAucEdadTramosNbGaussiano}{+0{,}0001}      % resultados/ablaciones_resumen.csv: nb_gaussiano, A10, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucEdadTramosNbGaussianoDesvio}{0{,}0022} % resultados/ablaciones_resumen.csv: nb_gaussiano, A10, delta_desvio
+\newcommand{\deltaAucImputarModaNbGaussiano}{+0{,}0000}     % resultados/ablaciones_resumen.csv: nb_gaussiano, A11, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucImputarModaNbGaussianoDesvio}{0{,}0039} % resultados/ablaciones_resumen.csv: nb_gaussiano, A11, delta_desvio
+\newcommand{\deltaAucImputarModaSvm}{\signoMenos 0{,}0002}  % resultados/ablaciones_resumen.csv: svm, A11, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucImputarModaSvmDesvio}{0{,}0049}        % resultados/ablaciones_resumen.csv: svm, A11, delta_desvio
+\newcommand{\deltaAucImputarModaKnn}{+0{,}0001}             % resultados/ablaciones_resumen.csv: knn, A11, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucImputarModaKnnDesvio}{0{,}0022}        % resultados/ablaciones_resumen.csv: knn, A11, delta_desvio
+\newcommand{\deltaAucImputarModaRf}{+0{,}0011}              % resultados/ablaciones_resumen.csv: rf, A11, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucImputarModaRfDesvio}{0{,}0034}         % resultados/ablaciones_resumen.csv: rf, A11, delta_desvio
+\newcommand{\deltaAucSinEscalarKnn}{+0{,}0084}              % resultados/ablaciones_resumen.csv: knn, A12, delta_media (ΔAUC pareado contra A0)
+\newcommand{\deltaAucSinEscalarKnnDesvio}{0{,}0067}         % resultados/ablaciones_resumen.csv: knn, A12, delta_desvio
+\newcommand{\pctDefaultUnknown}{20{,}8\,\%}                 % train (cargar_train()): % de filas con default = unknown
+\newcommand{\pctYesDefaultUnknown}{5{,}3\,\%}               % train (cargar_train()): % de «yes» con default = unknown
+\newcommand{\pctYesDefaultConocido}{12{,}8\,\%}             % train (cargar_train()): % de «yes» con default conocido
+\newcommand{\filasDefaultYes}{2}                            % train (cargar_train()): filas con default = yes (D-09)
+\newcommand{\mediaCampaignYes}{2{,}053}                     % train (cargar_train()): media de campaign en los «yes» (D-07)
+\newcommand{\mediaCampaignNo}{2{,}627}                      % train (cargar_train()): media de campaign en los «no» (D-07)
+\newcommand{\medianaCampaignYes}{2}                         % train (cargar_train()): mediana de campaign en los «yes» (D-07)
+\newcommand{\medianaCampaignNo}{2}                          % train (cargar_train()): mediana de campaign en los «no» (D-07)
+\newcommand{\maximoCampaign}{56}                            % train (cargar_train()): máximo de campaign (D-13)
+\newcommand{\asimetriaCampaign}{4{,}89}                     % train (cargar_train()): asimetría de campaign, pandas skew (D-13)
+\newcommand{\factorIqr}{1{,}5}                              % src/numeros.py: FACTOR_IQR, la regla de Tukey de resultados/eda/reporte.txt, §5 (D-17)
+\newcommand{\filasAtipicasIqr}{6\,731}                      % train (cargar_train()): filas con algún valor fuera de 1,5·IQR en las 9 numéricas del modelo (D-17)
+\newcommand{\pctAtipicasIqr}{20{,}4\,\%}                    % train (cargar_train()): ídem, en % de las filas (D-17)
+\newcommand{\atipicosPrevious}{4\,509}                      % train (cargar_train()): filas con previous fuera de 1,5·IQR (D-17)
+\newcommand{\pctYesAtipicosPrevious}{26{,}6\,\%}            % train (cargar_train()): % de «yes» entre los atípicos de previous (D-17)
+\newcommand{\atipicosCampaign}{1\,911}                      % train (cargar_train()): filas con campaign fuera de 1,5·IQR (D-17)
+\newcommand{\pctYesAtipicosCampaign}{4{,}5\,\%}             % train (cargar_train()): % de «yes» entre los atípicos de campaign (D-17)
+\newcommand{\atipicosPdays}{1\,207}                         % train (cargar_train()): filas con pdays fuera de 1,5·IQR (D-17)
+\newcommand{\pctYesAtipicosPdays}{64{,}6\,\%}               % train (cargar_train()): % de «yes» entre los atípicos de pdays (D-17)
+\newcommand{\atipicosAge}{383}                              % train (cargar_train()): filas con age fuera de 1,5·IQR (D-17)
+\newcommand{\pctYesAtipicosAge}{46{,}5\,\%}                 % train (cargar_train()): % de «yes» entre los atípicos de age (D-17)
+\newcommand{\atipicosConsConfIdx}{357}                      % train (cargar_train()): filas con cons.conf.idx fuera de 1,5·IQR (D-17)
+\newcommand{\pctYesAtipicosConsConfIdx}{40{,}6\,\%}         % train (cargar_train()): % de «yes» entre los atípicos de cons.conf.idx (D-17)
+
+% --- Slide 8 · Métricas y presupuesto de llamadas --------------------------------------------------
+\newcommand{\aucSinModelo}{0{,}500}                         % resultados/cv_final_resumen.csv: sin_modelo, validacion, auc, media
+\newcommand{\aucAzar}{0{,}5}                                % resultados/cv_final_resumen.csv: sin_modelo, validacion, auc, media, con un decimal
+\newcommand{\recallSinModelo}{0{,}200}                      % resultados/cv_final_resumen.csv: sin_modelo, validacion, recall_q, media
+\newcommand{\precisionSinModelo}{0{,}113}                   % resultados/cv_final_resumen.csv: sin_modelo, validacion, precision_q, media
+\newcommand{\apSinModelo}{0{,}113}                          % resultados/cv_final_resumen.csv: sin_modelo, validacion, ap, media
+\newcommand{\fUnoSinModelo}{0{,}144}                        % resultados/cv_final_resumen.csv: sin_modelo, validacion, f1_q, media
+\newcommand{\presupuesto}{20\,\%}                           % src/metricas.py: PRESUPUESTO (D-20)
+\newcommand{\presupuestoBajo}{10\,\%}                       % resultados/sensibilidad_q_final.csv: el menor q
+\newcommand{\presupuestoAlto}{30\,\%}                       % resultados/sensibilidad_q_final.csv: el mayor q
+\newcommand{\rotuloLineaBase}{sin modelo}                   % src/estilo.py: ROTULO_LINEA_BASE (texto)
+
+% --- Slide 9 · Los modelos sin ajustar -------------------------------------------------------------
+\newcommand{\aucNbReferencia}{0{,}782}                      % resultados/cv_referencia_resumen.csv: nb_categorico, validacion, auc, media
+\newcommand{\aucNbReferenciaDesvio}{0{,}007}                % resultados/cv_referencia_resumen.csv: nb_categorico, validacion, auc, desvio
+\newcommand{\recallNbReferencia}{0{,}614}                   % resultados/cv_referencia_resumen.csv: nb_categorico, validacion, recall_q, media
+\newcommand{\aucTrainNbReferencia}{0{,}783}                 % resultados/cv_referencia_resumen.csv: nb_categorico, train, auc, media
+\newcommand{\brechaNbReferencia}{0{,}001}                   % resultados/cv_referencia_resumen.csv: nb_categorico, brecha, auc, media (train − validación)
+\newcommand{\aucNbGaussianoVal}{0{,}769}                    % resultados/cv_referencia_resumen.csv: nb_gaussiano, validacion, auc, media
+\newcommand{\aucNbGaussianoValDesvio}{0{,}009}              % resultados/cv_referencia_resumen.csv: nb_gaussiano, validacion, auc, desvio
+\newcommand{\recallNbGaussianoVal}{0{,}566}                 % resultados/cv_referencia_resumen.csv: nb_gaussiano, validacion, recall_q, media
+\newcommand{\aucTrainNbGaussianoVal}{0{,}771}               % resultados/cv_referencia_resumen.csv: nb_gaussiano, train, auc, media
+\newcommand{\brechaNbGaussianoVal}{0{,}002}                 % resultados/cv_referencia_resumen.csv: nb_gaussiano, brecha, auc, media (train − validación)
+\newcommand{\aucSvmRbfReferencia}{0{,}702}                  % resultados/cv_referencia_resumen.csv: svm, validacion, auc, media
+\newcommand{\aucSvmRbfReferenciaDesvio}{0{,}009}            % resultados/cv_referencia_resumen.csv: svm, validacion, auc, desvio
+\newcommand{\recallSvmRbfReferencia}{0{,}549}               % resultados/cv_referencia_resumen.csv: svm, validacion, recall_q, media
+\newcommand{\aucTrainSvmRbfReferencia}{0{,}901}             % resultados/cv_referencia_resumen.csv: svm, train, auc, media
+\newcommand{\brechaSvmRbfReferencia}{0{,}200}               % resultados/cv_referencia_resumen.csv: svm, brecha, auc, media (train − validación)
+\newcommand{\aucKnnReferencia}{0{,}755}                     % resultados/cv_referencia_resumen.csv: knn, validacion, auc, media
+\newcommand{\aucKnnReferenciaDesvio}{0{,}012}               % resultados/cv_referencia_resumen.csv: knn, validacion, auc, desvio
+\newcommand{\recallKnnReferencia}{0{,}593}                  % resultados/cv_referencia_resumen.csv: knn, validacion, recall_q, media
+\newcommand{\aucTrainKnnReferencia}{0{,}871}                % resultados/cv_referencia_resumen.csv: knn, train, auc, media
+\newcommand{\brechaKnnReferencia}{0{,}116}                  % resultados/cv_referencia_resumen.csv: knn, brecha, auc, media (train − validación)
+\newcommand{\aucRfReferencia}{0{,}772}                      % resultados/cv_referencia_resumen.csv: rf, validacion, auc, media
+\newcommand{\aucRfReferenciaDesvio}{0{,}006}                % resultados/cv_referencia_resumen.csv: rf, validacion, auc, desvio
+\newcommand{\recallRfReferencia}{0{,}605}                   % resultados/cv_referencia_resumen.csv: rf, validacion, recall_q, media
+\newcommand{\aucTrainRfReferencia}{1{,}000}                 % resultados/cv_referencia_resumen.csv: rf, train, auc, media
+\newcommand{\brechaRfReferencia}{0{,}228}                   % resultados/cv_referencia_resumen.csv: rf, brecha, auc, media (train − validación)
+\newcommand{\modeloMejorReferencia}{Naive Bayes}            % resultados/cv_referencia_resumen.csv: el de mayor AUC de validación entre los cuatro del enunciado (texto)
+\newcommand{\margenAucReferencia}{0{,}282}                  % resultados/cv_referencia_resumen.csv: el mayor AUC de validación de los cuatro menos el de sin_modelo
+\newcommand{\deltaAucNbCategorico}{+0{,}013}                % resultados/cv_referencia.csv: nb_categorico − nb_gaussiano, AUC de validación fold a fold, media (D-18)
+\newcommand{\deltaAucNbCategoricoDesvio}{0{,}0024}          % resultados/cv_referencia.csv: ídem, desvío
+\newcommand{\deltaAucNbCategoricoMinimo}{+0{,}010}          % resultados/cv_referencia.csv: ídem, el menor fold
+\newcommand{\deltaAucNbCategoricoMaximo}{+0{,}016}          % resultados/cv_referencia.csv: ídem, el mayor fold
+\newcommand{\deltaRecallNbCategorico}{+0{,}048}             % resultados/cv_referencia.csv: nb_categorico − nb_gaussiano, recall_q de validación fold a fold, media (D-18)
+\newcommand{\deltaRecallNbCategoricoDesvio}{0{,}0083}       % resultados/cv_referencia.csv: ídem, desvío
+\newcommand{\vecinosKnnReferencia}{15}                      % resultados/cv_referencia_resumen.csv: knn, configuracion, n_neighbors
+\newcommand{\arbolesRfReferencia}{300}                      % resultados/cv_referencia_resumen.csv: rf, configuracion, n_estimators
+\newcommand{\cSvmReferencia}{1}                             % resultados/cv_referencia_resumen.csv: svm, configuracion, C
+\newcommand{\cortesNb}{10}                                  % resultados/cv_final_resumen.csv: nb_categorico, configuracion, n_cortes (D-18, D-22)
+\newcommand{\alfaNb}{1}                                     % resultados/cv_final_resumen.csv: nb_categorico, configuracion, alpha, la corrección de Laplace (D-18)
+
+% --- Slide 10 · Curva de RF ------------------------------------------------------------------------
+\newcommand{\profundidadRf}{8}                              % resultados/cv_final_resumen.csv: rf, configuracion, max_depth
+\newcommand{\arbolesRf}{200}                                % resultados/cv_final_resumen.csv: rf, configuracion, n_estimators
+\newcommand{\aucRfProfundidadElegida}{0{,}795}              % resultados/hiperparametros.json: curvas.rf_max_depth.auc_validacion_media
+\newcommand{\errorEstandarRfProfundidadElegida}{0{,}0025}   % resultados/hiperparametros.json: curvas.rf_max_depth.error_estandar
+\newcommand{\brechaRfProfundidadElegida}{0{,}030}           % resultados/hiperparametros.json: curvas.rf_max_depth.brecha
+\newcommand{\profundidadRfMejor}{10}                        % resultados/hiperparametros.json: curvas.rf_max_depth.mejor
+\newcommand{\aucRfProfundidadMejor}{0{,}797}                % resultados/hiperparametros.json: curvas.rf_max_depth.auc_validacion_mejor
+\newcommand{\umbralUnoEsRfProfundidad}{0{,}7939}            % resultados/hiperparametros.json: curvas.rf_max_depth.umbral_1es
+\newcommand{\errorEstandarRfProfundidadMejor}{0{,}0029}     % resultados/hiperparametros.json: curvas.rf_max_depth.error_estandar_mejor
+\newcommand{\profundidadRfMinima}{2}                        % src/modelos.py: GRILLAS, la menor max_depth de la grilla de RF (el extremo del subajuste)
+\newcommand{\arbolesRfRegla}{25}                            % resultados/hiperparametros.json: curvas.rf_n_estimators_depth8.valor, lo que elegía la regla de 1 ES (N0-11)
+\newcommand{\arbolesRfMejor}{800}                           % resultados/hiperparametros.json: curvas.rf_n_estimators_depth8.mejor (N0-11)
+\newcommand{\umbralUnoEsRfArboles}{0{,}7930}                % resultados/hiperparametros.json: curvas.rf_n_estimators_depth8.umbral_1es (N0-11)
+\newcommand{\aucRfProfundidadDos}{0{,}782}                  % resultados/curvas/rf_max_depth.csv: punto 2, validacion, auc, media
+\newcommand{\aucRfProfundidadCuatro}{0{,}789}               % resultados/curvas/rf_max_depth.csv: punto 4, validacion, auc, media
+\newcommand{\aucRfProfundidadSeis}{0{,}794}                 % resultados/curvas/rf_max_depth.csv: punto 6, validacion, auc, media
+\newcommand{\aucRfProfundidadOcho}{0{,}795}                 % resultados/curvas/rf_max_depth.csv: punto 8, validacion, auc, media
+\newcommand{\aucRfProfundidadDiez}{0{,}797}                 % resultados/curvas/rf_max_depth.csv: punto 10, validacion, auc, media
+\newcommand{\aucRfProfundidadDoce}{0{,}795}                 % resultados/curvas/rf_max_depth.csv: punto 12, validacion, auc, media
+\newcommand{\aucRfProfundidadQuince}{0{,}793}               % resultados/curvas/rf_max_depth.csv: punto 15, validacion, auc, media
+\newcommand{\aucRfProfundidadVeinte}{0{,}784}               % resultados/curvas/rf_max_depth.csv: punto 20, validacion, auc, media
+\newcommand{\aucRfProfundidadVeinticinco}{0{,}776}          % resultados/curvas/rf_max_depth.csv: punto 25, validacion, auc, media
+\newcommand{\aucRfProfundidadSinLimite}{0{,}772}            % resultados/curvas/rf_max_depth.csv: punto None, validacion, auc, media
+\newcommand{\aucTrainRfProfundidadSinLimite}{1{,}000}       % resultados/curvas/rf_max_depth.csv: punto None, train, auc, media
+\newcommand{\brechaRfProfundidadSinLimite}{0{,}228}         % resultados/curvas/rf_max_depth.csv: punto None, train − validación
+\newcommand{\aucTrainRfProfundidadDos}{0{,}783}             % resultados/curvas/rf_max_depth.csv: punto 2, train, auc, media
+\newcommand{\brechaRfProfundidadDos}{0{,}001}               % resultados/curvas/rf_max_depth.csv: punto 2, train − validación
+\newcommand{\aucRfArbolesDiez}{0{,}791}                     % resultados/curvas/rf_n_estimators_depth8.csv: punto 10, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesVeinticinco}{0{,}793}              % resultados/curvas/rf_n_estimators_depth8.csv: punto 25, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesCincuenta}{0{,}795}                % resultados/curvas/rf_n_estimators_depth8.csv: punto 50, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesCien}{0{,}795}                     % resultados/curvas/rf_n_estimators_depth8.csv: punto 100, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesDoscientos}{0{,}795}               % resultados/curvas/rf_n_estimators_depth8.csv: punto 200, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesCuatrocientos}{0{,}796}            % resultados/curvas/rf_n_estimators_depth8.csv: punto 400, validacion, auc, media (N0-11)
+\newcommand{\aucRfArbolesOchocientos}{0{,}796}              % resultados/curvas/rf_n_estimators_depth8.csv: punto 800, validacion, auc, media (N0-11)
+\newcommand{\aucRfSinPesos}{0{,}795}                        % resultados/curvas/rf_pesos_clase_depth8.csv: punto None, validacion, auc, media (N0-12)
+\newcommand{\aucRfPesosBalanceados}{0{,}796}                % resultados/curvas/rf_pesos_clase_depth8.csv: punto balanced, validacion, auc, media (N0-12)
+\newcommand{\deltaAucPesosRf}{+0{,}0006}                    % resultados/curvas/rf_pesos_clase_depth8.csv: balanced − None (N0-12)
+\newcommand{\errorEstandarRfPesosBalanceados}{0{,}0024}     % resultados/curvas/rf_pesos_clase_depth8.csv: punto balanced, error estándar (N0-12)
+
+% --- Slide 11 · Curva de KNN -----------------------------------------------------------------------
+\newcommand{\vecinosKnn}{801}                               % resultados/cv_final_resumen.csv: knn, configuracion, n_neighbors
+\newcommand{\vecinosKnnMejor}{601}                          % resultados/hiperparametros.json: curvas.knn_n_neighbors_uniform.mejor
+\newcommand{\aucKnnMejor}{0{,}784}                          % resultados/hiperparametros.json: curvas.knn_n_neighbors_uniform.auc_validacion_mejor
+\newcommand{\vecinosKnnMinimoUnoEs}{151}                    % resultados/hiperparametros.json: el menor de curvas.knn_n_neighbors_uniform.puntos_dentro_1es
+\newcommand{\umbralUnoEsKnn}{0{,}7806}                      % resultados/hiperparametros.json: curvas.knn_n_neighbors_uniform.umbral_1es
+\newcommand{\errorEstandarKnnMejor}{0{,}0037}               % resultados/hiperparametros.json: curvas.knn_n_neighbors_uniform.error_estandar_mejor
+\newcommand{\vecinosKnnMinimo}{1}                           % src/modelos.py: GRILLAS, el menor n_neighbors de la grilla de KNN (el extremo del sobreajuste)
+\newcommand{\vecinosKnnMeseta}{301}                         % DECISIONES.md, D-22: el k desde el que la curva de KNN es una meseta (una lectura de la curva, no una regla); «?» si ya no está dentro de 1 ES
+\newcommand{\aucKnnUno}{0{,}619}                            % resultados/curvas/knn_n_neighbors_uniform.csv: punto 1, validacion, auc, media
+\newcommand{\aucKnnTres}{0{,}696}                           % resultados/curvas/knn_n_neighbors_uniform.csv: punto 3, validacion, auc, media
+\newcommand{\aucKnnCinco}{0{,}724}                          % resultados/curvas/knn_n_neighbors_uniform.csv: punto 5, validacion, auc, media
+\newcommand{\aucKnnNueve}{0{,}741}                          % resultados/curvas/knn_n_neighbors_uniform.csv: punto 9, validacion, auc, media
+\newcommand{\aucKnnQuince}{0{,}755}                         % resultados/curvas/knn_n_neighbors_uniform.csv: punto 15, validacion, auc, media
+\newcommand{\aucKnnVeinticinco}{0{,}765}                    % resultados/curvas/knn_n_neighbors_uniform.csv: punto 25, validacion, auc, media
+\newcommand{\aucKnnCuarentaYUno}{0{,}769}                   % resultados/curvas/knn_n_neighbors_uniform.csv: punto 41, validacion, auc, media
+\newcommand{\aucKnnSesentaYUno}{0{,}773}                    % resultados/curvas/knn_n_neighbors_uniform.csv: punto 61, validacion, auc, media
+\newcommand{\aucKnnCientoUno}{0{,}779}                      % resultados/curvas/knn_n_neighbors_uniform.csv: punto 101, validacion, auc, media
+\newcommand{\aucKnnCientoCincuentaYUno}{0{,}782}            % resultados/curvas/knn_n_neighbors_uniform.csv: punto 151, validacion, auc, media
+\newcommand{\aucKnnDoscientosUno}{0{,}783}                  % resultados/curvas/knn_n_neighbors_uniform.csv: punto 201, validacion, auc, media
+\newcommand{\aucKnnTrescientosUno}{0{,}783}                 % resultados/curvas/knn_n_neighbors_uniform.csv: punto 301, validacion, auc, media
+\newcommand{\aucKnnCuatrocientosUno}{0{,}784}               % resultados/curvas/knn_n_neighbors_uniform.csv: punto 401, validacion, auc, media
+\newcommand{\aucKnnSeiscientosUno}{0{,}784}                 % resultados/curvas/knn_n_neighbors_uniform.csv: punto 601, validacion, auc, media
+\newcommand{\aucKnnOchocientosUno}{0{,}784}                 % resultados/curvas/knn_n_neighbors_uniform.csv: punto 801, validacion, auc, media
+\newcommand{\aucTrainKnnUno}{0{,}988}                       % resultados/curvas/knn_n_neighbors_uniform.csv: punto 1, train, auc, media
+\newcommand{\brechaKnnUno}{0{,}369}                         % resultados/curvas/knn_n_neighbors_uniform.csv: punto 1, train − validación
+\newcommand{\vecinosKnnDistancia}{201}                      % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.valor (weights = distance)
+\newcommand{\aucKnnDistancia}{0{,}769}                      % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.auc_validacion_media
+\newcommand{\aucTrainKnnDistancia}{1{,}000}                 % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.auc_train_media
+\newcommand{\brechaKnnDistancia}{0{,}231}                   % resultados/hiperparametros.json: curvas.knn_n_neighbors_distance.brecha
+
+% --- Slide 12 · Curva de la SVM --------------------------------------------------------------------
+\newcommand{\cSvm}{0{,}001}                                 % resultados/cv_final_resumen.csv: svm, configuracion, C
+\newcommand{\kernelSvm}{lineal}                             % resultados/cv_final_resumen.csv: svm, configuracion, kernel (texto)
+\newcommand{\aucSvmBalanceada}{0{,}770}                     % resultados/curvas/svm_pesos_clase.csv: punto balanced, validacion, auc, media (RBF, C = 1)
+\newcommand{\deltaAucPesosSvm}{+0{,}068}                    % resultados/curvas/svm_pesos_clase.csv: balanced − None (D-21, N0-12)
+\newcommand{\cSvmSinPesosMejor}{0{,}1}                      % resultados/hiperparametros.json: curvas.svm_C.mejor (RBF, sin pesos)
+\newcommand{\aucSvmSinPesosMejor}{0{,}706}                  % resultados/hiperparametros.json: curvas.svm_C.auc_validacion_mejor
+\newcommand{\cSvmBalanceadaMejor}{0{,}01}                   % resultados/hiperparametros.json: curvas.svm_C_balanced.mejor (RBF, pesos balanceados)
+\newcommand{\aucSvmBalanceadaMejor}{0{,}772}                % resultados/hiperparametros.json: curvas.svm_C_balanced.auc_validacion_mejor
+\newcommand{\cSvmKernel}{0{,}001}                           % resultados/curvas/svm_kernel.csv: C de la configuración en que se comparan los kernels
+\newcommand{\aucSvmKernelLineal}{0{,}774}                   % resultados/curvas/svm_kernel.csv: punto linear, validacion, auc, media
+\newcommand{\aucSvmKernelPolinomico}{0{,}774}               % resultados/curvas/svm_kernel.csv: punto poly, validacion, auc, media
+\newcommand{\aucSvmKernelRbf}{0{,}768}                      % resultados/curvas/svm_kernel.csv: punto rbf, validacion, auc, media
+\newcommand{\cSvmLinealMejor}{0{,}01}                       % resultados/hiperparametros.json: curvas.svm_C_linear_balanced.mejor
+\newcommand{\aucSvmLinealMejor}{0{,}774}                    % resultados/hiperparametros.json: curvas.svm_C_linear_balanced.auc_validacion_mejor
+\newcommand{\segundosLimiteCosto}{600}                      % resultados/costos.csv: el límite de la corrida excedida (s)
+\newcommand{\cSvmCostoExcedido}{10}                         % resultados/costos.csv: C de la corrida excedida (SVC lineal)
+
+% --- Slide 13 · El modelo final en validación ------------------------------------------------------
+\newcommand{\aucRfVal}{0{,}795}                             % resultados/cv_final_resumen.csv: rf, validacion, auc, media
+\newcommand{\aucRfValDesvio}{0{,}006}                       % resultados/cv_final_resumen.csv: rf, validacion, auc, desvio
+\newcommand{\recallRfVal}{0{,}629}                          % resultados/cv_final_resumen.csv: rf, validacion, recall_q, media
+\newcommand{\recallRfValDesvio}{0{,}018}                    % resultados/cv_final_resumen.csv: rf, validacion, recall_q, desvio
+\newcommand{\precisionRfVal}{0{,}354}                       % resultados/cv_final_resumen.csv: rf, validacion, precision_q, media
+\newcommand{\apRfVal}{0{,}462}                              % resultados/cv_final_resumen.csv: rf, validacion, ap, media
+\newcommand{\fUnoRfVal}{0{,}454}                            % resultados/cv_final_resumen.csv: rf, validacion, f1_q, media
+\newcommand{\aucTrainRf}{0{,}825}                           % resultados/cv_final_resumen.csv: rf, train, auc, media
+\newcommand{\brechaRf}{0{,}030}                             % resultados/cv_final_resumen.csv: rf, brecha, auc, media (train − validación)
+\newcommand{\aucKnnVal}{0{,}784}                            % resultados/cv_final_resumen.csv: knn, validacion, auc, media
+\newcommand{\aucKnnValDesvio}{0{,}008}                      % resultados/cv_final_resumen.csv: knn, validacion, auc, desvio
+\newcommand{\recallKnnVal}{0{,}617}                         % resultados/cv_final_resumen.csv: knn, validacion, recall_q, media
+\newcommand{\recallKnnValDesvio}{0{,}016}                   % resultados/cv_final_resumen.csv: knn, validacion, recall_q, desvio
+\newcommand{\precisionKnnVal}{0{,}348}                      % resultados/cv_final_resumen.csv: knn, validacion, precision_q, media
+\newcommand{\apKnnVal}{0{,}429}                             % resultados/cv_final_resumen.csv: knn, validacion, ap, media
+\newcommand{\fUnoKnnVal}{0{,}445}                           % resultados/cv_final_resumen.csv: knn, validacion, f1_q, media
+\newcommand{\aucTrainKnn}{0{,}791}                          % resultados/cv_final_resumen.csv: knn, train, auc, media
+\newcommand{\brechaKnn}{0{,}006}                            % resultados/cv_final_resumen.csv: knn, brecha, auc, media (train − validación)
+\newcommand{\aucNbVal}{0{,}782}                             % resultados/cv_final_resumen.csv: nb_categorico, validacion, auc, media
+\newcommand{\aucNbValDesvio}{0{,}007}                       % resultados/cv_final_resumen.csv: nb_categorico, validacion, auc, desvio
+\newcommand{\recallNbVal}{0{,}614}                          % resultados/cv_final_resumen.csv: nb_categorico, validacion, recall_q, media
+\newcommand{\recallNbValDesvio}{0{,}017}                    % resultados/cv_final_resumen.csv: nb_categorico, validacion, recall_q, desvio
+\newcommand{\precisionNbVal}{0{,}346}                       % resultados/cv_final_resumen.csv: nb_categorico, validacion, precision_q, media
+\newcommand{\apNbVal}{0{,}422}                              % resultados/cv_final_resumen.csv: nb_categorico, validacion, ap, media
+\newcommand{\fUnoNbVal}{0{,}443}                            % resultados/cv_final_resumen.csv: nb_categorico, validacion, f1_q, media
+\newcommand{\aucTrainNb}{0{,}783}                           % resultados/cv_final_resumen.csv: nb_categorico, train, auc, media
+\newcommand{\brechaNb}{0{,}001}                             % resultados/cv_final_resumen.csv: nb_categorico, brecha, auc, media (train − validación)
+\newcommand{\aucSvmVal}{0{,}774}                            % resultados/cv_final_resumen.csv: svm, validacion, auc, media
+\newcommand{\aucSvmValDesvio}{0{,}009}                      % resultados/cv_final_resumen.csv: svm, validacion, auc, desvio
+\newcommand{\recallSvmVal}{0{,}614}                         % resultados/cv_final_resumen.csv: svm, validacion, recall_q, media
+\newcommand{\recallSvmValDesvio}{0{,}018}                   % resultados/cv_final_resumen.csv: svm, validacion, recall_q, desvio
+\newcommand{\precisionSvmVal}{0{,}346}                      % resultados/cv_final_resumen.csv: svm, validacion, precision_q, media
+\newcommand{\apSvmVal}{0{,}405}                             % resultados/cv_final_resumen.csv: svm, validacion, ap, media
+\newcommand{\fUnoSvmVal}{0{,}442}                           % resultados/cv_final_resumen.csv: svm, validacion, f1_q, media
+\newcommand{\aucTrainSvm}{0{,}776}                          % resultados/cv_final_resumen.csv: svm, train, auc, media
+\newcommand{\brechaSvm}{0{,}002}                            % resultados/cv_final_resumen.csv: svm, brecha, auc, media (train − validación)
+\newcommand{\deltaAucAjusteRf}{+0{,}023}                    % resultados/cv_final_resumen.csv menos resultados/cv_referencia_resumen.csv: rf, validacion, auc, media
+\newcommand{\deltaAucAjusteKnn}{+0{,}029}                   % resultados/cv_final_resumen.csv menos resultados/cv_referencia_resumen.csv: knn, validacion, auc, media
+\newcommand{\deltaAucAjusteSvm}{+0{,}072}                   % resultados/cv_final_resumen.csv menos resultados/cv_referencia_resumen.csv: svm, validacion, auc, media
+\newcommand{\modeloFinal}{Random Forest}                    % resultados/modelo_elegido.json: ranking, 1.º (texto)
+\newcommand{\modeloSegundoFinal}{KNN}                       % resultados/modelo_elegido.json: ranking, 2.º (texto)
+\newcommand{\modeloUltimoFinal}{SVM}                        % resultados/modelo_elegido.json: ranking, último (texto)
+\newcommand{\errorEstandarAucRf}{0{,}0025}                  % resultados/cv_final_resumen.csv: rf, validacion, auc, error_estandar
+\newcommand{\umbralEmpateFinal}{0{,}7927}                   % resultados/modelo_elegido.json: ranking, AUC del 1.º menos su error estándar (D-23)
+\newcommand{\modelosDentroUnoEs}{0}                         % resultados/modelo_elegido.json: cuántos quedan dentro de 1 ES del mejor (empate_dentro_1es)
+\newcommand{\margenAucFinal}{0{,}011}                       % resultados/modelo_elegido.json: ranking, AUC del 1.º menos el del 2.º
+\newcommand{\margenAucSinModeloFinal}{0{,}295}              % resultados/modelo_elegido.json: ranking, AUC del 1.º menos linea_base.auc
+\newcommand{\rangoAucFinal}{0{,}021}                        % resultados/modelo_elegido.json: ranking, AUC del 1.º menos el del último
+
+% --- Slides 14 y 15 · Test y matriz de confusión ---------------------------------------------------
+\newcommand{\yesTest}{?}                                    % resultados/evaluacion_test.json: n_yes_test
+\newcommand{\pctYesTest}{?}                                 % resultados/evaluacion_test.json: n_yes_test / n_test
+\newcommand{\diferenciaAucTestValidacion}{?}                % resultados/evaluacion_test.json: metricas.auc.valor menos resultados/modelo_elegido.json: metricas.validacion.auc.media (sólo en voz alta, guía C2)
+\newcommand{\diferenciaRecallTestValidacion}{?}             % resultados/evaluacion_test.json: metricas.recall_q.valor menos resultados/modelo_elegido.json: metricas.validacion.recall_q.media (sólo en voz alta, guía C2)
+\newcommand{\vpRfVal}{2\,329}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): VP llamando al 20 % de la lista fuera de fold
+\newcommand{\fpRfVal}{4\,259}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FP llamando al 20 % de la lista fuera de fold
+\newcommand{\fnRfVal}{1\,382}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FN llamando al 20 % de la lista fuera de fold
+\newcommand{\vnRfVal}{24\,970}                              % resultados/oof_final_rf.csv con la y de train (cargar_train()): VN llamando al 20 % de la lista fuera de fold
+
+% --- Slide 16 · Por qué cada modelo rindió lo que rindió -------------------------------------------
+\newcommand{\correlacionMacroMinima}{0{,}91}                % train (cargar_train()): el menor |r| entre los pares del bloque macro con |r| >= 0,9 (D-14)
+\newcommand{\correlacionMacroMaxima}{0{,}97}                % train (cargar_train()): el mayor |r| entre esos pares (D-14)
+\newcommand{\desvioPdays}{186{,}6}                          % train (cargar_train()): desvío estándar de pdays (D-12)
+\newcommand{\desvioNrEmployed}{72{,}4}                      % train (cargar_train()): desvío estándar de nr.employed (D-12)
+\newcommand{\pctVarianzaPdays}{86{,}6\,\%}                  % train (cargar_train()): % de la varianza de las 9 numéricas del modelo que es de pdays (D-12)
+\newcommand{\pctVarianzaNrEmployed}{13{,}0\,\%}             % train (cargar_train()): ídem, de nr.employed (D-12)
+\newcommand{\razonDesviosNumericas}{374}                    % train (cargar_train()): el mayor desvío de las 9 numéricas del modelo / el menor
+
+% --- Slide 17 · Limitaciones: sensibilidad al presupuesto ------------------------------------------
+\newcommand{\recallRfDiez}{0{,}446}                         % resultados/sensibilidad_q_final.csv: rf, q = 0.1, recall_q, media de los folds
+\newcommand{\recallRfTreinta}{0{,}705}                      % resultados/sensibilidad_q_final.csv: rf, q = 0.3, recall_q, media de los folds
+\newcommand{\recallKnnDiez}{0{,}414}                        % resultados/sensibilidad_q_final.csv: knn, q = 0.1, recall_q, media de los folds
+\newcommand{\recallKnnTreinta}{0{,}690}                     % resultados/sensibilidad_q_final.csv: knn, q = 0.3, recall_q, media de los folds
+\newcommand{\recallNbDiez}{0{,}411}                         % resultados/sensibilidad_q_final.csv: nb_categorico, q = 0.1, recall_q, media de los folds
+\newcommand{\recallNbTreinta}{0{,}697}                      % resultados/sensibilidad_q_final.csv: nb_categorico, q = 0.3, recall_q, media de los folds
+\newcommand{\recallSvmDiez}{0{,}415}                        % resultados/sensibilidad_q_final.csv: svm, q = 0.1, recall_q, media de los folds
+\newcommand{\recallSvmTreinta}{0{,}695}                     % resultados/sensibilidad_q_final.csv: svm, q = 0.3, recall_q, media de los folds
+\newcommand{\recallSinModeloDiez}{0{,}100}                  % resultados/sensibilidad_q_final.csv: sin_modelo, q = 0.1, recall_q, media de los folds
+\newcommand{\recallSinModeloTreinta}{0{,}300}               % resultados/sensibilidad_q_final.csv: sin_modelo, q = 0.3, recall_q, media de los folds
+\newcommand{\precisionRfDiez}{0{,}502}                      % resultados/sensibilidad_q_final.csv: rf, q = 0.1, precision_q, media de los folds
+\newcommand{\precisionRfVeinte}{0{,}354}                    % resultados/sensibilidad_q_final.csv: rf, q = 0.2, precision_q, media de los folds
+\newcommand{\precisionRfTreinta}{0{,}265}                   % resultados/sensibilidad_q_final.csv: rf, q = 0.3, precision_q, media de los folds
+
+% --- Slides 18 y 19 · Hallazgo: el modelo aprende la época -----------------------------------------
+\newcommand{\aucRfAdelante}{0{,}558}                        % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, todas, auc, media
+\newcommand{\aucRfAdelanteDesvio}{0{,}123}                  % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, todas, auc, desvio
+\newcommand{\aucRfSinMacroAdelante}{0{,}556}                % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, sin_macro, auc, media
+\newcommand{\aucRfSinMacroAdelanteDesvio}{0{,}110}          % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, sin_macro, auc, desvio
+\newcommand{\aucRfSinMacroBarajado}{0{,}772}                % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro, auc, media
+\newcommand{\aucRfSinMacroBarajadoDesvio}{0{,}010}          % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro, auc, desvio
+\newcommand{\aucRfSinMacroNiMonthAdelante}{0{,}547}         % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, sin_macro_ni_month, auc, media
+\newcommand{\aucRfSinMacroNiMonthAdelanteDesvio}{0{,}098}   % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, sin_macro_ni_month, auc, desvio
+\newcommand{\aucRfSinMacroNiMonthBarajado}{0{,}736}         % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro_ni_month, auc, media
+\newcommand{\aucRfSinMacroNiMonthBarajadoDesvio}{0{,}009}   % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro_ni_month, auc, desvio
+\newcommand{\recallRfAdelante}{0{,}243}                     % resultados/robustez_temporal_resumen.csv: rf, hacia_adelante, todas, recall_q, media
+\newcommand{\caidaAucRfAdelante}{0{,}237}                   % resultados/robustez_temporal_resumen.csv: rf, barajado_menos_hacia_adelante, todas, auc, media
+\newcommand{\deltaAucSinMacroRfBarajado}{\signoMenos 0{,}023} % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro menos todas, auc, media
+\newcommand{\deltaAucSinMacroNiMonthRfBarajado}{\signoMenos 0{,}059} % resultados/robustez_temporal_resumen.csv: rf, barajado, sin_macro_ni_month menos todas, auc, media
+\newcommand{\aucKnnAdelante}{0{,}539}                       % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, todas, auc, media
+\newcommand{\aucKnnAdelanteDesvio}{0{,}065}                 % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, todas, auc, desvio
+\newcommand{\aucKnnSinMacroAdelante}{0{,}557}               % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, sin_macro, auc, media
+\newcommand{\aucKnnSinMacroAdelanteDesvio}{0{,}099}         % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, sin_macro, auc, desvio
+\newcommand{\aucKnnSinMacroBarajado}{0{,}754}               % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro, auc, media
+\newcommand{\aucKnnSinMacroBarajadoDesvio}{0{,}009}         % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro, auc, desvio
+\newcommand{\aucKnnSinMacroNiMonthAdelante}{0{,}542}        % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, sin_macro_ni_month, auc, media
+\newcommand{\aucKnnSinMacroNiMonthAdelanteDesvio}{0{,}091}  % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, sin_macro_ni_month, auc, desvio
+\newcommand{\aucKnnSinMacroNiMonthBarajado}{0{,}731}        % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro_ni_month, auc, media
+\newcommand{\aucKnnSinMacroNiMonthBarajadoDesvio}{0{,}009}  % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro_ni_month, auc, desvio
+\newcommand{\recallKnnAdelante}{0{,}215}                    % resultados/robustez_temporal_resumen.csv: knn, hacia_adelante, todas, recall_q, media
+\newcommand{\caidaAucKnnAdelante}{0{,}245}                  % resultados/robustez_temporal_resumen.csv: knn, barajado_menos_hacia_adelante, todas, auc, media
+\newcommand{\deltaAucSinMacroKnnBarajado}{\signoMenos 0{,}031} % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro menos todas, auc, media
+\newcommand{\deltaAucSinMacroNiMonthKnnBarajado}{\signoMenos 0{,}053} % resultados/robustez_temporal_resumen.csv: knn, barajado, sin_macro_ni_month menos todas, auc, media
+\newcommand{\aucNbAdelante}{0{,}598}                        % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, todas, auc, media
+\newcommand{\aucNbAdelanteDesvio}{0{,}087}                  % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, todas, auc, desvio
+\newcommand{\aucNbSinMacroAdelante}{0{,}604}                % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, sin_macro, auc, media
+\newcommand{\aucNbSinMacroAdelanteDesvio}{0{,}090}          % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, sin_macro, auc, desvio
+\newcommand{\aucNbSinMacroBarajado}{0{,}749}                % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro, auc, media
+\newcommand{\aucNbSinMacroBarajadoDesvio}{0{,}012}          % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro, auc, desvio
+\newcommand{\aucNbSinMacroNiMonthAdelante}{0{,}566}         % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, sin_macro_ni_month, auc, media
+\newcommand{\aucNbSinMacroNiMonthAdelanteDesvio}{0{,}101}   % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, sin_macro_ni_month, auc, desvio
+\newcommand{\aucNbSinMacroNiMonthBarajado}{0{,}724}         % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro_ni_month, auc, media
+\newcommand{\aucNbSinMacroNiMonthBarajadoDesvio}{0{,}011}   % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro_ni_month, auc, desvio
+\newcommand{\recallNbAdelante}{0{,}287}                     % resultados/robustez_temporal_resumen.csv: nb_categorico, hacia_adelante, todas, recall_q, media
+\newcommand{\caidaAucNbAdelante}{0{,}184}                   % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado_menos_hacia_adelante, todas, auc, media
+\newcommand{\deltaAucSinMacroNbBarajado}{\signoMenos 0{,}033} % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro menos todas, auc, media
+\newcommand{\deltaAucSinMacroNiMonthNbBarajado}{\signoMenos 0{,}058} % resultados/robustez_temporal_resumen.csv: nb_categorico, barajado, sin_macro_ni_month menos todas, auc, media
+\newcommand{\aucSvmAdelante}{0{,}541}                       % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, todas, auc, media
+\newcommand{\aucSvmAdelanteDesvio}{0{,}078}                 % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, todas, auc, desvio
+\newcommand{\aucSvmSinMacroAdelante}{0{,}563}               % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, sin_macro, auc, media
+\newcommand{\aucSvmSinMacroAdelanteDesvio}{0{,}122}         % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, sin_macro, auc, desvio
+\newcommand{\aucSvmSinMacroBarajado}{0{,}754}               % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro, auc, media
+\newcommand{\aucSvmSinMacroBarajadoDesvio}{0{,}012}         % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro, auc, desvio
+\newcommand{\aucSvmSinMacroNiMonthAdelante}{0{,}549}        % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, sin_macro_ni_month, auc, media
+\newcommand{\aucSvmSinMacroNiMonthAdelanteDesvio}{0{,}081}  % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, sin_macro_ni_month, auc, desvio
+\newcommand{\aucSvmSinMacroNiMonthBarajado}{0{,}726}        % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro_ni_month, auc, media
+\newcommand{\aucSvmSinMacroNiMonthBarajadoDesvio}{0{,}009}  % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro_ni_month, auc, desvio
+\newcommand{\recallSvmAdelante}{0{,}233}                    % resultados/robustez_temporal_resumen.csv: svm, hacia_adelante, todas, recall_q, media
+\newcommand{\caidaAucSvmAdelante}{0{,}233}                  % resultados/robustez_temporal_resumen.csv: svm, barajado_menos_hacia_adelante, todas, auc, media
+\newcommand{\deltaAucSinMacroSvmBarajado}{\signoMenos 0{,}020} % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro menos todas, auc, media
+\newcommand{\deltaAucSinMacroNiMonthSvmBarajado}{\signoMenos 0{,}048} % resultados/robustez_temporal_resumen.csv: svm, barajado, sin_macro_ni_month menos todas, auc, media
+\newcommand{\aucRfAdelanteFoldUno}{0{,}489}                 % resultados/robustez_temporal.csv: rf, hacia_adelante, todas, fold 1, validacion, auc
+\newcommand{\pctYesBloqueUno}{4{,}7\,\%}                    % resultados/robustez_folds.csv: hacia_adelante, fold 1, pct_yes_validacion
+\newcommand{\pctYesEntrenamientoAdelanteUno}{2{,}9\,\%}     % resultados/robustez_folds.csv: hacia_adelante, fold 1, pct_yes_train
+\newcommand{\filasEntrenamientoAdelanteUno}{5\,490}         % resultados/robustez_folds.csv: hacia_adelante, fold 1, n_train
+\newcommand{\aucRfAdelanteFoldDos}{0{,}500}                 % resultados/robustez_temporal.csv: rf, hacia_adelante, todas, fold 2, validacion, auc
+\newcommand{\pctYesBloqueDos}{6{,}5\,\%}                    % resultados/robustez_folds.csv: hacia_adelante, fold 2, pct_yes_validacion
+\newcommand{\pctYesEntrenamientoAdelanteDos}{3{,}8\,\%}     % resultados/robustez_folds.csv: hacia_adelante, fold 2, pct_yes_train
+\newcommand{\filasEntrenamientoAdelanteDos}{10\,980}        % resultados/robustez_folds.csv: hacia_adelante, fold 2, n_train
+\newcommand{\aucRfAdelanteFoldTres}{0{,}426}                % resultados/robustez_temporal.csv: rf, hacia_adelante, todas, fold 3, validacion, auc
+\newcommand{\pctYesBloqueTres}{5{,}6\,\%}                   % resultados/robustez_folds.csv: hacia_adelante, fold 3, pct_yes_validacion
+\newcommand{\pctYesEntrenamientoAdelanteTres}{4{,}7\,\%}    % resultados/robustez_folds.csv: hacia_adelante, fold 3, pct_yes_train
+\newcommand{\filasEntrenamientoAdelanteTres}{16\,470}       % resultados/robustez_folds.csv: hacia_adelante, fold 3, n_train
+\newcommand{\aucRfAdelanteFoldCuatro}{0{,}664}              % resultados/robustez_temporal.csv: rf, hacia_adelante, todas, fold 4, validacion, auc
+\newcommand{\pctYesBloqueCuatro}{12{,}7\,\%}                % resultados/robustez_folds.csv: hacia_adelante, fold 4, pct_yes_validacion
+\newcommand{\pctYesEntrenamientoAdelanteCuatro}{4{,}9\,\%}  % resultados/robustez_folds.csv: hacia_adelante, fold 4, pct_yes_train
+\newcommand{\filasEntrenamientoAdelanteCuatro}{21\,960}     % resultados/robustez_folds.csv: hacia_adelante, fold 4, n_train
+\newcommand{\aucRfAdelanteFoldCinco}{0{,}711}               % resultados/robustez_temporal.csv: rf, hacia_adelante, todas, fold 5, validacion, auc
+\newcommand{\pctYesBloqueCinco}{35{,}2\,\%}                 % resultados/robustez_folds.csv: hacia_adelante, fold 5, pct_yes_validacion
+\newcommand{\pctYesEntrenamientoAdelanteCinco}{6{,}5\,\%}   % resultados/robustez_folds.csv: hacia_adelante, fold 5, pct_yes_train
+\newcommand{\filasEntrenamientoAdelanteCinco}{27\,450}      % resultados/robustez_folds.csv: hacia_adelante, fold 5, n_train
+\newcommand{\filasBloqueAdelante}{5\,490}                   % resultados/robustez_folds.csv: hacia_adelante, fold 1, n_validacion
+
+% --- Reserva · Curva de ganancia (H3) --------------------------------------------------------------
+\newcommand{\gananciaRfDiez}{44{,}6\,\%}                    % resultados/ganancia_final.csv: rf, p = 10, pct_yes_alcanzado
+\newcommand{\gananciaRfVeinte}{62{,}8\,\%}                  % resultados/ganancia_final.csv: rf, p = 20, pct_yes_alcanzado
+\newcommand{\gananciaRfTreinta}{70{,}4\,\%}                 % resultados/ganancia_final.csv: rf, p = 30, pct_yes_alcanzado
+\newcommand{\gananciaRfCincuenta}{81{,}7\,\%}               % resultados/ganancia_final.csv: rf, p = 50, pct_yes_alcanzado
+\newcommand{\gananciaKnnVeinte}{61{,}7\,\%}                 % resultados/ganancia_final.csv: knn, p = 20, pct_yes_alcanzado
+\newcommand{\gananciaNbVeinte}{61{,}4\,\%}                  % resultados/ganancia_final.csv: nb_categorico, p = 20, pct_yes_alcanzado
+\newcommand{\gananciaSvmVeinte}{61{,}3\,\%}                 % resultados/ganancia_final.csv: svm, p = 20, pct_yes_alcanzado
+\newcommand{\gananciaSinModeloVeinte}{20{,}0\,\%}           % resultados/ganancia_final.csv: sin_modelo, p = 20, pct_yes_alcanzado
+\newcommand{\pctListaYesMitadRf}{12\,\%}                    % resultados/ganancia_final.csv: rf, el menor p con pct_yes_alcanzado >= 50
+\newcommand{\pctListaYesOchentaRf}{48\,\%}                  % resultados/ganancia_final.csv: rf, el menor p con pct_yes_alcanzado >= 80
