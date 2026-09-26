@@ -43,6 +43,8 @@ from PIL import Image  # noqa: E402
 from sklearn.metrics import roc_auc_score  # noqa: E402
 
 from src.datos import EXCLUIDAS, FILA, OBJETIVO, PROP_TEST, RAIZ, RUTA_TRAIN, cargar_train  # noqa: E402
+from src.metricas import PRESUPUESTO  # noqa: E402
+from src.preproceso import FUSION_RARAS  # noqa: E402
 
 SALIDA = RAIZ / "resultados" / "eda" / "eda.html"
 RUTA_NAMES = RAIZ / "data" / "raw" / "bank-additional-names.txt"
@@ -1226,7 +1228,7 @@ def armar(r, names, G):
          f'<a href="#macro">Contexto económico</a>: r entre {rmin} y {rmax} en {trio_txt}; '
          f"{c(a1)} y {c(a2)} son lo que más separa (AUC {num(r.ranking[a1], 3)} y "
          f"{num(r.ranking[a2], 3)}).",
-         "Medida (D-14)"),
+         "Medida (D-14, D-25)"),
         (f"{c('month')} codifica en parte la época; {c('day_of_week')} separa poco: candidata "
          f"a descartar tras medir.",
          f'<a href="#tiempo">El tiempo</a>: los meses con más del {pct(TASA_ALTA, 0)} de «yes» '
@@ -1264,10 +1266,14 @@ def armar(r, names, G):
         f"acierta el {pct(r.acc_base, 2)} de las veces sin encontrar a un solo cliente que "
         f"contrate.",
         ["Elegir métricas que no premien decir siempre «no»: precisión, <i>recall</i> o F1 de la "
-         "clase «yes», o el área bajo la curva ROC. La <i>accuracy</i> sola no sirve.",
+         "clase «yes», o el área bajo la curva ROC. La <i>accuracy</i> sola no sirve. Se "
+         "eligieron el AUC, para comparar modelos, y el <i>recall</i> llamando al "
+         f"{pct(100 * PRESUPUESTO, 0)} de la lista, para medir el uso real (D-19, D-20).",
          "Mantener la estratificación en la partición y en cada <i>fold</i> (D-02, D-06): así "
          f"todos conservan el {pct(t, 1)} de «yes».",
-         "Compensar o no el desbalance con pesos de clase: consultarlo con la cátedra."])
+         "Compensar o no el desbalance con pesos de clase era una consulta a la cátedra. Se "
+         "resolvió con los datos (D-21): no se remuestrea, y los pesos de clase se miden como un "
+         "hiperparámetro más; entraron en la SVM y no en RF (D-22)."])
 
     dd = r.dur_dec
     s_fuga = bloque(
@@ -1284,7 +1290,7 @@ def armar(r, names, G):
         f"resultado ya se conoce.",
         [f"Dejar {c('duration')} fuera de los cuatro modelos (D-05).",
          f"A lo sumo, entrenar un modelo con {c('duration')} y reportarlo como techo de "
-         f"referencia, nunca como resultado."])
+         f"referencia, nunca como resultado. Así se midió, como la ablación A1 (D-05)."])
 
     ta = r.tasa_anio
     s_tiempo = bloque(
@@ -1303,9 +1309,12 @@ def armar(r, names, G):
          "como train sigue ordenado por fecha, la validación cruzada tiene que barajar (D-06). "
          "Las dos cosas ya están hechas.",
          "El modelo puede aprender «cuándo» se llamó además de «a quién»: comparar el modelo "
-         "completo con uno sin el bloque macro.",
+         "completo con uno sin el bloque macro. Se comparó en las ablaciones (A7, D-14) y, "
+         "además, validando hacia adelante en el tiempo: el modelo aprende la época, y sacar el "
+         "bloque no lo arregla (D-25).",
          f"Declararlo como limitación en las conclusiones: la estimación vale para clientes "
-         f"parecidos a la mezcla de {anio_ini}–{anio_fin}."])
+         f"parecidos a la mezcla de {anio_ini}–{anio_fin}. Es la primera limitación del punto 5 "
+         f"(D-03, D-25)."])
 
     mt = r.mes.loc[r.meses_top]
     s_meses = bloque(
@@ -1322,8 +1331,10 @@ def armar(r, names, G):
         f"{c('euribor3m')} medio de {num(r.eur_altos, 2)}, frente a {num(r.eur_resto, 2)} en el "
         f"resto.",
         [f"{c('month')} mezcla estacionalidad con época: incluirla en la comparación con y sin "
-         f"contexto económico.",
-         f"Codificarla con <i>one-hot</i>, no como número de mes: la relación no es monótona."])
+         f"contexto económico. Se midió (A8): sin ella ni el bloque macro, el AUC cae en los "
+         f"cuatro modelos, y {c('month')} se queda (D-15).",
+         f"Codificarla con <i>one-hot</i>, no como número de mes: la relación no es monótona. "
+         f"Así quedó (D-15)."])
 
     lineas_medio = []
     if medio_1:
@@ -1342,9 +1353,10 @@ def armar(r, names, G):
         + f"Fuera del bloque, el par más correlacionado es {c(fuera_a)}–{c(fuera_b)} "
         f"({num(fuera_r, 2)}): las dos describen la campaña anterior.",
         ["Para Naive Bayes, el trío viola la independencia condicional: la misma señal entra "
-         "tres veces. Medir con el bloque completo y reducido a una o dos variables.",
+         "tres veces. Medir con el bloque completo y reducido a una o dos variables. Se midió "
+         "(A6): reducirlo empeora Naive Bayes y KNN, y el bloque entra completo (D-14).",
          "Para KNN y SVM, tres columnas casi iguales triplican el peso de esa señal en la "
-         "distancia: la misma comparación sirve.",
+         "distancia: la misma comparación sirve, y es la misma medición (D-14).",
          "RF tolera la redundancia, pero reparte la importancia entre las tres: no leerlas por "
          "separado."])
 
@@ -1360,9 +1372,12 @@ def armar(r, names, G):
         f"{pct(r.eur_alta['tasa'].max(), 1)}. El salto coincide con el cambio de época del "
         f"gráfico de bloques: el euribor también funciona como reloj.",
         ["Medir el modelo sin el bloque macro para separar cuánto de la señal es «la época» y "
-         "cuánto es el cliente.",
+         "cuánto es el cliente. Se midió: con los <i>folds</i> barajados, sacarlo cuesta AUC "
+         "(A7, D-14), y validando hacia adelante en el tiempo el modelo cae también sin él "
+         "(D-25).",
          "RF y SVM con kernel RBF representan el escalón sin ayuda; para Naive Bayes, "
-         "discretizar lo representa mejor que una normal por clase."])
+         "discretizar lo representa mejor que una normal por clase. El Naive Bayes del TP "
+         "discretiza (D-18)."])
 
     s_prev = bloque(
         G["previas"],
@@ -1376,9 +1391,9 @@ def armar(r, names, G):
         + f" contactos previos. Pero el {pct(r.pct_prev0, 1)} de las filas no tiene contactos "
         f"previos: la señal es fuerte y alcanza a pocos clientes.",
         [f"Mantener {c('poutcome')} y {c('previous')}: separan mucho en la minoría con "
-         f"historial.",
+         f"historial. Se mantienen.",
          f"Representar el contacto previo sin el {PDAYS_CENTINELA} de {c('pdays')}: ver el "
-         f"gráfico siguiente."])
+         f"gráfico siguiente. Se descartó después (D-10)."])
 
     s_pdays = bloque(
         G["pdays"],
@@ -1419,14 +1434,22 @@ def armar(r, names, G):
         + f"{c('default')} casi no tiene el nivel «yes»: {num(r.n_default_yes)} filas de "
         f"{num(r.n)}, {'ninguna' if r.yes_default_yes == 0 else num(r.yes_default_yes)} con "
         f"y = «yes».",
-        ["Mantener «unknown» como categoría propia, sin imputar: el faltante informa.",
+        ["Mantener «unknown» como categoría propia, sin imputar: el faltante informa. Así quedó "
+         "(D-08): imputar por la moda, medido como la ablación A11, es neutro.",
          f"Tratar {c('default')} como indicadora «unknown» / «no»: el nivel «yes» no basta "
-         f"para estimar nada.",
+         f"para estimar nada. Adoptada (D-09).",
          f"Para Naive Bayes, el «unknown» de {c('housing')} y {c('loan')} cuenta dos veces el "
          f"mismo hecho."])
 
     ilit = [x for x in r.raras if x[0] == "education"]
     dyes = [x for x in r.raras if x[0] == "default"]
+    # D-11, tal como quedó en el pipeline: las fusiones de src/preproceso.py y los niveles raros
+    # que no se funden (default «yes» lo resuelve D-09 y dec, su tasa)
+    fusiones_txt = lista([f"{c(nivel)} con {c(destino)} en {c(col)}"
+                          for col, fusion in FUSION_RARAS.items()
+                          for nivel, destino in fusion.items()])
+    sin_fundir = [f"{c(col)} {escape(str(nivel))}" for col, nivel, *_ in r.raras
+                  if nivel not in FUSION_RARAS.get(col, {}) and col not in ("default", "month")]
     ejemplos_pocas = lista([f"{num(n)} en {escape(col)} = {escape(str(nivel))}"
                             for col, nivel, n, *_ in ilit + dyes])
     altos_niv = lista([f"{c(col)} = {escape(str(nivel))} ({pct(tasa, 1)})"
@@ -1446,7 +1469,12 @@ def armar(r, names, G):
         f"({ejemplos_pocas}).",
         [f"Agrupar los niveles con menos del {pct(100 * UMBRAL_RARA, 0)} dentro del pipeline, "
          f"para que cada <i>fold</i> aprenda la agrupación con sus propios datos; {c('dec')} "
-         f"({pct(r.dec['tasa'], 1)} de «yes») queda aparte por su tasa distintiva.",
+         f"({pct(r.dec['tasa'], 1)} de «yes») queda aparte por su tasa distintiva. Se hizo en "
+         f"parte (D-11), con una regla fija que no aprende nada de cada <i>fold</i>: "
+         f"{fusiones_txt}. El nivel «yes» de {c('default')} lo resuelve la indicadora de D-09, "
+         f"{c('dec')} no se toca"
+         + (f" y {lista(sin_fundir)} {'queda' if len(sin_fundir) == 1 else 'quedan'} como "
+            f"{'está' if len(sin_fundir) == 1 else 'están'}" if sin_fundir else "") + ".",
          atencion_minfreq])
 
     v = r.v
@@ -1461,8 +1489,10 @@ def armar(r, names, G):
         + lista([f"{c(p)} ({num(v[p], 3)})" for p in v[PLANAS].sort_values(ascending=False).index])
         + " casi no se asocian.",
         [f"{c('day_of_week')} es candidata a descartar: medir el modelo con y sin ella antes de "
-         f"decidir.",
-         f"Lo mismo vale para {c('housing')} y {c('loan')}."])
+         f"decidir. Se midió (A9): sin ella la SVM empeora, y {c('day_of_week')} se queda "
+         f"(D-15).",
+         f"Lo mismo vale para {c('housing')} y {c('loan')}. Para ellas no hubo ablación, y "
+         f"quedan en el modelo."])
 
     e = r.edad
     s_edad = bloque(
@@ -1477,9 +1507,11 @@ def armar(r, names, G):
         f"Como la relación no es monótona, el AUC de {c('age')} sola es "
         f"{num(r.auc_age, 3)}, casi azar.",
         ["Para Naive Bayes, discretizar la edad en tramos como estos: una normal por clase no "
-         "representa una U.",
+         "representa una U. Se midió en el Naive Bayes gaussiano (A10) y no se adoptó: es neutro, "
+         "y la edad entra en años (D-16). El Naive Bayes del TP, el categórico, ya discretiza "
+         "todas las numéricas (D-18).",
          "RF y SVM con kernel RBF capturan la U sin transformar la variable; KNN también, con la "
-         "edad escalada."])
+         "edad escalada. La SVM elegida terminó lineal (D-22)."])
 
     cp = r.camp
     s_camp = bloque(
@@ -1490,7 +1522,9 @@ def armar(r, names, G):
         f"El {pct(r.camp_pocos, 1)} de las filas tiene {POCOS_CONTACTOS} contactos o menos, pero "
         f"la cola llega a {num(r.camp_max)}: la asimetría es {num(r.asim['campaign'], 2)}. La "
         f"tasa tiende a bajar a medida que aumentan los contactos.",
-        [f"Para KNN y SVM, probar {c('log1p(campaign)')}: acorta la cola sin cambiar el orden.",
+        [f"Para KNN y SVM, probar {c('log1p(campaign)')}: acorta la cola sin cambiar el orden. "
+         f"Se probó (A5) y no se adoptó: el efecto es nulo, y {c('campaign')} queda sin "
+         f"transformar (D-13).",
          "RF no lo necesita: sus cortes no dependen de la escala."])
 
     s_dens = bloque(
@@ -1504,8 +1538,9 @@ def armar(r, names, G):
         f"({c('nr.employed')} tiene {num(r.unicos['nr.employed'])} distintos), {c('previous')} y "
         f"{c('pdays')} son discretas y con cola, y {c('duration')} sólo se lee bien en escala "
         f"logarítmica.",
-        ["GaussianNB supone una normal por clase para cada numérica, y aquí no se cumple: ver la "
-         "consulta sobre la variante de Naive Bayes.",
+        ["GaussianNB supone una normal por clase para cada numérica, y aquí no se cumple. Por "
+         "eso el Naive Bayes del TP es el categórico, con las numéricas discretizadas dentro del "
+         "<i>pipeline</i>; el gaussiano queda como comparación (D-18).",
          f"{c('duration')} aparece sólo como referencia: queda fuera del modelo (D-05)."])
 
     otras_var = len(r.num_modelo) - 2
@@ -1522,7 +1557,9 @@ def armar(r, names, G):
         f"resto. {c('duration')}, fuera del modelo, tendría el desvío más grande "
         f"({desvio(r.sd['duration'])}).",
         [f"{c('StandardScaler')} dentro del pipeline para KNN y SVM, ajustado en cada "
-         f"<i>fold</i>.",
+         f"<i>fold</i>. Así quedó (D-12). Sin escalar, KNN sube, pero por la razón equivocada: "
+         f"la distancia pasa a medir casi sólo {c(r.var_share.index[0])} y "
+         f"{c(r.var_share.index[1])} (A12).",
          "RF no lo necesita. GaussianNB tampoco: estima media y desvío de cada variable por "
          "separado."])
 
@@ -1538,7 +1575,9 @@ def armar(r, names, G):
         f"{num(r.auc_age, 3)} porque su relación es una U: con la edad en los tramos de la "
         f"sección Numéricas y la tasa de cada tramo, sube a {num(r.auc_age_tramos, 3)}.",
         ["Medir el modelo sin el bloque macro: si el desempeño cae mucho, lo que se aprende es "
-         "sobre todo la época.",
+         "sobre todo la época. Se midió: con los <i>folds</i> barajados, sacarlo cuesta AUC (A7, "
+         "D-14); la época se ve validando hacia adelante en el tiempo, que es el hallazgo del TP "
+         "(D-25).",
          "No descartar variables por este ranking: mide cada una sola, sin interacciones."])
 
     # ---- supuestos ---------------------------------------------------------------------
@@ -1611,7 +1650,7 @@ def armar(r, names, G):
 </section>
 <section id="acciones">
   <h2>Qué hacer con esto</h2>
-  <p>Cada fila es una propuesta de este análisis, anterior a las ablaciones de la ola 1, y remite al gráfico que la respalda; los «Qué hacer» de cada gráfico son esas mismas propuestas. El estado dice qué se decidió después, y el porqué está en esa fila de <code>DECISIONES.md</code>. «Hecha»: se aplicó («en parte» si la decisión la acota). «Medida»: se probó en una ablación, y la decisión dice qué quedó. «Descartada»: se decidió lo contrario. «Decidida»: se resolvió con los datos, y la decisión cita la consulta a la cátedra sobre el tema.</p>
+  <p>Cada fila es una propuesta de este análisis, anterior a las ablaciones de la ola 1, y remite al gráfico que la respalda; los «Qué hacer» de cada gráfico son esas mismas propuestas, cada una seguida de lo que se decidió. El estado dice qué se decidió después, y el porqué está en esa fila de <code>DECISIONES.md</code>. «Hecha»: se aplicó («en parte» si la decisión la acota). «Medida»: se probó en una ablación, y la decisión dice qué quedó. «Descartada»: se decidió lo contrario. «Decidida»: se resolvió con los datos, y la decisión cita la consulta a la cátedra sobre el tema.</p>
   <div class="tabla">
     <table>
       <thead><tr><th>Propuesta del EDA</th><th>Evidencia</th><th>Estado</th></tr></thead>
@@ -1676,7 +1715,8 @@ def texto_plano(fragmento_html):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(prog="python -m src.eda_html",
+                                     description=__doc__.splitlines()[0])
     parser.add_argument("--fragmento", type=Path,
                         help="escribe también la página sin <!doctype>/<html>/<head>/<body>")
     args = parser.parse_args()

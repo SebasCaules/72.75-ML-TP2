@@ -85,7 +85,7 @@ Cada decisión de contrato que no estaba en el plan, con su porqué.
 | N0-9 | Las ablaciones miden siempre contra `Opciones()` y `REFERENCIA`, sin leer `configuracion.py`: la base no se mueve después de la ola 1, y una corrida posterior reproduce D-08 a D-17 | Constructor de ablaciones; N0 lo confirma |
 | N0-10 | El paso 2.2 (sensibilidad a q) pasa a después del 3.3: `experimentos --sensibilidad-q` exige `cv_referencia_<modelo>.csv` para no leer un OOF de otra corrida | Hallazgo del verificador de experimentos |
 | N0-11 | RF con 200 árboles, no los 25 que daba la regla de 1 ES (DECISIONES.md §6) | El número de árboles es un eje de estabilidad, no de complejidad |
-| N0-12 | RF sin pesos de clase (la regla daba «balanced» por +0,0006) | D-21: sólo si mejora más que el ruido |
+| N0-12 | RF sin pesos de clase (la regla daba «balanced» por +0,0006 ± 0,0009, positiva en los 5 folds) | D-21: sólo si la mejora vale la pena; ésta es despreciable por su tamaño, no por ruido |
 | N0-13 | En `seleccion.py`, la configuración vigente (`src/configuracion.py`) prevalece sobre la propuesta mecánica de `hiperparametros.json`; el JSON sólo completa lo que la vigente no fija | Sin esto, N0-11 y N0-12 no se podían aplicar |
 | N0-14 | `experimentos --etiqueta referencia` mide siempre con `REFERENCIA` de `src/modelos.py` (como las ablaciones, N0-9) y no con `configuracion.py`; así los comandos del README reconstruyen `cv_referencia_*` desde cero | Hallazgo L2-metodologia-04 de la auditoría; lo cambió el corrector del grupo código |
 

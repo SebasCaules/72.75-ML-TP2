@@ -47,6 +47,12 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\pctYesTestSinEstratificarMaximo` | 12,1 % | `resultados/evidencia_particion.json`: sin_estratificar.maximo_pct, el mayor (D-02) |
 | `\pctYesTrainTemporal` | 6,4 % | `resultados/evidencia_particion.json`: temporal.pct_yes_train, % de «yes» de train si el test fuera el último 20 % del archivo (D-03) |
 | `\pctYesTestTemporal` | 30,8 % | `resultados/evidencia_particion.json`: temporal.pct_yes_test, el del test (D-03) |
+| `\vectoresRepetidos` | 1 153 | train (`cargar_train()`): vectores de las predictoras disponibles antes de llamar (todas las columnas salvo fila, y y duration; D-07) que aparecen en dos filas o más |
+| `\filasVectoresRepetidos` | 2 482 | train (`cargar_train()`): vectores de las predictoras disponibles antes de llamar (todas las columnas salvo fila, y y duration; D-07): filas de los vectores repetidos |
+| `\pctFilasVectoresRepetidos` | 7,5 % | train (`cargar_train()`): vectores de las predictoras disponibles antes de llamar (todas las columnas salvo fila, y y duration; D-07): ídem, en % de las filas de train |
+| `\vectoresRepetidosClasesDistintas` | 156 | train (`cargar_train()`): vectores de las predictoras disponibles antes de llamar (todas las columnas salvo fila, y y duration; D-07): repetidos con «yes» y «no» a la vez |
+| `\filasVectoresRepetidosClasesDistintas` | 350 | train (`cargar_train()`): vectores de las predictoras disponibles antes de llamar (todas las columnas salvo fila, y y duration; D-07): filas de esos vectores |
+| `\vectoresRepetidosConDuration` | 0 | train (`cargar_train()`): vectores repetidos con todas las predictoras, duration incluida (tras quitar los duplicados exactos, D-01) |
 
 ## Slide 4 · EDA: la duración es fuga
 
@@ -320,6 +326,16 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\aucRfProfundidadVeinte` | 0,784 | `resultados/curvas/rf_max_depth.csv`: punto 20, validacion, auc, media |
 | `\aucRfProfundidadVeinticinco` | 0,776 | `resultados/curvas/rf_max_depth.csv`: punto 25, validacion, auc, media |
 | `\aucRfProfundidadSinLimite` | 0,772 | `resultados/curvas/rf_max_depth.csv`: punto None, validacion, auc, media |
+| `\aucRfProfundidadDosConCuatroDecimales` | 0,7821 | `resultados/curvas/rf_max_depth.csv`: punto 2, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadCuatroConCuatroDecimales` | 0,7893 | `resultados/curvas/rf_max_depth.csv`: punto 4, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadSeisConCuatroDecimales` | 0,7936 | `resultados/curvas/rf_max_depth.csv`: punto 6, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadOchoConCuatroDecimales` | 0,7954 | `resultados/curvas/rf_max_depth.csv`: punto 8, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadDiezConCuatroDecimales` | 0,7968 | `resultados/curvas/rf_max_depth.csv`: punto 10, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadDoceConCuatroDecimales` | 0,7952 | `resultados/curvas/rf_max_depth.csv`: punto 12, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadQuinceConCuatroDecimales` | 0,7931 | `resultados/curvas/rf_max_depth.csv`: punto 15, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadVeinteConCuatroDecimales` | 0,7838 | `resultados/curvas/rf_max_depth.csv`: punto 20, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadVeinticincoConCuatroDecimales` | 0,7757 | `resultados/curvas/rf_max_depth.csv`: punto 25, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
+| `\aucRfProfundidadSinLimiteConCuatroDecimales` | 0,7720 | `resultados/curvas/rf_max_depth.csv`: punto None, validacion, auc, media, con cuatro decimales (para compararla con el umbral de 1 ES) |
 | `\aucTrainRfProfundidadSinLimite` | 1,000 | `resultados/curvas/rf_max_depth.csv`: punto None, train, auc, media |
 | `\brechaRfProfundidadSinLimite` | 0,228 | `resultados/curvas/rf_max_depth.csv`: punto None, train − validación |
 | `\aucTrainRfProfundidadDos` | 0,783 | `resultados/curvas/rf_max_depth.csv`: punto 2, train, auc, media |
@@ -335,6 +351,8 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\aucRfPesosBalanceados` | 0,796 | `resultados/curvas/rf_pesos_clase_depth8.csv`: punto balanced, validacion, auc, media (N0-12) |
 | `\deltaAucPesosRf` | +0,0006 | `resultados/curvas/rf_pesos_clase_depth8.csv`: balanced − None (N0-12) |
 | `\errorEstandarRfPesosBalanceados` | 0,0024 | `resultados/curvas/rf_pesos_clase_depth8.csv`: punto balanced, error estándar (N0-12) |
+| `\deltaAucPesosRfDesvio` | 0,0009 | `resultados/curvas/rf_pesos_clase_depth8.csv`: balanced − None fold a fold, desvío; la media es \deltaAucPesosRf (N0-12) |
+| `\foldsPositivosPesosRf` | 5 | `resultados/curvas/rf_pesos_clase_depth8.csv`: folds en que balanced − None es positiva (N0-12) |
 
 ## Slide 11 · Curva de KNN
 
@@ -378,6 +396,8 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\kernelSvm` | lineal | `resultados/cv_final_resumen.csv`: svm, configuracion, kernel (texto) |
 | `\aucSvmBalanceada` | 0,770 | `resultados/curvas/svm_pesos_clase.csv`: punto balanced, validacion, auc, media (RBF, C = 1) |
 | `\deltaAucPesosSvm` | +0,068 | `resultados/curvas/svm_pesos_clase.csv`: balanced − None (D-21, N0-12) |
+| `\deltaAucPesosSvmDesvio` | 0,011 | `resultados/curvas/svm_pesos_clase.csv`: balanced − None fold a fold, desvío; la media es \deltaAucPesosSvm (D-21) |
+| `\foldsPositivosPesosSvm` | 5 | `resultados/curvas/svm_pesos_clase.csv`: folds en que balanced − None es positiva (D-21) |
 | `\cSvmSinPesosMejor` | 0,1 | `resultados/hiperparametros.json`: curvas.svm_C.mejor (RBF, sin pesos) |
 | `\aucSvmSinPesosMejor` | 0,706 | `resultados/hiperparametros.json`: curvas.svm_C.auc_validacion_mejor |
 | `\cSvmBalanceadaMejor` | 0,01 | `resultados/hiperparametros.json`: curvas.svm_C_balanced.mejor (RBF, pesos balanceados) |
@@ -472,6 +492,12 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\pctVarianzaPdays` | 86,6 % | train (`cargar_train()`): % de la varianza de las 9 numéricas del modelo que es de pdays (D-12) |
 | `\pctVarianzaNrEmployed` | 13,0 % | train (`cargar_train()`): ídem, de nr.employed (D-12) |
 | `\razonDesviosNumericas` | 374 | train (`cargar_train()`): el mayor desvío de las 9 numéricas del modelo / el menor |
+| `\probabilidadAltaNb` | 0,99 | `src/numeros.py`: PROBABILIDAD_ALTA_NB, la P(yes) de Naive Bayes que se cuenta como «casi 1» (una elección) |
+| `\filasNbProbabilidadAlta` | 3 121 | `resultados/oof_final_nb_categorico.csv` con la y de train (`cargar_train()`): filas con P(yes) >= PROBABILIDAD_ALTA_NB fuera de fold, P(yes) = 1 / (1 + e^(−puntaje)), porque el puntaje es el log-odds |
+| `\pctNbProbabilidadAlta` | 9,5 % | `resultados/oof_final_nb_categorico.csv` con la y de train (`cargar_train()`): ídem, en % de las filas de train |
+| `\pctYesNbProbabilidadAlta` | 47,3 % | `resultados/oof_final_nb_categorico.csv` con la y de train (`cargar_train()`): % de «yes» entre esas filas |
+| `\probabilidadMediaNbDecilSuperior` | 0,998 | `resultados/oof_final_nb_categorico.csv` con la y de train (`cargar_train()`): P(yes) media en el 10 % de la lista con mayor puntaje (empates del corte en proporción, como `src/metricas.py`) |
+| `\tasaYesNbDecilSuperior` | 0,464 | `resultados/oof_final_nb_categorico.csv` con la y de train (`cargar_train()`): proporción de «yes» en ese mismo 10 % |
 
 ## Slide 17 · Limitaciones: sensibilidad al presupuesto
 
@@ -578,6 +604,20 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 | `\aucOofDosMilOcho` | 0,598 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2008 |
 | `\aucOofDosMilNueve` | 0,759 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2009 |
 | `\aucOofDosMilDiez` | 0,749 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF en las filas de 2010 |
+| `\recallRfDentroAnio` | 0,378 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado, «yes» alcanzados en los tres años / «yes» de train |
+| `\llamadasPorYesRfDentroAnio` | 4,7 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: llamadas / «yes» alcanzados |
+| `\recallRfDentroAnioDosMilOcho` | 0,306 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: recall en 2008 |
+| `\llamadasDentroAnioDosMilOcho` | 4 423 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: llamadas en 2008, llamadas(filas del año) de `src/metricas.py` |
+| `\yesDosMilOcho` | 1 089 | train (`cargar_train()`): filas con y = yes en 2008 (año inferido, como eda.html) |
+| `\recallRfDentroAnioDosMilNueve` | 0,455 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: recall en 2009 |
+| `\llamadasDentroAnioDosMilNueve` | 1 832 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: llamadas en 2009, llamadas(filas del año) de `src/metricas.py` |
+| `\yesDosMilNueve` | 1 758 | train (`cargar_train()`): filas con y = yes en 2009 (año inferido, como eda.html) |
+| `\recallRfDentroAnioDosMilDiez` | 0,311 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: recall en 2010 |
+| `\llamadasDentroAnioDosMilDiez` | 333 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: llamadas en 2010, llamadas(filas del año) de `src/metricas.py` |
+| `\yesDosMilDiez` | 864 | train (`cargar_train()`): filas con y = yes en 2010 (año inferido, como eda.html) |
+| `\recallTopeDosMilDiez` | 0,385 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de las filas de cada año por separado: llamadas / «yes» de 2010, el recall máximo en ese año, que tiene más «yes» que llamadas |
+| `\recallRfDentroMes` | 0,295 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): RF llamando al 20 % de cada año y mes por separado, «yes» alcanzados / «yes» de train |
+| `\aucOofDentroMes` | 0,564 | `resultados/oof_final_rf.csv` con la y y el año inferido de train (`cargar_train()`): AUC fuera de fold de RF sobre los pares del mismo año y mes (ponderado por pares, como \aucOofDentroAnio) |
 | `\aucRfBarajadoBloqueUno` | 0,536 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 1 hacia adelante (`resultados/robustez_folds.csv`): AUC fuera de fold de RF (barajado) |
 | `\caidaAucRfBloqueUno` | 0,047 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`), en las filas del bloque 1 hacia adelante (`resultados/robustez_folds.csv`): AUC barajado menos el hacia adelante (`resultados/robustez_temporal.csv`: rf, todas, fold 1) |
 | `\yesEntrenamientoAdelanteUno` | 159 | train (`cargar_train()`): «yes» con fila <= fila_max_train del fold 1 hacia adelante (`resultados/robustez_folds.csv`) |

@@ -38,9 +38,15 @@ from src.numeros import (
     EVIDENCIA_PARTICION,
     MENOS,
     PERMITIDOS,
+    POR_ANIO,
+    POR_MES,
     RUTA_RESULTADOS_TEST,
     Fuentes,
+    _auc_dentro_de_cada_mes,
     _columnas_de,
+    _llamando_dentro,
+    _pesos_en_el_corte,
+    _repetidos,
     a_texto,
     catalogo,
     formatear_decimal,
@@ -88,6 +94,21 @@ ESPERADOS = {
     "aucRfBarajadoBloqueUno", "aucRfBarajadoBloqueDos", "aucRfBarajadoBloqueTres",
     "aucRfBarajadoBloqueCuatro", "aucRfBarajadoBloqueCinco", "caidaAucRfBloqueCuatro",
     "caidaAucRfBloqueCinco", "yesEntrenamientoAdelanteUno",
+} | {
+    # Los que agregó el cierre de la ola 8 para el guion: RF eligiendo a quién llamar dentro de
+    # cada año y de cada mes (pregunta 27), la profundidad 6 con cuatro decimales contra el umbral
+    # de 1 ES (slide 10), la calibración de Naive Bayes (slide 16), las filas con las mismas
+    # predictoras (pregunta 7) y las diferencias pareadas de los pesos de clase (D-21, N0-12).
+    "recallRfDentroAnio", "llamadasPorYesRfDentroAnio", "recallRfDentroAnioDosMilOcho",
+    "recallRfDentroAnioDosMilNueve", "recallRfDentroAnioDosMilDiez", "llamadasDentroAnioDosMilDiez",
+    "yesDosMilDiez", "recallTopeDosMilDiez", "recallRfDentroMes", "aucOofDentroMes",
+    "aucRfProfundidadSeisConCuatroDecimales", "aucRfProfundidadOchoConCuatroDecimales",
+    "probabilidadAltaNb", "pctNbProbabilidadAlta", "pctYesNbProbabilidadAlta",
+    "probabilidadMediaNbDecilSuperior", "tasaYesNbDecilSuperior", "vectoresRepetidos",
+    "filasVectoresRepetidos", "pctFilasVectoresRepetidos", "vectoresRepetidosClasesDistintas",
+    "filasVectoresRepetidosClasesDistintas", "vectoresRepetidosConDuration",
+    "deltaAucPesosRfDesvio", "foldsPositivosPesosRf", "deltaAucPesosSvmDesvio",
+    "foldsPositivosPesosSvm",
 }
 MACROS_DE_TEST = ("yesTest", "pctYesTest", "diferenciaAucTestValidacion",
                   "diferenciaRecallTestValidacion")
@@ -927,6 +948,188 @@ def test_resultados_reales_coinciden_con_las_otras_fuentes():
           "cifras recalculadas con pandas coinciden; la matriz fuera de fold cierra")
 
 
+def test_el_corte_reparte_los_empates_en_proporcion():
+    """El decil superior de Naive Bayes se corta como el presupuesto: con puntajes 3, 2, 2, 2, 1 y
+    q = 0,4 se llama a 2 filas; la de 3 entra entera y la segunda llamada se reparte entre las tres
+    de 2, un tercio cada una."""
+    pesos = _pesos_en_el_corte([3, 2, 2, 2, 1], 0.4)
+    assert np.allclose(pesos, [1, 1 / 3, 1 / 3, 1 / 3, 0]), pesos
+    assert np.isclose(pesos.sum(), 2)
+    assert np.allclose(_pesos_en_el_corte([5, 4, 3, 2, 1], 0.4), [1, 1, 0, 0, 0])
+    print("ok  el corte del decil superior reparte los empates en proporción: 1, 1/3, 1/3, 1/3, 0")
+
+
+def _fuentes_sinteticas(carpeta, train, oof):
+    """Fuentes con un train y un OOF de RF sintéticos (y el names.txt real, para el año)."""
+    oof.to_csv(Path(carpeta) / "oof_final_rf.csv", index=False)
+    return Fuentes(Path(carpeta), train=train, resultados_test=Path(carpeta) / "no.tex")
+
+
+def test_llamar_dentro_de_cada_anio_y_de_cada_mes_sobre_un_caso_a_mano():
+    """20 filas: las 10 primeras de mayo (2008) y las 10 siguientes de marzo y abril, que por el mes
+    que retrocede son de 2009. Llamando al 20 % de cada año (2 llamadas en cada uno): en 2008, la
+    fila de 0,95 («yes») y la de 0,90 («no»), 1 de sus 2 «yes»; en 2009, la de 0,85 («no») y la de
+    0,80 («yes»), 1 de 5, con tope 2 / 5. En total 2 de 7 «yes», y 4 llamadas / 2 alcanzados = 2
+    por «yes». Llamando al 20 % de cada mes (2, 1 y 1 llamadas): mayo, 1; marzo, la de 0,85
+    («no»), 0; abril, la de 0,75 («no»), 0: 1 de 7. El AUC de los pares del mismo mes: mayo 8 de
+    16 pares bien ordenados, marzo 4 de 6, abril 3 de 6, es decir 15 / 28."""
+    meses = ["may"] * 10 + ["mar"] * 5 + ["apr"] * 5
+    yes = {0, 1, 10, 11, 15, 16, 17}
+    puntaje = [0.95, 0.10, 0.90, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26,
+               0.80, 0.30, 0.85, 0.05, 0.06,
+               0.70, 0.60, 0.02, 0.75, 0.01]
+    train = pd.DataFrame({"fila": range(20), "month": meses,
+                          "y": ["yes" if i in yes else "no" for i in range(20)]})
+    oof = pd.DataFrame({"fila": range(20), "fold": 1, "puntaje": puntaje})
+    with tempfile.TemporaryDirectory() as tmp:
+        f = _fuentes_sinteticas(tmp, train, oof)
+        assert np.isclose(_llamando_dentro(POR_ANIO, "recall", (2008,))(f), 1 / 2)
+        assert np.isclose(_llamando_dentro(POR_ANIO, "recall", (2009,))(f), 1 / 5)
+        assert _llamando_dentro(POR_ANIO, "llamadas", (2009,))(f) == 2
+        assert np.isclose(_llamando_dentro(POR_ANIO, "tope", (2009,))(f), 2 / 5)
+        assert np.isclose(_llamando_dentro(POR_ANIO, "recall")(f), 2 / 7)
+        assert np.isclose(_llamando_dentro(POR_ANIO, "llamadas_por_yes")(f), 4 / 2)
+        assert np.isclose(_llamando_dentro(POR_MES, "recall")(f), 1 / 7)
+        assert _llamando_dentro(POR_MES, "llamadas")(f) == 4
+        assert np.isclose(_auc_dentro_de_cada_mes(f), 15 / 28)
+    print("ok  llamando dentro de cada año: 1/2 en 2008, 1/5 en 2009 (tope 2/5), 2/7 en total y 2 "
+          "llamadas por «yes»; dentro de cada mes, 1/7; el AUC de los pares del mismo mes, 15/28")
+
+
+def test_vectores_repetidos_sobre_un_caso_a_mano():
+    """Seis filas: el vector (1, 1) aparece tres veces, con «yes» y «no»; el (2, 2), dos veces, las
+    dos «no»; el (3, 3), una. Sin duration hay 2 vectores repetidos en 5 filas, y 1 de ellos, con 3
+    filas, tiene las dos clases. Con duration, que es distinta en cada fila, ninguno."""
+    train = pd.DataFrame({"fila": range(6), "a": [1, 1, 1, 2, 2, 3], "b": [1, 1, 1, 2, 2, 3],
+                          "duration": [10, 20, 30, 40, 50, 60],
+                          "y": ["no", "yes", "no", "no", "no", "yes"]})
+    f = Fuentes(Path(tempfile.gettempdir()) / "no-existe", train=train)
+    assert _repetidos("vectores")(f) == 2 and _repetidos("filas")(f) == 5
+    assert np.isclose(_repetidos("pct_filas")(f), 100 * 5 / 6)
+    assert _repetidos("vectores_distintas")(f) == 1 and _repetidos("filas_distintas")(f) == 3
+    assert _repetidos("vectores", con_duration=True)(f) == 0
+    print("ok  vectores repetidos: 2 en 5 filas, 1 con las dos clases en 3; con duration, ninguno")
+
+
+def test_macros_del_cierre_de_la_ola_ocho_por_otro_camino():
+    """Los macros que agregó el cierre de la ola 8, recalculados aquí sin las funciones de
+    src/numeros.py: el año, a mano desde el mes que retrocede; el corte del 20 % con nlargest; el
+    AUC de cada mes con la U de Mann–Whitney sobre rangos promedio, no con roc_auc_score; el decil
+    superior de Naive Bayes con rank(method="first"), y P(yes) con la logística directa; los
+    vectores repetidos con duplicated(); y las diferencias pareadas de los pesos desde el CSV de
+    cada curva."""
+    v = _generado_real().valores
+    train = cargar_train()
+    y = (train["y"] == "yes").astype(int).to_numpy()
+    meses = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    por_fila = train.sort_values("fila")
+    vuelta = np.diff(por_fila["month"].map(meses.index).to_numpy()) < 0
+    fechas = pd.DataFrame({"fila": por_fila["fila"].to_numpy(),
+                           "anio": leer_names().anio_ini + np.concatenate([[0], np.cumsum(vuelta)]),
+                           "mes": por_fila["month"].to_numpy()})
+    objetivo = pd.DataFrame({"fila": train["fila"].to_numpy(), "y": y})
+    rf = (_leer("oof_final_rf.csv", float_precision="round_trip")
+          .merge(objetivo, on="fila").merge(fechas, on="fila"))
+    assert len(rf) == len(train)
+
+    def llamando(claves):
+        """(alcanzados, llamadas, «yes») de cada grupo, con el valor esperado de los empates."""
+        cifras = {}
+        for clave, g in rf.groupby(claves):
+            k = max(1, int(round(0.2 * len(g))))
+            corte = g["puntaje"].nlargest(k).min()
+            arriba, empate = g["puntaje"] > corte, g["puntaje"] == corte
+            alcanzados = g.loc[arriba, "y"].sum() + (k - arriba.sum()) * g.loc[empate, "y"].mean()
+            cifras[clave] = (alcanzados, k, g["y"].sum())
+        return cifras
+
+    anual, mensual = llamando(["anio"]), llamando(["anio", "mes"])
+    alcanzados = sum(a for a, _, _ in anual.values())
+    esperado = {
+        "recallRfDentroAnio": formatear_decimal(alcanzados / y.sum()),
+        "llamadasPorYesRfDentroAnio": formatear_decimal(
+            sum(k for _, k, _ in anual.values()) / alcanzados, 1),
+        "recallRfDentroMes": formatear_decimal(sum(a for a, _, _ in mensual.values()) / y.sum()),
+        "recallTopeDosMilDiez": formatear_decimal(anual[(2010,)][1] / anual[(2010,)][2]),
+    }
+    for anio, palabra in ((2008, "Ocho"), (2009, "Nueve"), (2010, "Diez")):
+        a, k, p = anual[(anio,)]
+        esperado[f"recallRfDentroAnioDosMil{palabra}"] = formatear_decimal(a / p)
+        esperado[f"llamadasDentroAnioDosMil{palabra}"] = formatear_miles(k)
+        esperado[f"yesDosMil{palabra}"] = formatear_miles(int(rf.loc[rf["anio"] == anio, "y"].sum()))
+
+    # El AUC de los pares del mismo año y mes, con la U de Mann–Whitney.
+    suma = pares = 0
+    for _, g in rf.groupby(["anio", "mes"]):
+        p, n = int(g["y"].sum()), int((1 - g["y"]).sum())
+        if p and n:
+            rangos = g["puntaje"].rank(method="average")
+            suma += rangos[g["y"] == 1].sum() - p * (p + 1) / 2
+            pares += p * n
+    esperado["aucOofDentroMes"] = formatear_decimal(suma / pares)
+
+    # Naive Bayes categórico: su puntaje es el log-odds.
+    nb = _leer("oof_final_nb_categorico.csv", float_precision="round_trip").merge(objetivo,
+                                                                                    on="fila")
+    probabilidad = 1 / (1 + np.exp(-nb["puntaje"]))
+    alta = probabilidad >= 0.99
+    decil = nb["puntaje"].rank(method="first", ascending=False) <= round(0.1 * len(nb))
+    esperado.update({
+        "probabilidadAltaNb": "0{,}99",
+        "filasNbProbabilidadAlta": formatear_miles(int(alta.sum())),
+        "pctNbProbabilidadAlta": formatear_porcentaje(100 * alta.mean()),
+        "pctYesNbProbabilidadAlta": formatear_porcentaje(100 * nb.loc[alta, "y"].mean()),
+        "probabilidadMediaNbDecilSuperior": formatear_decimal(probabilidad[decil].mean()),
+        "tasaYesNbDecilSuperior": formatear_decimal(nb.loc[decil, "y"].mean()),
+    })
+
+    # Las filas con las mismas predictoras disponibles (sin fila, y ni duration).
+    columnas = [c for c in train.columns if c not in ("fila", "y", "duration")]
+    en_repetido = train.duplicated(subset=columnas, keep=False)
+    clases = train.groupby(columnas, dropna=False)["y"].transform("nunique")
+    distintas = en_repetido & (clases > 1)
+    esperado.update({
+        "vectoresRepetidos": formatear_miles(len(train.loc[en_repetido, columnas].drop_duplicates())),
+        "filasVectoresRepetidos": formatear_miles(int(en_repetido.sum())),
+        "pctFilasVectoresRepetidos": formatear_porcentaje(100 * en_repetido.mean()),
+        "vectoresRepetidosClasesDistintas": formatear_miles(
+            len(train.loc[distintas, columnas].drop_duplicates())),
+        "filasVectoresRepetidosClasesDistintas": formatear_miles(int(distintas.sum())),
+        "vectoresRepetidosConDuration": formatear_miles(len(
+            train.loc[train.duplicated(subset=columnas + ["duration"], keep=False)]
+            .drop_duplicates(subset=columnas + ["duration"]))),
+    })
+
+    # La curva de profundidad de RF, con cuatro decimales.
+    profundidad = _curva("rf_max_depth")
+    palabras = {"2": "Dos", "4": "Cuatro", "6": "Seis", "8": "Ocho", "10": "Diez", "12": "Doce",
+                "15": "Quince", "20": "Veinte", "25": "Veinticinco", "None": "SinLimite"}
+    for punto, palabra in palabras.items():
+        esperado[f"aucRfProfundidad{palabra}ConCuatroDecimales"] = formatear_decimal(
+            profundidad[(punto, "validacion")], 4)
+
+    # Los pesos de clase, fold a fold (D-21, N0-12).
+    for curva, modelo in (("rf_pesos_clase_depth8", "Rf"), ("svm_pesos_clase", "Svm")):
+        tabla = _leer(f"curvas/{curva}.csv", dtype={"punto": str}, keep_default_na=False)
+        tabla = tabla[(tabla["conjunto"] == "validacion") & (tabla["metrica"] == "auc")]
+        ancho = tabla.pivot(index="fold", columns="punto", values="valor").astype(float)
+        diferencia = ancho["balanced"] - ancho["None"]
+        desvio = diferencia.std()
+        esperado[f"deltaAucPesos{modelo}Desvio"] = formatear_decimal(
+            desvio, 3 if abs(desvio) >= 0.01 else 4)
+        esperado[f"foldsPositivosPesos{modelo}"] = formatear_miles(int((diferencia > 0).sum()))
+
+    distintos = {n: (v[n], e) for n, e in esperado.items() if v[n] != e}
+    assert not distintos, distintos
+    # Lo que DECISIONES.md, N0-12 y D-21, dice en palabras: positiva en los cinco folds.
+    assert v["foldsPositivosPesosRf"] == v["foldsPositivosPesosSvm"] == v["kFolds"]
+    print(f"ok  los {len(esperado)} macros del cierre de la ola 8, recalculados por otro camino, "
+          f"coinciden: recall dentro del año {a_texto(v['recallRfDentroAnio'])} y dentro del mes "
+          f"{a_texto(v['recallRfDentroMes'])}, AUC dentro del mes {a_texto(v['aucOofDentroMes'])}, "
+          f"profundidad 6 {a_texto(v['aucRfProfundidadSeisConCuatroDecimales'])}, "
+          f"{a_texto(v['vectoresRepetidos'])} vectores repetidos")
+
+
 def main():
     test_formato_espanol_con_casos_a_mano()
     test_los_macros_se_leen_igual_en_texto_y_en_modo_matematico()
@@ -944,6 +1147,10 @@ def main():
     test_la_meseta_de_knn_vale_interrogacion_si_deja_de_estar_dentro_de_un_error_estandar()
     test_knn_por_distancia_sale_de_la_curva_y_no_de_hiperparametros_json()
     test_resultados_reales_coinciden_con_las_otras_fuentes()
+    test_el_corte_reparte_los_empates_en_proporcion()
+    test_llamar_dentro_de_cada_anio_y_de_cada_mes_sobre_un_caso_a_mano()
+    test_vectores_repetidos_sobre_un_caso_a_mano()
+    test_macros_del_cierre_de_la_ola_ocho_por_otro_camino()
     print("TODOS LOS TESTS OK")
 
 

@@ -40,7 +40,9 @@ El guion dura 9:00, 15 segundos menos que el esqueleto. Los cinco segundos que s
 primer bloque en la 19 pasaron a las aclaraciones. Todo lo que se agregó respecto de las notas del
 deck se pagó con un recorte: el propósito del IQR en la slide 7 (la crítica del TP1) y las
 declaraciones de conjunto salieron de no leer en voz alta números que ya están anotados en
-pantalla, y que en la slide 19 el 0,426 invierte el orden, de los «yes» del primer bloque.
+pantalla. La slide 16 sigue las fichas corregidas del deck —un supuesto y un efecto medido por
+modelo, sin la U de la edad como causa— y conserva su ventana: la pérdida de Random Forest sin las
+variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textual.
 
 ## Reglas de la cátedra que este guion respeta (TP2, pp. 1 y 3)
 
@@ -89,14 +91,11 @@ pantalla, y que en la slide 19 el 0,426 invierte el orden, de los «yes» del pr
   permitida es contra validación, hablada y nunca proyectada, como chequeo de coherencia (guía C6);
   mientras el test siga cerrado, esa comparación vale «?».
 - **Cada afirmación teórica cita la teórica** con clase y slide, y sólo con las citas que ya están en
-  `DECISIONES.md` o en `plan/PLAN.md`: Clase 2, slides 88–89; Clase 4, slides 26–27, 30–31, 41–44,
-  45–51 y 52; Clase 6, slide 46; Clase 7, slides 50 y 61; Clase 8, slides 48–49 y 54; Mitchell
-  §8.2.1 y Alpaydin §8.3, p. 192. Lo que no sale de la cátedra —la regla de un error estándar, por
-  ejemplo— está marcado como tal, y lo que es inferencia nuestra dice «inferencia». Una cita,
-  verificada contra los slides, todavía no está registrada y lleva la marca «cita pendiente de
-  registrar»: Clase 3, slides 98–100, el sobreajuste a la validación y sus cuatro defensas (slide 10
-  y pregunta 11). Se registra en `DECISIONES.md` antes de entregar, y hasta entonces no entra en lo
-  hablado.
+  `DECISIONES.md` o en `plan/PLAN.md`: Clase 2, slides 88–89; Clase 3, slides 98–100 (el sobreajuste
+  a la validación y sus cuatro defensas, en D-22); Clase 4, slides 26–27, 30–31, 41–44, 45–51 y 52;
+  Clase 6, slide 46; Clase 7, slides 50 y 61; Clase 8, slides 48–49 y 54; Mitchell §8.2.1 y
+  Alpaydin §8.3, p. 192. Lo que no sale de la cátedra —la regla de un error estándar, por ejemplo—
+  está marcado como tal, y lo que es inferencia nuestra dice «inferencia».
 
 ## Quién habla
 
@@ -195,8 +194,8 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
 
 > Primero, quitamos 12 duplicados exactos: si una copia cae en train y otra en test, el test deja de
 > ser independiente. Después, 80/20 estratificado por la clase.
-> **[→]** El análisis exploratorio también decide, así que lee sólo train, como las ablaciones. Una
-> primera exploración del archivo completo se rehízo sobre train antes de decidir nada.
+> **[→]** El análisis exploratorio que decide y las ablaciones leen sólo train: una primera
+> exploración usó el archivo completo, y la rehicimos sobre train antes de decidir nada.
 > **[→]** La validación cruzada de 5 folds, también: con ella elegimos modelo e hiperparámetros.
 > **[→]** Y el test no decide nada: se abre una vez, al final, para estimar el desempeño. Por eso cada
 > número dice de qué conjunto sale.
@@ -209,8 +208,9 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
   10,4 % y 12,1 %. Estratificando, train y test quedan con el mismo 11,3 % (D-02). La cifra sale de
   `src/evidencia_particion.py`, que mide la partición y no elige nada del modelo.
 - **¿Qué exploración corrió sobre el archivo completo?** La primera versión del análisis
-  exploratorio, en el estado inicial del repositorio (commit `0a9b311`). Se rehízo sobre train, con
-  `src/eda.py`, antes de tomar ninguna decisión (D-04).
+  exploratorio, en el estado inicial del repositorio (commit `0a9b311`), cuyo resumen dejaba las
+  decisiones como pendientes. Se rehízo sobre train, con `src/eda.py`, en el commit siguiente
+  (`108ff99`), el mismo que registra las primeras decisiones: antes de tomar ninguna (D-04).
 - **¿Cómo se garantiza que nada mire el test?** Todo lo anterior al punto 4 lee sólo train con
   `cargar_train()`. El único módulo que evalúa un modelo en test es `src/evaluar_test.py`; otros
   cuatro archivos pueden nombrar el test o el CSV completo, y ninguno elige nada del modelo: la
@@ -420,17 +420,17 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿Por qué no 10, si es el máximo?** En AUC de validación, 0,797 contra 0,795: la diferencia es
   menor que un error estándar del mejor, 0,0029. Quedan dentro 8, 10 y 12 (el umbral es 0,7939), y
   entre ellos la regla elige el más simple (D-22).
-- **¿Y por qué no la profundidad seis?** Queda fuera del umbral por muy poco: en la práctica empata
-  con 8 (inferencia), y la regla, aplicada tal cual, toma 8. Atención: a tres decimales, la de seis
-  se lee 0,794 y parece entrar; su valor con cuatro decimales tiene el macro pendiente en
-  `numeros.md`, así que no se dice de memoria. La banda de la figura es ± 1 desvío entre folds, no el
-  error estándar, que es ese desvío dividido por la raíz de 5; el umbral no está dibujado, y a simple
-  vista la de seis parece adentro.
-- **¿De dónde sale la regla?** No está en las slides de la cátedra: es la forma operativa de lo que
-  dice la Clase 3, slides 98–99 (cita pendiente de registrar): elegir el mejor entre muchas
-  estimaciones con ruido también elige ruido favorable. Viene de los árboles CART de Breiman y otros,
-  y está en Hastie, Tibshirani y Friedman, *The Elements of Statistical Learning*, §7.10.1: fuera de
-  la bibliografía de la materia. También la usamos en el TP1.
+- **¿Y por qué no la profundidad seis?** Con cuatro decimales, en validación, la de seis da 0,7936 y
+  el umbral es 0,7939: queda fuera por 0,0003, y 8 es el más simple de los que quedan dentro. Es por
+  poco, pero la regla se aplica tal cual. A tres decimales la de seis se lee 0,794 y parece entrar:
+  por eso se dice con cuatro. La banda de la figura es ± 1 desvío entre folds, no el error estándar,
+  que es ese desvío dividido por la raíz de 5; el umbral no está dibujado, y a simple vista la de
+  seis parece adentro.
+- **¿De dónde sale la regla?** No está en las slides de la cátedra. La Clase 3 advierte que elegir el
+  mejor entre muchas estimaciones con ruido también elige ruido favorable (slides 98–100), y la
+  regla lo atenúa porque no elige el máximo (D-22). Viene de los árboles CART de Breiman y otros, y
+  está en Hastie, Tibshirani y Friedman, *The Elements of Statistical Learning*, §7.10.1: fuera de la
+  bibliografía de la materia. También la usamos en el TP1.
 - **El protocolo** es el de la Clase 7, slide 50: el AUC en train y en validación con los 5 folds, la
   brecha entre los dos y la curva.
 - **La curva se midió con 300 árboles**, los de la referencia; el modelo final tiene 200, y con
@@ -438,8 +438,8 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿Y el número de árboles?** 200 (N0-11). Con profundidad 8 la curva de validación es plana: 25
   árboles dan 0,793 y 800 dan 0,796, y la regla elegía 25. Pero más árboles no suman complejidad: no
   cambian el sesgo y sólo bajan la varianza (Clase 7, slide 61). Es la pregunta 12 del banco.
-- **¿Pesos de clase?** +0,0006 de AUC de validación, con un error estándar de 0,0024: despreciable
-  (N0-12). Pregunta 13.
+- **¿Pesos de clase?** +0,0006 de AUC de validación; fold a fold, la diferencia es +0,0006 ± 0,0009,
+  positiva en los 5 folds, pero despreciable por su tamaño (N0-12). Pregunta 13.
 - **El subajuste, en números:** con profundidad 2, train 0,783 y validación 0,782, brecha 0,001; los
   dos por debajo del 0,795 que la validación alcanza con 8.
 - **Otros puntos de validación** (la figura los tiene todos): profundidad 4, 0,789; 12, 0,795; 15,
@@ -468,7 +468,8 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **La brecha con un vecino es 0,369.** El eje es logarítmico porque la grilla va de 1 a 801.
 - **¿Por qué train da 0,988 y no 1,000 con un vecino?** Porque en train hay filas con las mismas 19
   predictoras y distinta respuesta: a distancia cero, el vecino de una puede ser su gemela con la otra
-  clase. Cuántas son tiene el macro pendiente en `numeros.md` (pregunta 7).
+  clase. En train, 156 combinaciones de las 19 predictoras aparecen con «yes» y con «no», en 350
+  filas (pregunta 7).
 - **Escalar no es opcional en KNN:** mide distancias (Clase 8, slide 54; Alpaydin §8.3, p. 192).
 
 ### 12 · La SVM queda lineal y muy regularizada: C = 0,001 — 5:05 → 5:25 (~62 palabras)
@@ -486,7 +487,8 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **Los kernels con C = 0,001**, en validación: lineal 0,774, polinómico 0,774 y RBF 0,768. Empatar no
   alcanza para elegir el polinómico: el lineal es más simple.
 - **Los pesos** (no están en la figura, así que no se dicen): con RBF y C = 1, balancear lleva el AUC
-  de validación de 0,702 a 0,770 (+0,068). Cambian el orden, no sólo el umbral: pregunta 10.
+  de validación de 0,702 a 0,770; fold a fold, la diferencia es +0,068 ± 0,011, positiva en los 5
+  folds (D-21). Cambian el orden, no sólo el umbral: pregunta 10.
 - **¿Por qué `LinearSVC`?** La SVM lineal de libsvm con C = 10 no terminó en 600 segundos (D-22).
   `LinearSVC` con pérdida *hinge* es la misma SVM lineal de margen blando, sin kernel, resuelta con
   liblinear en lugar de libsvm; lo único que cambia es que liblinear también regulariza el término
@@ -554,10 +556,10 @@ El encabezado cuenta la variante más larga.
 - **Cómo leer la diferencia con validación:** contra el desvío entre folds de validación, 0,006, y
   contra el intervalo de test. Dentro de ± 0,006 es ruido, en cualquier sentido; si además da algo
   más bajo, es coherente con el optimismo de haber elegido los hiperparámetros en la misma validación
-  que se reporta (slide 17), que no medimos (pregunta 11). Una diferencia mayor que un desvío no la
-  explica el ruido, y difícilmente ese optimismo (inferencia): obliga a revisar la partición o el
-  pipeline, y se dice (pregunta 30). En ningún caso se cambia el modelo después: lo que se promete es
-  el número de test.
+  que se reporta (slide 17), que no medimos (pregunta 11). Una diferencia mayor que un desvío ya no
+  la explica el ruido; ese optimismo podría sumar algo, pero como no lo medimos no alcanza para
+  descartar un problema: obliga a revisar la partición o el pipeline, y se dice (pregunta 30). En
+  ningún caso se cambia el modelo después: lo que se promete es el número de test.
 - **El test se evalúa una sola vez:** `\nevaluaciones` tiene que valer 1 en `resultados-test.tex`
   (gate G2).
 - **El reentrenamiento con todo train** es el paso de la Clase 2, slides 88–89.
@@ -599,43 +601,49 @@ El encabezado cuenta la variante más larga.
 - **Por qué el falso negativo es el caro:** una llamada de más cuesta una llamada; un cliente perdido
   es un plazo fijo que no se contrata. Es el costo desigual de la Clase 4, slides 41–44.
 
-### 16 · Por qué ganó Random Forest y quedó última la SVM — 6:45 → 7:25 (~107 palabras)
+### 16 · ¿Por qué ganó Random Forest y quedó última la SVM? — 6:45 → 7:25 (~107 palabras)
 
 **Habla: Sebastián.** Son los cuatro ejemplos del enunciado (TP2, p. 2): variables muy
 correlacionadas y distribuciones no gaussianas (Naive Bayes), diferencias de escala (KNN, SVM) y
-relaciones no lineales (RF, SVM).
+relaciones no lineales (RF, SVM). Como las fichas del deck, cada modelo lleva un supuesto y un
+efecto medido, y ninguna frase da una causa del orden como probada: la U de la edad se mezcla con la
+época, y no se midió qué pierde cada modelo sin la edad.
 
-> ¿Por qué rindió cada uno? Por sus supuestos. Random Forest no supone escala ni forma, y sus cortes
-> captan relaciones no lineales, como la U de la edad: contratan más los más jóvenes y los mayores.
-> **[→]** KNN mide distancias y necesita escalar: sin escalar, en train, `pdays` tiene el 86,6 % de la
-> varianza.
+> ¿Por qué rindió cada uno? Por sus supuestos. Random Forest no supone escala ni forma, y es el que
+> más pierde sin las variables de época: 0,059 en validación. Que gane por reconocer la época es
+> inferencia.
+> **[→]** KNN mide distancias: sin escalar, en train, `pdays` tiene el 86,6 % de la varianza.
 > **[→]** Naive Bayes supone independencia, y en train el bloque macro la viola, con correlaciones de
 > 0,91 a 0,97; como las numéricas no son normales, el categórico le gana al gaussiano.
-> **[→]** La SVM quedó lineal, y un puntaje lineal no dobla la U. Aun así, entre los cuatro hay sólo
-> 0,021 de AUC en validación.
+> **[→]** La SVM quedó lineal: el RBF no la mejora. Por qué queda última no lo medimos; entre los
+> cuatro hay sólo 0,021 de AUC en validación.
 
 #### A aclarar
-- **¿Por qué el bloque macro ayuda a Naive Bayes si viola la independencia?** Sacarlo cuesta −0,023
+- **¿Qué pierde cada uno sin las variables de época?** En validación, con la configuración final
+  (respaldo R4; D-25): Random Forest, 0,023 sin macro y 0,059 sin macro ni `month`; Naive Bayes,
+  sin macro ni `month`, casi lo mismo: 0,058. Con la configuración de referencia de las ablaciones,
+  sin macro ni `month` Random Forest pierde 0,093 (A8), también el que más. No medimos importancias
+  de variables.
+- **¿Por qué el bloque macro ayuda a Naive Bayes si viola la independencia?** Sacarlo cuesta 0,023
   de AUC de validación en el gaussiano (A7; D-14), y 0,033 en el categórico. Es un resultado contra la
   intuición, probablemente porque fecha a los clientes (inferencia). Pregunta 15.
 - **¿Entonces violar la independencia no tuvo ningún efecto?** Lo tuvo en las probabilidades, no en
   el orden (inferencia). Contar tres veces la época las lleva a los extremos —por eso Naive Bayes se
   puntúa con log-odds: la probabilidad llegaba a 1 exacto (`src/metricas.py`)—, pero el AUC sólo mide
-  el orden, y ahí el bloque ayuda. Calibrar está entre las mejoras (`conclusiones.md`, §5). Cuántos
-  quedan con probabilidad casi 1, y cuántos de ellos contratan, tiene macros pendientes en
-  `numeros.md`.
-- **¿La U de la edad es real?** Se mezcla con la época: casi todos los mayores de sesenta son de
-  2009–2010 (`conclusiones.md`, §1), y Random Forest es el que más pierde sin macro ni `month`:
-  −0,093 de AUC de validación (A8).
+  el orden, y ahí el bloque ayuda. Se ve en validación, fuera de fold: 3 121 filas, el 9,5 % de
+  train, reciben P(yes) ≥ 0,99, y de ellas contrata el 47,3 %; en el 10 % de la lista con mayor
+  puntaje, la probabilidad media es 0,998 y la proporción de «yes», 0,464. Calibrar está entre las
+  mejoras (`conclusiones.md`, §5).
+- **¿Y la U de la edad?** No la damos como causa: se mezcla con la época (casi todos los mayores de
+  sesenta son de 2009–2010; `conclusiones.md`, §1), y no se midió qué pierde cada modelo sin la edad.
 - **¿La SVM con RBF no capta la U?** Podría, pero con γ sin ajustar no la aprovechó (inferencia): con
-  C = 0,001, en validación, el RBF da 0,768 y el lineal 0,774. Que sea la causa de que quede última
-  también es inferencia.
+  C = 0,001, en validación, el RBF da 0,768 y el lineal 0,774, y en su mejor C, 0,772. Un puntaje
+  lineal en la edad, que entra en años (D-16), sube o baja, nunca las dos cosas; pero por qué la SVM
+  queda última no lo medimos.
 - **Las escalas, en train:** desvío de `pdays` 186,6 y de `nr.employed` 72,4; el mayor desvío de las
   numéricas es 374 veces el menor.
 - **Las distribuciones no gaussianas, en train:** asimetría de `campaign` 4,89; `pdays` = 999 en el
   96,3 %; la edad en U.
-- **Por qué un puntaje lineal no dobla la U:** la edad entra en años (D-16), y un puntaje lineal en
-  la edad sube o baja, nunca las dos cosas. Que eso explique el último puesto es inferencia.
 
 ### 17 · Limitaciones: el test mide estas campañas, no una futura — 7:25 → 8:00 (~100 palabras)
 
@@ -650,16 +658,17 @@ relaciones no lineales (RF, SVM).
 > error, en lugar del 20 %.
 
 #### A aclarar
-- **¿Cuánto optimismo?** No lo medimos: haría falta una validación cruzada anidada, y aquí ese papel
-  lo cumple el test (pregunta 11). La regla de un error estándar lo atenúa, porque no elige el
-  máximo: profundidad 8 y no 10 (`conclusiones.md`, §4).
+- **¿Cuánto optimismo?** No lo medimos: haría falta una validación cruzada anidada
+  (Clase 3, slides 98–100; D-22), y aquí ese papel lo cumple el test (pregunta 11). La regla de un
+  error estándar lo atenúa, porque no elige el máximo: profundidad 8 y no 10 (`conclusiones.md`, §4).
 - **¿Y dentro de una campaña?** El 0,795 y el 0,629 de validación ordenan una lista que mezcla
-  2008–2010; en los pares del mismo año, el AUC fuera de fold es 0,658 (pregunta 27).
+  2008–2010. Fuera de fold, en los pares del mismo año el AUC es 0,658, y en los del mismo año y mes,
+  0,564; llamando al 20 % de cada año por separado, el recall es 0,378 (pregunta 27).
 - **La sensibilidad al presupuesto**, en validación: Random Forest alcanza 0,446, 0,629 y 0,705 de los
   «yes» llamando al 10 %, 20 % y 30 %, contra 0,100, 0,200 y 0,300 sin modelo; su precisión baja de
   0,502 a 0,265 (respaldo R2).
-- **¿Y el desbalance?** Pesos balanceados en Random Forest: +0,0006 de AUC de validación,
-  despreciable (N0-12).
+- **¿Y el desbalance?** Pesos balanceados en Random Forest: +0,0006 de AUC de validación, positiva
+  en los 5 folds pero despreciable por su tamaño (N0-12).
 - **¿Y `unknown`?** Imputar es neutro: Random Forest +0,0011 de AUC de validación (D-08).
 - **¿Y `campaign`?** Puede depender del resultado (D-07); el efecto no se midió.
 - **¿Y `duration`?** Con ella, Random Forest llega a 0,939 de AUC de validación, pero no existe antes
@@ -683,11 +692,12 @@ validar hacia adelante.
   cada fold valida con un bloque de 5 490 filas y entrena con todo lo anterior, de 5 490 a 27 450
   filas (D-25). Todo dentro de train: el test no participa.
 - **¿Por qué el desvío hacia adelante es tan grande** (± 0,123 en Random Forest)? Porque el modelo
-  sirve en dos bloques y en tres no: 0,664 y 0,711 en 2009–2010, y de 0,426 a 0,500 en 2008, donde
-  el primer bloque entrena con 159 «yes». No es la tasa de «yes» de cada bloque, que va de 4,7 % a
-  35,2 %: el AUC no depende de ella, porque la ROC calcula cada tasa dentro de su clase (Clase 4,
-  slides 45–51). Lo que cambia es cuánto se deja ordenar cada bloque: barajado, en las mismas filas,
-  de 0,519 a 0,584 en 2008, y 0,748 y 0,762 en 2009–2010.
+  sirve en dos bloques y en tres no: los tres de 2008 entrenan con pocos «yes», de 159 a 778, y dan
+  de 0,426 a 0,500; los de 2009–2010 entrenan con 1 084 y 1 780, y dan 0,664 y 0,711. No es la tasa
+  de «yes» de cada bloque, que va de 4,7 % a 35,2 %: el AUC no depende de ella, porque la ROC calcula
+  cada tasa dentro de su clase (Clase 4, slides 45–51). Y no es sólo entrenar con pocos «yes»: 2008
+  cuesta ordenarlo aun entrenando con todas las épocas; barajado, en las mismas filas, da de 0,519 a
+  0,584, contra 0,748 y 0,762 en 2009–2010.
 - **¿Y para elegir a quién llamar dentro de una campaña?** Pregunta 27.
 - **Los cuatro, hacia adelante:** Random Forest 0,558, KNN 0,539, Naive Bayes 0,598 y SVM 0,541;
   barajados, en validación, 0,795, 0,784, 0,782 y 0,774. Random Forest pierde 0,237. En recall al
@@ -753,8 +763,7 @@ se reduce a la frase de recorte del «Reloj de ensayo».
 
 Respuestas cortas, con el dato al frente y su conjunto declarado. Entre corchetes, a qué slide
 conviene volver y quién responde primero: el que presentó ese bloque. Las citas de clase son sólo
-las que ya están en `DECISIONES.md` o en `plan/PLAN.md`, salvo la que dice «cita pendiente de
-registrar» (ver «Convenciones»).
+las que ya están en `DECISIONES.md` o en `plan/PLAN.md` (ver «Convenciones»).
 
 **Para volver a una slide.** El pie dice «n/20» y la página del PDF no coincide, por los overlays.
 Página de la última variante de cada slide: 1 → 1 · 2 → 4 · 3 → 8 · 4 → 10 · 5 → 12 · 6 → 14 ·
@@ -811,11 +820,12 @@ D-07). Que delaten la época es un problema de robustez temporal, no de fuga (D-
 **7. ¿El mismo cliente puede estar en train y en test?** [slide 3 · Andrés] — No se puede descartar.
 El dataset no trae identificador de cliente (`bank-additional-names.txt` omite atributos por
 privacidad), así que no se puede partir por cliente, y D-01 sólo quita los duplicados exactos. Sin
-`duration`, en train se repiten combinaciones de las 19 predictoras, algunas con respuestas
-distintas: el mismo cliente en dos campañas, o clientes distintos con los mismos datos. Si un
-cliente cae en train y en test, el test sale algo optimista; no lo podemos medir, y es una
-limitación más. Esas repeticiones explican también el 0,988 de KNN con un vecino en train
-(slide 11). Cuántas filas son tiene el macro pendiente en `numeros.md`.
+`duration`, en train se repiten 1 153 combinaciones de las 19 predictoras, en 2 482 filas, el 7,5 %
+de train; 156 de ellas aparecen con «yes» y con «no», en 350 filas. Con `duration` no se repite
+ninguna, así que son llamadas distintas: clientes distintos con los mismos datos o el mismo cliente
+dos veces, y sin identificador no se sabe. Si un cliente cae en train y en test, el test sale algo
+optimista; no lo podemos medir, y es una limitación más. Esas repeticiones explican también el 0,988
+de KNN con un vecino en train (slide 11).
 
 ### Decisiones discutibles
 
@@ -839,22 +849,23 @@ agregar un método que no se dio en clase (consulta 3). Pero el desbalance no s�
 puede sesgar el ajuste, y por eso los pesos de clase se midieron como hiperparámetro (D-21). En la
 SVM, C es el costo de violar el margen (Clase 8, slide 49), y con 7,9 «no» por cada «yes» ese costo
 lo dominan los «no»; `balanced` multiplica C por el peso de cada clase, así que cada «yes» pesa 7,9
-veces más. Si los pesos sólo movieran el umbral, el AUC no cambiaría; en validación sube 0,068 con
-RBF y C = 1, y en el mejor C de cada una, de 0,706 sin pesos a 0,772 con pesos: cambian el orden, y
-se adoptan. En Random Forest sube sólo 0,0006 (N0-12): en cada hoja, el peso reescala la proporción
-de «yes», casi como mover el umbral (inferencia).
+veces más. Si los pesos sólo movieran el umbral, el AUC no cambiaría; en validación, con RBF y
+C = 1, sube 0,068 ± 0,011 fold a fold, y sube en los 5 folds; en el mejor C de cada una, de 0,706
+sin pesos a 0,772 con pesos: cambian el orden, y se adoptan. En Random Forest sube sólo 0,0006,
+también en los 5 folds, pero es despreciable por su tamaño (N0-12): en cada hoja, el peso reescala
+la proporción de «yes», casi como mover el umbral (inferencia).
 
 **11. ¿No sobreajustaron la validación con tantas decisiones?** [slide 17 · Sebastián] — Algo, y
-está declarado como limitación: es el sobreajuste a la validación de la Clase 3, slides 98–100 (cita
-pendiente de registrar). Elegir el mejor entre muchas estimaciones con ruido también elige ruido
-favorable, y las ablaciones, las curvas y los modelos de referencia usaron los mismos 5 folds: el
-0,795 sale optimista, y no medimos cuánto. De las cuatro defensas del slide 100 usamos tres:
-validación cruzada (D-06); búsquedas acotadas, porque las ablaciones y las grillas estaban en el
-plan —lo agregado después, como la extensión de KNN hasta 801 y las curvas de C con pesos, queda
-registrado en `hiperparametros.json`— y la regla de un error estándar no elige el máximo (D-22); y
-un test intacto que se abre una vez (D-04). La cuarta, la validación cruzada anidada, no la
-corrimos: la cátedra la presenta como avanzada, y aquí el test cumple el papel de la validación
-externa. Lo que se promete es el número de test.
+está declarado como limitación: es el sobreajuste a la validación de la Clase 3, slides 98–100.
+Elegir el mejor entre muchas estimaciones con ruido también elige ruido favorable, y las ablaciones,
+las curvas y los modelos de referencia usaron los mismos 5 folds: el 0,795 sale optimista, y no
+medimos cuánto. De las cuatro defensas del slide 100 usamos tres: validación cruzada (D-06);
+búsquedas acotadas, porque las ablaciones y las grillas estaban en el plan —lo agregado después,
+como la extensión de KNN hasta 801 y las curvas de C con pesos, queda registrado en
+`hiperparametros.json`— y la regla de un error estándar no elige el máximo (D-22); y un test intacto
+que se abre una vez (D-04). La cuarta, la validación cruzada anidada, no la corrimos (D-22): el test
+intacto ya cumple el papel de la evaluación externa, y con cinco folds externos multiplicaría por
+cinco los ajustes de cada curva. Lo que se promete es el número de test.
 
 **12. ¿Por qué 200 árboles, si la regla de un error estándar daba 25?** [slide 10 · Andrés] — Porque
 el número de árboles no es un eje de complejidad sino de estabilidad: más árboles no cambian el sesgo
@@ -864,9 +875,12 @@ y da puntajes menos gruesos para ordenar la lista. Es un desvío de la regla, y 
 (N0-11).
 
 **13. ¿Por qué Random Forest sin pesos de clase, si la regla elegía `balanced`?** [slide 10 · Andrés]
-— Porque la mejora es +0,0006 de AUC de validación, con un error estándar de 0,0024: despreciable por
-su tamaño. La regla del desbalance adopta los pesos sólo si mejoran más que el ruido (D-21), y sin
-pesos el modelo es el de la Clase 7 tal cual (N0-12).
+— Porque la mejora es despreciable por su tamaño: +0,0006 de AUC de validación, y fold a fold, la
+diferencia es +0,0006 ± 0,0009, positiva en los 5 folds. Se descarta por el tamaño, no por ruido:
+D-21 adopta los pesos sólo si la mejora vale la pena, y sin pesos el modelo es el de la Clase 7 tal
+cual (N0-12). La regla de D-22 daba `balanced` porque para los pesos no hay un orden de simplicidad,
+y toma el mayor AUC. En la SVM, en cambio, suben 0,068 ± 0,011, también en los 5 folds, y se adoptan
+(D-21).
 
 **14. ¿Por qué no validaron hacia adelante como esquema principal?** [slide 19 · Andrés] — Porque el
 enunciado plantea k-fold, y un esquema temporal habría entrenado con 2008, con 4,9 % de «yes» en
@@ -878,7 +892,7 @@ código ya lo tiene (`src/robustez.py`).
 
 **15. ¿Qué supone Naive Bayes y cómo lo afectan estos datos?** [slides 9 y 16 · Sebastián] —
 Independencia de las variables dada la clase. El bloque macro la viola: en train, tres de sus cinco
-variables tienen correlaciones de 0,91 a 0,97, y aun así sacarlo le cuesta −0,023 de AUC de
+variables tienen correlaciones de 0,91 a 0,97, y aun así sacarlo le cuesta 0,023 de AUC de
 validación al gaussiano (D-14), probablemente porque fecha a los clientes (inferencia). El gaussiano
 supone además una normal por clase, y en train `pdays` es casi binaria, `campaign` tiene asimetría
 4,89 y la edad forma una U. Por eso el del TP es el categórico: deciles aprendidos en cada fold y
@@ -965,12 +979,14 @@ al azar. En 2008 no servía ni barajado: 0,598 fuera de fold.
 
 **27. Si el banco elige a quién llamar dentro de una campaña, ¿cuánto valen el AUC y el recall?**
 [slide 18 · Andrés] — Menos. El 0,795 y el 0,629 de validación ordenan una lista que mezcla
-2008–2010, y parte de su valor es reconocer la época: en los pares «yes»–«no» del mismo año, el AUC
-fuera de fold es 0,658 (D-25, lectura (a)); por año, 0,598, 0,759 y 0,749. Dentro de un mismo mes,
-más cerca de una campaña, el orden es más pobre todavía. Esa cifra y el recall repartiendo el 20 %
-dentro de cada año tienen sus macros pendientes en `numeros.md`: no se dicen de memoria, y la vara
-de ese recall es el 0,200 del azar, no el 0,629. El test es la misma mezcla (D-03): tendrá el mismo
-sesgo.
+2008–2010, y parte de su valor es reconocer la época. Fuera de fold, en los pares «yes»–«no» del
+mismo año el AUC es 0,658 (D-25, lectura (a)), y por año, 0,598, 0,759 y 0,749; en los del mismo
+año y mes, más cerca de una campaña, 0,564. Con el recall pasa lo mismo: llamando al 20 % de cada
+año por separado, Random Forest alcanza el 0,378 de los «yes», con 4,7 llamadas por «yes» (2,8 con
+la lista mezclada); al 20 % de cada año y mes, el 0,295. La vara de esos recalls es el 0,200 del
+azar, que repartir las llamadas no cambia, no el 0,629. El recall de cada año es 0,306, 0,455 y
+0,311, y en 2010 no puede pasar de 0,385: hay 864 «yes» y sólo 333 llamadas. El test es la misma
+mezcla (D-03): tendrá el mismo sesgo.
 
 **28. ¿No es sólo que las variables económicas delatan la fecha?** [respaldo R4 · Andrés] — No:
 hacia adelante, sin el bloque macro Random Forest da 0,556, y sin el bloque macro ni `month`, 0,547,
@@ -987,10 +1003,10 @@ slides 41–44); y calibrar las probabilidades para poder usar ese costo (infere
 cuánto. Se lee contra el desvío entre folds de validación, 0,006, y contra el intervalo del 95 % del
 test. Una diferencia dentro de ± 0,006 es ruido, en cualquier sentido: es lo que ya varía el AUC de
 un fold a otro. Si da algo más bajo, puede sumarse el optimismo que declaramos en la slide 17, que no
-medimos (pregunta 11); difícilmente explique una diferencia grande (inferencia). Una
-diferencia mayor que un desvío obliga a revisar la partición o el pipeline, buscando qué separa al
-test de train, y se dice tal cual. En ningún caso se cambia el modelo después de abrirlo: lo que se
-promete es el número de test. Y en ningún caso se lo compara con «sin modelo».
+medimos (pregunta 11), y por eso no sirve para descartar nada: una diferencia mayor que un desvío
+obliga a revisar la partición o el pipeline, buscando qué separa al test de train, y se dice tal
+cual. En ningún caso se cambia el modelo después de abrirlo: lo que se promete es el número de test.
+Y en ningún caso se lo compara con «sin modelo».
 
 ### Las consultas a la cátedra
 
@@ -1077,13 +1093,13 @@ reloj, 2,68 por segundo: redondeado, el mismo 2,7.
 - **1 457 palabras / 2,7 = 539,6 s = 9:00 ≤ 9:45.** Pasa, con 45 segundos de margen. Con las
   ventanas redondeadas a 5 segundos, el reloj termina en 9:00, 15 segundos antes que el esqueleto del
   plan. A 2,68 por segundo, 9:04.
-- **Con los números leídos completos: entre 9:21 y 9:26.** Los números de este guion tardan más en
+- **Con los números leídos completos: entre 9:23 y 9:28.** Los números de este guion tardan más en
   decirse que los del TP1, porque muchos son AUC con tres decimales. Se expandió cada número escrito
   con cifras a las palabras con que se lee («0,795» son seis: «cero coma setecientos noventa y
   cinco»), y cada «?» del test, como un número de tres decimales: cada palabra de este guion equivale
   a 1,19 palabras leídas, y cada una del TP1, a 1,15. A la velocidad de lectura que 2,7 por segundo
-  le supone al TP1, este guion dura 9:21; si el TP1 se dijo en los 10:00 de su reloj, 9:26, 19
-  segundos por debajo del tope. Hay 84 números hablados, el 5,8 % de las palabras (en el TP1, 93,
+  le supone al TP1, este guion dura 9:23; si el TP1 se dijo en los 10:00 de su reloj, 9:28, 17
+  segundos por debajo del tope. Hay 85 números hablados, el 5,8 % de las palabras (en el TP1, 93,
   también el 5,8 %).
 - **Lo que decide son los dos ensayos cronometrados** (paso 8.4 del plan, gate G6): tienen que
   durar 10:00 o menos. Si un ensayo pasa de 9:45, se aplica el orden de recorte de arriba, en ese

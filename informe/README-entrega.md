@@ -62,7 +62,7 @@ predictora**.
 |---|---|---|
 | `datos.py` | Carga el CSV, quita los duplicados y parte en train y test (D-01 a D-04). `cargar_train()` es la puerta de entrada de todo lo anterior al punto 4 | `data/particion/` |
 | `validacion.py` | `folds()`: `StratifiedKFold(5, shuffle=True, random_state=42)`, la partición de toda validación cruzada (D-06) | — |
-| `evidencia_particion.py` | Las cifras de D-02 (estratificar) y D-03 (partición aleatoria, no temporal). Mide la partición sobre el CSV completo; no elige nada del modelo | pantalla |
+| `evidencia_particion.py` | Las cifras de D-02 (estratificar) y D-03 (partición aleatoria, no temporal). Mide la partición sobre el CSV completo; no elige nada del modelo | `resultados/evidencia_particion.json` |
 | `eda.py` | Análisis exploratorio en texto, sólo sobre train (punto 1) | `resultados/eda/reporte.txt` y 7 figuras |
 | `eda_html.py` | El mismo análisis en una página, con qué se ve y qué hacer en cada gráfico | `resultados/eda/eda.html` |
 | `preproceso.py` | `Opciones` (las decisiones D-08 a D-16 y las ablaciones A1 a A12), `Derivadas` (reglas fijas, como sacar `duration`) y `codificador()` (one-hot, escalado o discretización, según el modelo) | — |
@@ -82,6 +82,7 @@ predictora**.
 | `graficos_presentacion.py` | Las figuras de la presentación: 16:9, sin título, la leyenda arriba y revelados en pasos | `figuras/presentacion/` |
 | `numeros.py` | Cada número de la presentación como macro de LaTeX, con el archivo y la columna de donde sale; `--verificar` falla si un `.tex` tiene un número escrito a mano | `informe/numeros.tex`, `informe/numeros.md` |
 | `entregar.py` | Arma este zip y el PDF de la presentación; `--con-bitacora` suma `DECISIONES.md` y `GLOSARIO.md`, que este zip lleva, y `--probar` descomprime el zip en un directorio temporal y corre ahí todas las suites | `entregables/` |
+| `cuadernillo.py` | El cuadernillo de ensayo del grupo: cada slide de la presentación con su guion. Lee el deck compilado y el guion, `informe/presentacion.pdf` e `informe/guion.md`, que no vienen en este zip, y necesita LuaLaTeX y poppler | `informe/slides-y-guion.pdf` |
 
 Las rutas de la columna «Escribe» sin carpeta están en `resultados/`. `informe/` no viene en el zip:
 lo crean `src.numeros` y `src.evaluar_test` al correr, y la presentación se entrega aparte, en PDF.
@@ -113,16 +114,21 @@ lo crean `src.numeros` y `src.evaluar_test` al correr, y la presentación se ent
 | `test_graficos_presentacion` | Las figuras de la presentación, también con datos sintéticos |
 | `test_numeros` | El formato de las cifras, los macros y el verificador de números escritos a mano; una cifra de cada familia, recalculada con pandas |
 | `test_entregar` | El zip sobre un repositorio de juguete, y la prueba de clon limpio |
+| `test_cuadernillo` | El guion leído y emparejado con el deck, con datos sintéticos; con LuaLaTeX y poppler, además, el cuadernillo generado sobre un deck sintético. La prueba sobre el deck y el guion reales se salta aquí, porque `informe/` no viene en el zip |
 
 No usan pytest: cada suite se corre como módulo y termina imprimiendo `TODOS LOS TESTS OK`. Las que
 corren algo de punta a punta lo hacen sobre una submuestra de train (`--rapido`) o con datos
-sintéticos, en directorios temporales.
+sintéticos, en directorios temporales. La única que lee `resultados/` es `test_numeros`, que
+recalcula desde ahí una cifra de cada familia de macros; `resultados/` viene en el zip, así que
+corre. `informe/` no viene, y eso cambia dos cosas: `test_numeros` verifica sólo los marcadores de
+los números de test, y `test_cuadernillo` salta su prueba sobre el deck y el guion reales.
 
 ### `resultados/` y `figuras/`
 
 | Archivos | Qué son | Paso |
 |---|---|---|
 | `eda/reporte.txt`, `eda/eda.html` y 7 figuras | El análisis exploratorio sobre train | Punto 1 |
+| `evidencia_particion.json` | Las cifras de D-02 y D-03: el % de «yes» del test sin estratificar, en 400 semillas, y el de train y test con una partición temporal | Punto 1 |
 | `linea_base.csv` | «Sin modelo» en los mismos 5 folds: AUC 0,5 y recall 0,200 | Punto 2.3 |
 | `ablaciones_<modelo>.csv`, `ablaciones.csv`, `ablaciones_resumen.csv`, `oof_ablacion_A0_<modelo>.csv` | Las ablaciones A1 a A12: ΔAUC pareado por fold contra A0 | Punto 1 |
 | `costos.csv`, `costos_grillas.csv` | Cuánto tarda cada ajuste y cada grilla | — |
@@ -152,7 +158,9 @@ Requiere **Python 3.10+**. En macOS el intérprete puede llamarse `python3`: en 
 pip install -r requirements.txt
 ```
 
-**Los tests** no dependen de `resultados/`:
+**Los tests.** Leen `data/` o datos sintéticos; sólo `test_numeros` lee además `resultados/`, que
+viene en este zip (ver «`tests/` — las suites»). Tardan menos de dos minutos en total; la más lenta
+es `test_cuadernillo`, que compila con LuaLaTeX si está instalado:
 
 ```bash
 python -m tests.test_datos
@@ -174,6 +182,7 @@ python -m tests.test_graficos_2
 python -m tests.test_graficos_presentacion
 python -m tests.test_numeros
 python -m tests.test_entregar
+python -m tests.test_cuadernillo
 ```
 
 **El pipeline**, en orden. Todo lo que está antes de `src.evaluar_test` lee sólo train:
@@ -234,6 +243,10 @@ python -m src.graficos               # figuras de análisis -> figuras/
 python -m src.graficos_presentacion  # figuras de proyección -> figuras/presentacion/
 python -m src.numeros                # los macros -> informe/numeros.tex e informe/numeros.md
 
+# El cuadernillo de ensayo del grupo: lee el deck compilado y el guion de informe/, que no vienen
+# en este zip, y necesita LuaLaTeX y poppler; tarda unos 8 s
+python -m src.cuadernillo            # -> informe/slides-y-guion.pdf
+
 # Punto 4: la evaluación única del test
 python -m src.evaluar_test
 ```
@@ -245,13 +258,14 @@ Tres advertencias:
   `resultados/evaluacion_test.json`. Si ese archivo ya existe, pide escribir «si» antes de repetir,
   y la corrida nueva queda registrada como una evaluación más. Para ensayar sin abrir el test está
   `--rapido`, que parte 3 000 filas de train en 80/20 y escribe en un directorio temporal.
-- **La configuración de referencia no es la vigente.** `src.experimentos` y `src.curvas` usan lo que
-  diga `src/configuracion.py` al correr, y hoy tiene los hiperparámetros elegidos. Para rehacer
-  `cv_referencia_*`, hay que poner ahí, durante esa corrida, `HIPERPARAMETROS_FINALES = REFERENCIA`
-  (el diccionario de `src/modelos.py`), que es como estaba cuando se midió; si no, la etiqueta
-  `referencia` mide los hiperparámetros finales. Las curvas no tienen ese problema: cada comando fija
-  con `--fijo` la configuración con que se midió su CSV, y se comprobó, punto por punto, contra la
-  columna `configuracion` de los 12 archivos de `resultados/curvas/`.
+- **La etiqueta `referencia` no depende de la configuración vigente.** Con ella, `src.experimentos`
+  toma los hiperparámetros de `REFERENCIA` (`src/modelos.py`) sin leer `src/configuracion.py`, así
+  que los comandos de arriba reconstruyen `cv_referencia_*` con la misma configuración con que se
+  midió (se comprobó contra la columna `configuracion` de los cinco CSV); `--etiqueta final` usa los
+  hiperparámetros vigentes, los de `src/configuracion.py`. Las dos corren con las mismas opciones de
+  preprocesamiento, `OPCIONES_FINALES`. `src.curvas`, en cambio, parte de la configuración vigente:
+  por eso cada comando fija con `--fijo` la configuración con que se midió su CSV, y se comprobó,
+  punto por punto, contra la columna `configuracion` de los 12 archivos de `resultados/curvas/`.
 - Las ablaciones miden siempre contra la referencia A0 (`Opciones()` y `REFERENCIA`) y no dependen de
   `src/configuracion.py`.
 
@@ -263,7 +277,8 @@ polinómico y C = 100, 57 s; y la SVM lineal de libsvm con C = 10 no terminó en
 lineal usa `LinearSVC`. La estimación en serie de cada grilla, hecha antes de correr las curvas
 (`resultados/costos_grillas.csv`), va de 1 minuto (KNN) a 23 minutos (C de la SVM); con los cinco
 folds en paralelo, el valor por defecto de `--n-jobs`, tarda menos. `src.costos` mide todo eso y puede
-llevar hasta una hora. Las suites de tests tardan alrededor de un minuto en total.
+llevar hasta una hora. Las suites de tests tardan menos de dos minutos en total, y la más lenta es
+`test_cuadernillo`, unos 25 s cuando LuaLaTeX está instalado.
 
 ---
 

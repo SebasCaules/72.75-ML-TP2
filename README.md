@@ -76,7 +76,9 @@ pip install -r requirements.txt
 ```
 
 **No hace falta correr nada para ver los números:** `resultados/` y `figuras/` están versionados.
-Los tests, sin pytest, terminan en `TODOS LOS TESTS OK` y tardan alrededor de un minuto en total:
+Los tests, sin pytest, terminan en `TODOS LOS TESTS OK` y tardan menos de dos minutos en total. La
+más lenta es `test_cuadernillo`, unos 25 s, porque compila con LuaLaTeX; sin LuaLaTeX o sin poppler,
+sus tres pruebas de generación se saltan con un aviso:
 
 ```bash
 python -m tests.test_datos
@@ -98,6 +100,7 @@ python -m tests.test_graficos_2
 python -m tests.test_graficos_presentacion
 python -m tests.test_numeros
 python -m tests.test_entregar
+python -m tests.test_cuadernillo
 ```
 
 El pipeline completo, en orden. Todo lo que está antes de `src.evaluar_test` lee sólo train:
@@ -105,7 +108,7 @@ El pipeline completo, en orden. Todo lo que está antes de `src.evaluar_test` le
 ```bash
 # Punto 1: partición y análisis exploratorio
 python -m src.datos                  # duplicados y partición -> data/particion/ (versionada)
-python -m src.evidencia_particion    # las cifras de D-02 y D-03
+python -m src.evidencia_particion    # las cifras de D-02 y D-03 -> resultados/evidencia_particion.json
 python -m src.validacion             # por qué la validación cruzada tiene que barajar (D-06)
 python -m src.eda                    # EDA en texto -> resultados/eda/
 python -m src.eda_html               # el mismo EDA en HTML -> resultados/eda/eda.html
@@ -159,6 +162,10 @@ python -m src.graficos_presentacion  # figuras de proyección -> figuras/present
 python -m src.numeros                # los macros -> informe/numeros.tex e informe/numeros.md
 python -m src.numeros --verificar informe/presentacion.tex   # gate G3: ningún número escrito a mano
 
+# El cuadernillo de ensayo, desde el deck ya compilado (informe/presentacion.pdf) y el guion
+# (informe/guion.md): necesita LuaLaTeX y poppler, y tarda unos 8 s
+python -m src.cuadernillo            # -> informe/slides-y-guion.pdf
+
 # Punto 4: la evaluación única del test (N0-1: después del 30/09)
 python -m src.evaluar_test
 
@@ -171,13 +178,15 @@ python -m src.entregar --con-bitacora --probar
   ya existe, pide escribir «si» y registra la corrida nueva como una evaluación más, que además hay
   que anotar en `DECISIONES.md`. `--marcadores` escribe `informe/resultados-test.tex` con «?» para
   que la presentación compile antes (así está hoy), y `--rapido` ensaya todo sin abrir el test.
-- **`--etiqueta referencia` necesita la configuración de referencia.** `src.experimentos` usa lo que
-  diga `src/configuracion.py` al correr, y hoy tiene los hiperparámetros elegidos: para rehacer
-  `cv_referencia_*` hay que poner, durante esa corrida, `HIPERPARAMETROS_FINALES = REFERENCIA` (el
-  diccionario de `src/modelos.py`), como estaba en el paso 3.3 (commit `2519d9b`). Las curvas no
-  tienen ese problema: cada comando fija con `--fijo` la configuración con que se midió su CSV, y se
-  comprobó contra la columna `configuracion` de los 12 archivos de `resultados/curvas/`. Las
-  ablaciones miden siempre contra `Opciones()` y `REFERENCIA` (N0-9).
+- **`--etiqueta referencia` no depende de la configuración vigente.** `src.experimentos` toma sus
+  hiperparámetros de `REFERENCIA` (`src/modelos.py`) sin leer `src/configuracion.py` (N0-14), así
+  que los comandos de arriba reconstruyen `cv_referencia_*` con la configuración con que se midió en
+  el paso 3.3 (se comprobó contra la columna `configuracion` de los cinco CSV); `--etiqueta final`
+  usa los hiperparámetros vigentes. Las dos corren con las opciones de preprocesamiento de la ola 1
+  (`OPCIONES_FINALES`). Las curvas sí parten de la configuración vigente, y por eso cada comando fija
+  con `--fijo` la configuración con que se midió su CSV; se comprobó contra la columna
+  `configuracion` de los 12 archivos de `resultados/curvas/`. Las ablaciones miden siempre contra
+  `Opciones()` y `REFERENCIA` (N0-9).
 - **Tiempos** (`resultados/costos.csv`, sobre un fold de 26 352 filas): lo lento es la SVM. Con RBF y
   C = 1 tarda 8 s en ajustar y 12 s en puntuar el fold de entrenamiento; con kernel polinómico y
   C = 100, 57 s; la lineal de libsvm con C = 10 no terminó en 600 s, y por eso la lineal va con
@@ -193,7 +202,8 @@ data/raw/                    el dataset tal como se bajó (no se edita)
 data/particion/              train.csv y test.csv, generados por src/datos.py
 src/datos.py                 carga, duplicados, partición; cargar_train() y cargar_test()
 src/validacion.py            folds(): StratifiedKFold(5) barajado, semilla 42 (D-06)
-src/evidencia_particion.py   las cifras de D-02 y D-03: mide la partición, no elige nada del modelo
+src/evidencia_particion.py   las cifras de D-02 y D-03 -> resultados/evidencia_particion.json; mide
+                             la partición, no elige nada del modelo
 src/eda.py                   EDA sobre train, en texto (punto 1) -> resultados/eda/
 src/eda_html.py              el mismo EDA en HTML -> resultados/eda/eda.html
 src/preproceso.py            Opciones (D-08 a D-16, A1 a A12), Derivadas y la codificación por modelo
@@ -214,6 +224,7 @@ src/graficos.py              figuras de análisis -> figuras/
 src/graficos_presentacion.py figuras de proyección -> figuras/presentacion/ (16:9, sin título, revelados)
 src/numeros.py               los números de la presentación como macros -> informe/numeros.tex y .md
 src/entregar.py              arma entregables/: el zip del código y el PDF; --probar, clon limpio
+src/cuadernillo.py           el cuadernillo de ensayo desde el deck y el guion -> informe/slides-y-guion.pdf
 tests/                       las suites, sin pytest; cada una termina en TODOS LOS TESTS OK
   test_datos.py              la partición, contra el CSV original: disjunta, estratificada, en orden
   test_validacion.py         folds(): estratificado, reproducible y con todas las épocas
@@ -235,6 +246,8 @@ tests/                       las suites, sin pytest; cada una termina en TODOS L
                              las figuras de la presentación
   test_numeros.py            el formato de las cifras, los macros y el verificador de G3
   test_entregar.py           el zip sobre un repositorio de juguete y la prueba de clon limpio
+  test_cuadernillo.py        el guion leído y emparejado con el deck; el cuadernillo generado con
+                             LuaLaTeX sobre un deck sintético y sobre el real
 resultados/                  todo lo que produce el código, versionado (formato largo, N0-4)
 resultados/eda/              reporte.txt, eda.html y las figuras del EDA
 resultados/curvas/           una curva de validación por CSV

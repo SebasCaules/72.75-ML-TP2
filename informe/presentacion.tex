@@ -317,8 +317,8 @@
 \begin{document}
 
 % =====================================================================
-% 1 · Portada. Sin \frametitle; el pie le pone igual el número. Armada a mano, como en el TP1:
-% volanta, título en bandera, filete azul y los datos en tres escalones de gris.
+% 1 · Portada. Sin \frametitle; el pie le pone el número de todos modos. Armada a mano, como en
+% el TP1: volanta, título en bandera, filete azul y los datos en tres escalones de gris.
 % =====================================================================
 \begin{frame}
   \vspace{0.4em}
@@ -448,25 +448,23 @@
         {nada: sólo estima el desempeño};
     \end{scope}
   \end{tikzpicture}}
-  \note{Antes de mirar los datos, los partimos, porque el análisis exploratorio también decide.
-    Quitamos \duplicados{} duplicados exactos: si una copia cae en train y otra en test, el test
-    deja de ser independiente. Después, 80/20 estratificado por la clase, con semilla fija.
-    \avanza El análisis exploratorio y las ablaciones leen sólo train.
+  \note{Primero, quitamos \duplicados{} duplicados exactos: si una copia cae en train y otra en
+    test, el test deja de ser independiente. Después, 80/20 estratificado por la clase, con
+    semilla fija.
+    \avanza El EDA que decide se hizo sobre train; una primera exploración corrió sobre el
+    archivo completo y la rehicimos sobre train antes de decidir nada (D-04). Las ablaciones
+    también leen sólo train.
     \avanza La validación cruzada de 5 folds, también: con ella elegimos modelo e
     hiperparámetros.
     \avanza Y el test no decide nada: se abre una vez, al final, para estimar el desempeño.
     Cada número que sigue dice de qué conjunto sale.\\[0.4em]
-    \textbf{Si preguntan.} ¿Por qué estratificar, si no se vio en clase? Sin estratificar, la
-    proporción de «yes» del test cambia con la semilla; estratificando, train y test quedan con
-    el mismo \pctYesTrain{} (D-02). ¿Cómo se garantiza que nada mire el test? Todo lo anterior
-    al punto 4 lee sólo train con \texttt{cargar\_train()}. El único módulo que usa el test para
-    evaluar un modelo es \texttt{src/evaluar\_test.py}. También lo nombran
-    \texttt{src/datos.py}, que lo define; \texttt{tests/test\_datos.py}, que sólo verifica la
-    partición (por ejemplo, que train y test sean disjuntos), y
-    \texttt{src/evidencia\_particion.py}, que mide la partición misma sin ajustar ningún modelo
-    (D-02, D-03). \texttt{tests/test\_aislamiento.py} falla si lo nombra cualquier otro archivo
-    \texttt{.py} (D-04). ¿Cuánto mide cada fold? \filasFoldEntrenamiento{} filas para ajustar y
-    \filasFoldValidacion{} para validar.}
+    \textbf{Si preguntan.} ¿Por qué estratificar, si no se vio en clase? Sin estratificar, el
+    «yes» del test cambia con la semilla; estratificando, train y test quedan con el mismo
+    \pctYesTrain{} (D-02). ¿Cómo se garantiza que nada mire el test? Todo lo anterior al punto 4
+    lee sólo train con \texttt{cargar\_train()}; sólo \texttt{src/evaluar\_test.py} evalúa un
+    modelo en test, y \texttt{tests/test\_aislamiento.py} falla si un \texttt{.py} fuera de su
+    lista blanca nombra el test (D-04). ¿Cuánto mide cada fold? \filasFoldEntrenamiento{} filas
+    para ajustar y \filasFoldValidacion{} para validar.}
 \end{frame}
 
 % =====================================================================
@@ -657,9 +655,9 @@
     con un umbral por modelo los recalls no se comparan. Con el presupuesto, todos hacen las
     mismas llamadas: \llamadasFoldValidacion{} por fold de validación. ¿Por qué el
     \presupuesto? Es un supuesto de negocio; con el \presupuestoBajo{} o el \presupuestoAlto{}
-    Random Forest sigue primero (respaldo R2). ¿Y $F_1$? Se guarda igual: RF \fUnoRfVal, sin
-    modelo \fUnoSinModelo. ¿Y el desbalance? No se remuestrea: estas métricas ya no premian el
-    «no» (D-21).}
+    Random Forest sigue primero (respaldo R2). ¿Y $F_1$? Se guarda de todos modos: RF
+    \fUnoRfVal, sin modelo \fUnoSinModelo. ¿Y el desbalance? No se remuestrea: estas métricas ya
+    no premian el «no» (D-21).}
 \end{frame}
 
 % =====================================================================
@@ -673,11 +671,13 @@
   \note{Primero, los modelos con valores de referencia, sin ajustar, en los mismos 5 folds:
     todos quedan muy por encima de sin modelo. El mejor es Naive Bayes, en su versión
     categórica: discretizar las numéricas en deciles le suma \deltaAucNbCategorico{} sobre el
-    gaussiano, porque ninguna numérica es normal. Y tres muestran sobreajuste, con brechas entre
-    train y validación de \brechaRfReferencia{} en Random Forest sin límite de profundidad,
-    \brechaSvmRbfReferencia{} en la SVM con RBF y \brechaKnnReferencia{} en KNN con
-    k = \vecinosKnnReferencia. Eso es lo que corrigen las curvas.\\[0.4em]
-    \textbf{Si preguntan.} ¿Cuál es la referencia? Random Forest con \arbolesRfReferencia{}
+    gaussiano, porque ninguna numérica es normal. Y tres sobreajustan: Random Forest sin límite
+    de profundidad, la SVM con RBF y KNN con k = \vecinosKnnReferencia. Lo muestran, y lo
+    corrigen, las curvas que siguen.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuánto sobreajustan? La figura sólo muestra validación: la brecha
+    entre train y validación es \brechaRfReferencia{} en Random Forest,
+    \brechaSvmRbfReferencia{} en la SVM y \brechaKnnReferencia{} en KNN.
+    ¿Cuál es la referencia? Random Forest con \arbolesRfReferencia{}
     árboles sin límite de profundidad; KNN con k = \vecinosKnnReferencia; SVM con RBF y
     C = \cSvmReferencia; Naive Bayes con \cortesNb{} cortes y Laplace $\alpha = \alfaNb$
     (Clase 6, slide 46). ¿Por qué el categórico? Gana en los cinco folds, por entre
@@ -712,8 +712,8 @@
     error estándar, \errorEstandarRfProfundidadMejor, y la regla elige el más simple (D-22).
     ¿Y el número de árboles? \arbolesRf: con profundidad \profundidadRf{} la curva es plana, y
     la regla daba \arbolesRfRegla, pero más árboles no suman complejidad, sólo bajan la
-    varianza (Clase 7, slide 61; N0-11). ¿Pesos de clase? \deltaAucPesosRf: despreciable
-    (N0-12).}
+    varianza (Clase 7, slide 61; N0-11). ¿Pesos de clase? \deltaAucPesosRf, positiva en los
+    \foldsPositivosPesosRf{} folds pero despreciable por su tamaño (N0-12).}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -745,13 +745,16 @@
     \only<1>{\figgrande[0.97]{curva-svm.png}}%
     \only<2->{\figgrande[0.97]{curva-svm-2.png}}}
   \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
-  \note{En la SVM exploramos C y el kernel, con pesos balanceados, que aquí sí ayudan:
-    \deltaAucPesosSvm. Con kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos
-    \cSvm, el más regularizado.
+  \note{En la SVM exploramos C y el kernel, con pesos balanceados, que aquí sí ayudan. Con
+    kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos \cSvm, el más
+    regularizado.
     \avanza Con RBF, en cambio, un C grande sobreajusta: train sube casi a uno y la validación
-    cae. Comparados en C = \cSvmKernel: lineal \aucSvmKernelLineal, polinómico
-    \aucSvmKernelPolinomico{} y RBF \aucSvmKernelRbf. Queda lineal.\\[0.4em]
-    \textbf{Si preguntan.} ¿Qué es C? La convención de scikit-learn: un C grande castiga más
+    cae. Y ni en su mejor C el RBF supera al lineal: queda lineal.\\[0.4em]
+    \textbf{Si preguntan.} ¿Cuánto ayudan los pesos? No están en la figura: con RBF y
+    C = \cSvmReferencia, $\deltaAucPesosSvm \pm \deltaAucPesosSvmDesvio$ fold a fold (D-21). ¿Y
+    los kernels? Comparados en C = \cSvmKernel: lineal \aucSvmKernelLineal, polinómico
+    \aucSvmKernelPolinomico{} y RBF \aucSvmKernelRbf; el RBF en su mejor C da
+    \aucSvmBalanceadaMejor. ¿Qué es C? La convención de scikit-learn: un C grande castiga más
     los errores y regulariza menos (Clase 8, slide 49). ¿Por qué \texttt{LinearSVC}? La SVM
     lineal de libsvm con C = \cSvmCostoExcedido{} no terminó en \segundosLimiteCosto{}
     segundos. \texttt{LinearSVC} con pérdida \textit{hinge} es la misma SVM lineal de margen
@@ -900,7 +903,7 @@
     \node[tarjeta=colorrf, visible on=<1->] at (0,1.0)
       {\textbf{Random Forest}\sepdato\textcolor{colorrf}{\textbf{\aucRfVal}}\\[3pt]
        {\small no supone escala ni forma; es el que más pierde sin macro ni \texttt{month}:
-        \deltaAucSinMacroNiMonthRf{} (A8)}};
+        \deltaAucSinMacroNiMonthRfBarajado{} (R4)}};
     \node[tarjeta=colorknn, visible on=<2->] at (7.45,1.0)
       {\textbf{KNN}\sepdato\textcolor{colorknn}{\textbf{\aucKnnVal}}\\[3pt]
        {\small mide distancias: sin escalar, \texttt{pdays} es el \pctVarianzaPdays{} de
@@ -917,7 +920,7 @@
   \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo}
   \note{¿Por qué rindió cada uno? Con los supuestos que pide el enunciado, y con lo que medimos.
     Random Forest no supone escala ni forma, y es el que más pierde sin las variables que fechan
-    las filas: sin macro ni \texttt{month}, \deltaAucSinMacroNiMonthRf{} (A8). Que gane por
+    las filas: sin macro ni \texttt{month}, \deltaAucSinMacroNiMonthRfBarajado. Que gane por
     reconocer la época es inferencia; es lo que retoma el hallazgo.
     \avanza KNN mide distancias y necesita escalar: sin escalar, \texttt{pdays} tiene el
     \pctVarianzaPdays{} de la varianza.
@@ -930,11 +933,11 @@
     \textbf{Si preguntan.} ¿Por qué el bloque macro ayuda a Naive Bayes si viola la
     independencia? Sacarlo cuesta \deltaAucSinMacroNbGaussiano{} en el gaussiano (D-14),
     probablemente porque fecha a los clientes (inferencia). ¿Qué variables usa Random Forest? No
-    medimos importancias; sí cuánto cambia su AUC sin cada bloque: \deltaAucSinMacroRf{} sin
-    macro (A7) y \deltaAucSinMacroNiMonthRf{} sin macro ni \texttt{month} (A8). ¿Y la U de la
-    edad? No la damos como causa del orden: se mezcla con la época (casi todos los mayores de
-    sesenta son de 2009--2010; \texttt{conclusiones.md}, §1), y no se midió qué pierde cada
-    modelo sin la edad.}
+    medimos importancias; sí su AUC sin cada bloque: \deltaAucSinMacroRfBarajado{} sin macro y
+    \deltaAucSinMacroNiMonthRfBarajado{} sin macro ni \texttt{month} (D-25); Naive Bayes, casi lo
+    mismo: \deltaAucSinMacroNiMonthNbBarajado. ¿Y la U de la edad? No la damos como causa: se
+    mezcla con la época (casi todos los mayores de sesenta son de 2009--2010;
+    \texttt{conclusiones.md}, §1), y no se midió cada modelo sin la edad.}
 \end{frame}
 
 % ---------------------------------------------------------------------
@@ -966,8 +969,8 @@
     \avanza Lo primero que haríamos es validar hacia adelante en el tiempo, que es como se
     usaría el modelo, y sumar historial: el \pctPoutcomeInexistente{} no tiene campaña
     previa.\\[0.4em]
-    \textbf{Si preguntan.} ¿Cuánto optimismo? Del orden de un error estándar,
-    \errorEstandarRfProfundidadElegida{} (inferencia); la regla de un error estándar lo atenúa.
+    \textbf{Si preguntan.} ¿Cuánto optimismo? No lo medimos; la regla de un error estándar lo
+    atenúa, porque no elige el máximo (D-22).
     ¿Y el desbalance? Pesos balanceados en Random Forest: \deltaAucPesosRf{} (N0-12). ¿Y
     \texttt{unknown}? Imputar es neutro: Random Forest \deltaAucImputarModaRf{} (D-08). ¿Y
     \texttt{campaign}? Puede depender del resultado (D-07); el efecto no se midió. ¿Otras
@@ -996,8 +999,12 @@
     mismo año, \aucOofDentroAnio.\\[0.4em]
     \textbf{Si preguntan.} ¿Cómo se validó hacia adelante? \texttt{TimeSeriesSplit} con 5 folds
     sobre train ordenado: cada fold valida con \filasBloqueAdelante{} filas y entrena con todo lo
-    anterior (D-25). ¿Por qué el desvío es tan grande? Porque los bloques son muy distintos: de
-    \pctYesBloqueUno{} a \pctYesBloqueCinco{} de «yes». ¿Qué dice el veredicto? El AUC es la
+    anterior (D-25). ¿Por qué el desvío es tan grande? Porque sirve en dos bloques y en tres no:
+    los tres de 2008 entrenan con pocos «yes», de \yesEntrenamientoAdelanteUno{} a
+    \yesEntrenamientoAdelanteTres, y dan de \aucRfAdelanteFoldTres{} a \aucRfAdelanteFoldDos; los
+    de 2009--2010 entrenan con \yesEntrenamientoAdelanteCuatro{} y \yesEntrenamientoAdelanteCinco{}
+    y dan \aucRfAdelanteFoldCuatro{} y \aucRfAdelanteFoldCinco. La tasa de «yes» de cada bloque
+    no lo explica: el AUC no depende de ella. ¿Qué dice el veredicto? El AUC es la
     proporción de pares «yes»–«no» bien ordenados; con los puntajes fuera de fold, barajados, es
     \aucOofEntreAnios{} en los pares de años distintos, que son el \pctParesEntreAnios, y
     \aucOofDentroAnio{} en los del mismo año (\texttt{conclusiones.md}, §2). No es entrenar en un
@@ -1010,15 +1017,15 @@
   \centrado{%
     \only<1>{\figgrande[0.97]{robustez-folds.png}}%
     \only<2->{\figgrande[0.97]{robustez-folds-2.png}}}
-  \note{Bloque a bloque: en los tres bloques de 2008, hacia adelante da \aucRfAdelanteFoldUno,
-    \aucRfAdelanteFoldDos{} y \aucRfAdelanteFoldTres, azar; el primero entrena con
-    \yesEntrenamientoAdelanteUno{} «yes».
+  \note{Bloque a bloque: en los tres bloques de 2008, hacia adelante da \aucRfAdelanteFoldUno{} y
+    \aucRfAdelanteFoldDos, y en el tercero, \aucRfAdelanteFoldTres, el orden incluso se invierte.
     \avanza Pero barajado, en esas mismas filas, tampoco pasa de \aucRfBarajadoBloqueTres: en
     2008 el modelo no sirve ni mezclando épocas. En 2009 y 2010, en cambio, pierde
     \caidaAucRfBloqueCuatro{} y \caidaAucRfBloqueCinco: una caída real, no el azar. Por eso el
     test vale para estas campañas.\\[0.4em]
-    \textbf{Si preguntan.} ¿Es porque las variables macro fechan las filas? No: sin ellas, hacia
-    adelante da \aucRfSinMacroAdelante, y sin ellas ni \texttt{month},
+    \textbf{Si preguntan.} ¿Con cuántos «yes» entrena el primer bloque?
+    \yesEntrenamientoAdelanteUno. ¿Es porque las variables macro fechan las filas? No: sin ellas,
+    hacia adelante da \aucRfSinMacroAdelante, y sin ellas ni \texttt{month},
     \aucRfSinMacroNiMonthAdelante{} (respaldo R4). ¿Por qué no validar así desde el principio?
     El enunciado plantea k-fold; un esquema temporal habría entrenado con 2008, con
     \pctYesDosMilOcho{} de «yes», para predecir 2010, con \pctYesDosMilDiez{} (D-25). Es la

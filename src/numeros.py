@@ -623,6 +623,42 @@ def _oof_rf(f):
     return f.memoria("oof_rf", lambda: con_objetivo(f.csv("oof_final_rf.csv"), f.train()))
 
 
+# Los grupos de filas que se ordenan por separado: el año inferido como eda.html (una campaña por
+# año, aproximadamente) y el año con el mes.
+POR_ANIO = ("anio",)
+POR_MES = ("anio", "mes")
+
+
+def _oof_rf_fechado(f):
+    """Los puntajes fuera de fold de RF con la `y` de train, el año inferido como eda.html
+    (anio_inferido: cada vez que el mes retrocede en el orden de `fila` empieza un año) y el mes
+    (`month`) de cada fila."""
+    def calcular():
+        d = _oof_rf(f)
+        train = f.train()
+        fecha = pd.DataFrame({FILA: train[FILA].to_numpy(),
+                              "anio": anio_inferido(train, f.names()["names"]),
+                              "mes": train["month"].to_numpy()})
+        return d.merge(fecha, on=FILA, how="left", validate="one_to_one")
+    return f.memoria("oof_rf_fechado", calcular)
+
+
+def _auc_por_grupo(d, claves):
+    """Los pares «yes»–«no» de un mismo grupo (el año, o el año y el mes): (suma de los AUC de cada
+    grupo ponderados por sus pares, cantidad de pares, {grupo: AUC}). Como el AUC es la proporción
+    de pares bien ordenados (un empate, medio), suma / pares es el AUC de los pares de un mismo
+    grupo. Un grupo sin «yes» o sin «no» no tiene pares y no cuenta."""
+    suma, pares, por_grupo = 0.0, 0, {}
+    for grupo, g in d.groupby(list(claves), sort=True):
+        positivos = int(g["y"].sum())
+        pares_grupo = positivos * (len(g) - positivos)
+        if pares_grupo:
+            por_grupo[grupo] = roc_auc_score(g["y"], g["puntaje"])
+            suma += por_grupo[grupo] * pares_grupo
+            pares += pares_grupo
+    return suma, pares, por_grupo
+
+
 def _pares_por_anio(clave):
     """El AUC fuera de fold de RF separado en los pares «yes»–«no» del mismo año y los de años
     distintos, con el año inferido como eda.html: la lectura (a) del hallazgo
@@ -632,25 +668,16 @@ def _pares_por_anio(clave):
     todo junto. Claves: pct_entre, auc_entre, auc_dentro y auc_<año>."""
     def dato(f):
         def calcular():
-            train = f.train()
-            anio = pd.Series(anio_inferido(train, f.names()["names"]), index=train[FILA].to_numpy())
-            d = _oof_rf(f)
-            d = d.assign(anio=d[FILA].map(anio).to_numpy())
+            d = _oof_rf_fechado(f)
             y = d["y"].to_numpy()
             positivos = int(y.sum())
             pares = positivos * (len(y) - positivos)
             if not pares:
                 raise Faltante("resultados/oof_final_rf.csv: sin «yes» o sin «no»")
-            r, dentro, suma = {}, 0, 0.0
-            for a, g in d.groupby("anio"):
-                p = int(g["y"].sum())
-                pares_anio = p * (len(g) - p)
-                if pares_anio:
-                    r[f"auc_{int(a)}"] = roc_auc_score(g["y"], g["puntaje"])
-                    dentro += pares_anio
-                    suma += r[f"auc_{int(a)}"] * pares_anio
+            suma, dentro, por_anio = _auc_por_grupo(d, POR_ANIO)
             if not dentro or dentro == pares:
                 raise Faltante("resultados/oof_final_rf.csv: no hay pares de un solo año y de dos")
+            r = {f"auc_{int(a)}": auc for (a,), auc in por_anio.items()}
             r["pct_entre"] = 100 * (pares - dentro) / pares
             r["auc_dentro"] = suma / dentro
             r["auc_entre"] = (roc_auc_score(y, d["puntaje"]) * pares - suma) / (pares - dentro)
@@ -659,6 +686,135 @@ def _pares_por_anio(clave):
         if clave not in pares_por_anio:
             raise Faltante(f"resultados/oof_final_rf.csv: {clave}")
         return pares_por_anio[clave]
+    return dato
+
+
+def _auc_dentro_de_cada_mes(f):
+    """El AUC fuera de fold de RF en los pares «yes»–«no» del mismo año y mes, ponderado por pares
+    como \\aucOofDentroAnio: cuánto ordena el modelo dentro de algo más cercano a una campaña."""
+    def calcular():
+        suma, pares, _ = _auc_por_grupo(_oof_rf_fechado(f), POR_MES)
+        if not pares:
+            raise Faltante("resultados/oof_final_rf.csv: ningún mes con «yes» y con «no»")
+        return suma / pares
+    return f.memoria("auc_dentro_mes", calcular)
+
+
+def _llamando_dentro(claves, clave, grupo=None):
+    """RF fuera de fold llamando al PRESUPUESTO de cada grupo por separado (`claves`: POR_ANIO o
+    POR_MES), con el corte y los empates de src/metricas.py (en_presupuesto) en cada uno: elegir a
+    quién llamar dentro de una época, sin que el orden entre épocas cuente. Con grupo=None, todo
+    train: recall = «yes» alcanzados en todos los grupos / «yes» de train. Claves: recall,
+    llamadas_por_yes (llamadas / «yes» alcanzados), llamadas, yes y tope (llamadas / «yes», el
+    recall máximo cuando un grupo tiene más «yes» que llamadas)."""
+    def dato(f):
+        def calcular():
+            total, grupos = {"alcanzados": 0.0, "llamadas": 0, "yes": 0}, {}
+            for g_clave, g in _oof_rf_fechado(f).groupby(list(claves), sort=True):
+                yes = int(g["y"].sum())
+                r = en_presupuesto(g["y"], g["puntaje"], PRESUPUESTO)
+                grupos[tuple(g_clave)] = {"alcanzados": r["recall_q"] * yes if yes else 0.0,
+                                          "llamadas": r["llamadas"], "yes": yes}
+                for k, v in grupos[tuple(g_clave)].items():
+                    total[k] += v
+            return total, grupos
+        total, grupos = f.memoria(("llamando_dentro", claves), calcular)
+        cifras = total if grupo is None else grupos.get(tuple(grupo))
+        que = f"resultados/oof_final_rf.csv llamando dentro de {'+'.join(claves)}"
+        if cifras is None or not cifras["yes"]:
+            raise Faltante(f"{que}: sin «yes» en {grupo}")
+        if clave == "recall":
+            return cifras["alcanzados"] / cifras["yes"]
+        if clave == "llamadas_por_yes":
+            if not cifras["alcanzados"]:
+                raise Faltante(f"{que}: ningún «yes» alcanzado")
+            return cifras["llamadas"] / cifras["alcanzados"]
+        if clave == "tope":
+            return cifras["llamadas"] / cifras["yes"]
+        return cifras[clave]
+    return dato
+
+
+# Naive Bayes categórico fuera de fold: la probabilidad que se cuenta como «casi 1». Es una
+# elección para leer la calibración, no un resultado.
+PROBABILIDAD_ALTA_NB = 0.99
+# El decil superior de la lista de NB: el 10 % de mayor puntaje, cortado como el presupuesto.
+DECIL = 0.1
+
+
+def _pesos_en_el_corte(s, q):
+    """El peso de cada fila entre las llamadas(n, q) de mayor puntaje: 1 por encima del corte, la
+    fracción que reparte los empates del corte en proporción (src/metricas.py, en_presupuesto) y 0
+    por debajo. Suman exactamente llamadas(n, q)."""
+    s = np.asarray(s, dtype=float)
+    k = llamadas(len(s), q)
+    corte = np.sort(s)[::-1][k - 1]
+    arriba, en_corte = s > corte, s == corte
+    return arriba + en_corte * (k - arriba.sum()) / en_corte.sum()
+
+
+def _nb_probabilidades(clave):
+    """La calibración de Naive Bayes categórico, fuera de fold (configuración final). Su puntaje es
+    el log-odds (src/metricas.py, puntajes), así que P(yes) = 1 / (1 + e^(−puntaje)), calculada
+    sin desbordes como e^(−log(1 + e^(−puntaje))). Claves: filas_alta, pct_alta y pct_yes_alta
+    (las filas de train con P(yes) >= PROBABILIDAD_ALTA_NB y cuántas son «yes»); p_decil y
+    tasa_decil (en el decil de mayor puntaje, la P(yes) media contra la proporción de «yes», con
+    los empates del corte repartidos en proporción)."""
+    def dato(f):
+        def calcular():
+            d = con_objetivo(f.csv("oof_final_nb_categorico.csv"), f.train())
+            y, s = d["y"].to_numpy(), d["puntaje"].to_numpy()
+            p = np.exp(-np.logaddexp(0.0, -s))
+            alta = p >= PROBABILIDAD_ALTA_NB
+            if not alta.any():
+                raise Faltante("resultados/oof_final_nb_categorico.csv: ninguna fila con P(yes) "
+                               f">= {PROBABILIDAD_ALTA_NB}")
+            peso = _pesos_en_el_corte(s, DECIL)
+            return {"filas_alta": int(alta.sum()), "pct_alta": 100 * alta.mean(),
+                    "pct_yes_alta": 100 * y[alta].mean(),
+                    "p_decil": float((peso * p).sum() / peso.sum()),
+                    "tasa_decil": float((peso * y).sum() / peso.sum())}
+        return f.memoria("nb_probabilidades", calcular)[clave]
+    return dato
+
+
+def _repetidos(clave, con_duration=False):
+    """Vectores de predictoras repetidos en train: grupos de filas con los mismos valores en todas
+    las predictoras (sin `fila` ni `y`). Sin duration son las 19 que puede usar el modelo (D-05,
+    D-07); con ella, tras quitar los duplicados exactos (D-01), no se repite ninguno. Claves:
+    vectores (los que aparecen en dos filas o más), filas (las de esos vectores), pct_filas,
+    vectores_distintas y filas_distintas (los repetidos con «yes» y «no» a la vez)."""
+    def dato(f):
+        def calcular():
+            df = f.train()
+            fuera = {FILA, OBJETIVO} | (set() if con_duration else set(EXCLUIDAS))
+            predictoras = [c for c in df.columns if c not in fuera]
+            por_vector = df.groupby(predictoras, dropna=False, sort=False)[OBJETIVO].agg(
+                ["size", "nunique"])
+            repetidos = por_vector[por_vector["size"] >= 2]
+            distintas = repetidos[repetidos["nunique"] > 1]
+            return {"vectores": len(repetidos), "filas": int(repetidos["size"].sum()),
+                    "pct_filas": 100 * repetidos["size"].sum() / len(df),
+                    "vectores_distintas": len(distintas),
+                    "filas_distintas": int(distintas["size"].sum())}
+        return f.memoria(("repetidos", con_duration), calcular)[clave]
+    return dato
+
+
+def _pesos_pareado(curva, estadistico):
+    """balanced − sin pesos, AUC de validación fold a fold, en una curva de pesos de clase
+    (resultados/curvas/<curva>.csv; D-21, N0-12): el desvío de las diferencias (ddof = 1) o
+    cuántos folds dan positivo. La media es la diferencia de las medias (\\deltaAucPesosRf,
+    \\deltaAucPesosSvm), porque los dos puntos se midieron en los mismos folds."""
+    def dato(f):
+        tabla, _ = f.curva(curva)
+        val = tabla[(tabla["conjunto"] == "validacion") & (tabla["metrica"] == "auc")]
+        por_fold = val.pivot_table(index="fold", columns="punto", values="valor")
+        if "balanced" not in por_fold or "None" not in por_fold:
+            raise Faltante(f"resultados/curvas/{curva}.csv: balanced y None")
+        diferencia = por_fold["balanced"] - por_fold["None"]
+        return {"desvio": diferencia.std(ddof=1), "positivos": int((diferencia > 0).sum())}[
+            estadistico]
     return dato
 
 
@@ -799,6 +955,21 @@ def _tasa_anio(anio):
         if anio not in tasas:
             raise Faltante(f"train: no hay filas de {anio}")
         return tasas[anio]
+    return dato
+
+
+def _yes_anio(anio):
+    """Filas con y = yes en train en un año, con el año inferido como eda.html."""
+    def dato(f):
+        def calcular():
+            df = f.train()
+            anios = anio_inferido(df, f.names()["names"])
+            y = (df[OBJETIVO] == "yes").to_numpy()
+            return {int(a): int(y[anios == a].sum()) for a in sorted(set(anios))}
+        conteos = f.memoria("yes_anio", calcular)
+        if anio not in conteos:
+            raise Faltante(f"train: no hay filas de {anio}")
+        return conteos[anio]
     return dato
 
 
@@ -981,6 +1152,29 @@ def _seccion_datos():
              _pct),
         _num("pctYesTestTemporal", f"{evidencia}: temporal.pct_yes_test, el del test (D-03)",
              _evidencia("temporal", "pct_yes_test"), _pct),
+    ] + _repetidos_en_train()
+
+
+def _repetidos_en_train():
+    """Las filas de train con las mismas predictoras: el mismo cliente en dos campañas, o dos
+    clientes con los mismos datos (el dataset no trae identificador de cliente). Explican también
+    que KNN con un vecino no llegue a 1 en train (slide 11)."""
+    donde = (f"{TRAIN}: vectores de las predictoras disponibles antes de llamar (todas las "
+             "columnas salvo fila, y y duration; D-07)")
+    return [
+        _num("vectoresRepetidos", f"{donde} que aparecen en dos filas o más",
+             _repetidos("vectores"), formatear_miles),
+        _num("filasVectoresRepetidos", f"{donde}: filas de los vectores repetidos",
+             _repetidos("filas"), formatear_miles),
+        _num("pctFilasVectoresRepetidos", f"{donde}: ídem, en % de las filas de train",
+             _repetidos("pct_filas"), _pct),
+        _num("vectoresRepetidosClasesDistintas", f"{donde}: repetidos con «yes» y «no» a la vez",
+             _repetidos("vectores_distintas"), formatear_miles),
+        _num("filasVectoresRepetidosClasesDistintas", f"{donde}: filas de esos vectores",
+             _repetidos("filas_distintas"), formatear_miles),
+        _num("vectoresRepetidosConDuration", f"{TRAIN}: vectores repetidos con todas las "
+             "predictoras, duration incluida (tras quitar los duplicados exactos, D-01)",
+             _repetidos("vectores", con_duration=True), formatear_miles),
     ]
 
 
@@ -1258,6 +1452,16 @@ def _seccion_curva_rf():
                                  "sin limite" if profundidad is None else profundidad)
         numeros.append(_num(nombre, f"{curva}: punto {punto}, validacion, auc, media",
                             _curva("rf_max_depth", punto, "auc_validacion_media"), _metrica))
+    # Los mismos puntos con cuatro decimales, los de \umbralUnoEsRfProfundidad: a tres, un punto
+    # puede parecer dentro de 1 ES del mejor sin estarlo (la profundidad 6).
+    for profundidad in GRILLAS[("rf", "max_depth")]:
+        punto = str(profundidad)
+        nombre = nombre_de_macro("auc rf profundidad",
+                                 "sin limite" if profundidad is None else profundidad,
+                                 "con cuatro decimales")
+        numeros.append(_num(nombre, f"{curva}: punto {punto}, validacion, auc, media, con cuatro "
+                            "decimales (para compararla con el umbral de 1 ES)",
+                            _curva("rf_max_depth", punto, "auc_validacion_media"), _error))
     for punto, palabra in (("None", "SinLimite"), ("2", "Dos")):
         numeros += [
             _num(f"aucTrainRfProfundidad{palabra}", f"{curva}: punto {punto}, train, auc, media",
@@ -1283,6 +1487,11 @@ def _seccion_curva_rf():
              formatear_delta),
         _num("errorEstandarRfPesosBalanceados", f"{pesos}: punto balanced, error estándar (N0-12)",
              _curva("rf_pesos_clase_depth8", "balanced", "error_estandar"), _error),
+        _num("deltaAucPesosRfDesvio", f"{pesos}: balanced − None fold a fold, desvío; la media es "
+             "\\deltaAucPesosRf (N0-12)", _pesos_pareado("rf_pesos_clase_depth8", "desvio"),
+             _desvio_delta),
+        _num("foldsPositivosPesosRf", f"{pesos}: folds en que balanced − None es positiva (N0-12)",
+             _pesos_pareado("rf_pesos_clase_depth8", "positivos"), formatear_miles),
     ]
     return numeros
 
@@ -1355,6 +1564,11 @@ def _seccion_curva_svm():
         _num("deltaAucPesosSvm", f"{pesos}: balanced − None (D-21, N0-12)",
              _resta(_curva("svm_pesos_clase", "balanced", "auc_validacion_media"),
                     _curva("svm_pesos_clase", "None", "auc_validacion_media")), formatear_delta),
+        _num("deltaAucPesosSvmDesvio", f"{pesos}: balanced − None fold a fold, desvío; la media es "
+             "\\deltaAucPesosSvm (D-21)", _pesos_pareado("svm_pesos_clase", "desvio"),
+             _desvio_delta),
+        _num("foldsPositivosPesosSvm", f"{pesos}: folds en que balanced − None es positiva (D-21)",
+             _pesos_pareado("svm_pesos_clase", "positivos"), formatear_miles),
         _num("cSvmSinPesosMejor", f"{hiper}.svm_C.mejor (RBF, sin pesos)",
              lambda f: float(_hiper("svm_C", "mejor")(f)), formatear_parametro),
         _num("aucSvmSinPesosMejor", f"{hiper}.svm_C.auc_validacion_mejor",
@@ -1489,6 +1703,31 @@ def _seccion_por_que():
              _eda("pct_varianza_nr_employed"), _pct),
         _num("razonDesviosNumericas", f"{TRAIN}: el mayor desvío de las 9 numéricas del modelo / "
              "el menor", _eda("razon_desvios"), lambda x: formatear_decimal(x, 0)),
+    ] + _calibracion_nb()
+
+
+def _calibracion_nb():
+    """Dónde se nota que el bloque macro viola la independencia de Naive Bayes: en las
+    probabilidades, no en el orden (resultados/conclusiones.md, §1). Con la época contada tres
+    veces, la probabilidad se va a los extremos (inferencia): estos macros miden cuánto se aleja
+    de la tasa de «yes» que dice estimar."""
+    oof = f"resultados/oof_final_nb_categorico.csv con la y de {TRAIN}"
+    return [
+        _num("probabilidadAltaNb", "src/numeros.py: PROBABILIDAD_ALTA_NB, la P(yes) de Naive "
+             "Bayes que se cuenta como «casi 1» (una elección)", _constante(PROBABILIDAD_ALTA_NB),
+             formatear_parametro),
+        _num("filasNbProbabilidadAlta", f"{oof}: filas con P(yes) >= PROBABILIDAD_ALTA_NB fuera de "
+             "fold, P(yes) = 1 / (1 + e^(−puntaje)), porque el puntaje es el log-odds",
+             _nb_probabilidades("filas_alta"), formatear_miles),
+        _num("pctNbProbabilidadAlta", f"{oof}: ídem, en % de las filas de train",
+             _nb_probabilidades("pct_alta"), _pct),
+        _num("pctYesNbProbabilidadAlta", f"{oof}: % de «yes» entre esas filas",
+             _nb_probabilidades("pct_yes_alta"), _pct),
+        _num("probabilidadMediaNbDecilSuperior", f"{oof}: P(yes) media en el 10 % de la lista con "
+             "mayor puntaje (empates del corte en proporción, como src/metricas.py)",
+             _nb_probabilidades("p_decil"), _metrica),
+        _num("tasaYesNbDecilSuperior", f"{oof}: proporción de «yes» en ese mismo 10 %",
+             _nb_probabilidades("tasa_decil"), _metrica),
     ]
 
 
@@ -1504,6 +1743,41 @@ def _seccion_limitaciones():
         numeros.append(_num(nombre_de_macro("precision rf", round(100 * q)),
                             f"{sensibilidad}: rf, q = {q}, precision_q, media de los folds",
                             _sensibilidad("rf", q, "precision_q"), _metrica))
+    return numeros
+
+
+def _dentro_de_una_epoca(oof_anio):
+    """Qué vale RF para elegir a quién llamar dentro de una época, sin el orden entre épocas que
+    suma al AUC barajado (lectura (a) del hallazgo): el recall llamando al 20 % de cada año, y de
+    cada año y mes, por separado; las llamadas por «yes» alcanzado, y el AUC de los pares del
+    mismo año y mes. Su vara es la de «sin modelo»: llamar al 20 % al azar alcanza el 20 %."""
+    anual = f"{oof_anio}: RF llamando al 20 % de las filas de cada año por separado"
+    numeros = [
+        _num("recallRfDentroAnio", f"{anual}, «yes» alcanzados en los tres años / «yes» de train",
+             _llamando_dentro(POR_ANIO, "recall"), _metrica),
+        _num("llamadasPorYesRfDentroAnio", f"{anual}: llamadas / «yes» alcanzados",
+             _llamando_dentro(POR_ANIO, "llamadas_por_yes"), _uno),
+    ]
+    for anio in (2008, 2009, 2010):
+        numeros += [
+            _num(nombre_de_macro("recall rf dentro anio", anio), f"{anual}: recall en {anio}",
+                 _llamando_dentro(POR_ANIO, "recall", (anio,)), _metrica),
+            _num(nombre_de_macro("llamadas dentro anio", anio), f"{anual}: llamadas en {anio}, "
+                 "llamadas(filas del año) de src/metricas.py",
+                 _llamando_dentro(POR_ANIO, "llamadas", (anio,)), formatear_miles),
+            _num(nombre_de_macro("yes", anio), f"{TRAIN}: filas con y = yes en {anio} (año "
+                 "inferido, como eda.html)", _yes_anio(anio), formatear_miles),
+        ]
+    numeros += [
+        _num("recallTopeDosMilDiez", f"{anual}: llamadas / «yes» de 2010, el recall máximo en ese "
+             "año, que tiene más «yes» que llamadas", _llamando_dentro(POR_ANIO, "tope", (2010,)),
+             _metrica),
+        _num("recallRfDentroMes", f"{oof_anio}: RF llamando al 20 % de cada año y mes por separado, "
+             "«yes» alcanzados / «yes» de train", _llamando_dentro(POR_MES, "recall"), _metrica),
+        _num("aucOofDentroMes", f"{oof_anio}: AUC fuera de fold de RF sobre los pares del mismo "
+             "año y mes (ponderado por pares, como \\aucOofDentroAnio)", _auc_dentro_de_cada_mes,
+             _metrica),
+    ]
     return numeros
 
 
@@ -1568,6 +1842,7 @@ def _seccion_hallazgo():
     for anio in (2008, 2009, 2010):
         numeros.append(_num(nombre_de_macro("auc oof", anio), f"{oof_anio}: AUC fuera de fold de RF "
                             f"en las filas de {anio}", _pares_por_anio(f"auc_{anio}"), _metrica))
+    numeros += _dentro_de_una_epoca(oof_anio)
     for fold in range(1, K + 1):
         donde = (f"resultados/oof_final_rf.csv con la y de {TRAIN}, en las filas del bloque {fold} "
                  "hacia adelante (resultados/robustez_folds.csv)")
