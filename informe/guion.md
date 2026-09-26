@@ -28,12 +28,13 @@ completa.**
 | --- | --- | --- | --- | --- |
 | Marco (portada, problema, cierre) | 1, 2, 20 | 0:40 | 0:40 | 0:00 |
 | Teoría que se nombra (qué datos deciden, métricas) | 3, 8 | 1:10 | 1:05 | −0:05 |
-| **EDA con consecuencias** | 4–7 | **2:05** | **1:55** | −0:10 |
-| **Resultados: modelos, curvas, final, errores, conclusiones** | 9–17 | **4:30** | **4:25** | −0:05 |
+| **EDA con consecuencias** | 4–7 | **2:05** | **1:40** | −0:25 |
+| **Resultados: modelos, curvas, final, errores, conclusiones** | 9–17 | **4:30** | **4:10** | −0:20 |
 | **Hallazgo** | 18–19 | **0:50** | **0:55** | +0:05 |
-| **Total** | 1–20 | **9:15** | **9:00** | −0:15 |
+| **Total** | 1–20 | **9:15** | **8:30** | −0:45 |
 
-El guion dura 9:00, 15 segundos menos que el esqueleto. Los cinco segundos que salen de la teoría
+El guion dura 8:30, 45 segundos menos que el esqueleto: 30 de esos segundos salieron de quitar de
+la charla todo lo que la pantalla no muestra (N0-15). Los cinco segundos que salen de la teoría
 —el AUC de la slide 8 se nombra en una frase— van al hallazgo, que es lo último que se ve. Los otros
 15 salen de no decir en voz alta cifras que la pantalla no muestra (guía B3): los deciles de
 `duration` en la slide 4, las brechas de la 9, la mejora de los pesos en la 12 y los «yes» del
@@ -60,12 +61,8 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
   generado por código: anotado sobre la figura o, en las curvas de las slides 10 y 11, como el punto
   que se señala; y cada diferencia que se dice es entre dos valores que se ven. La única excepción es
   la comparación del test con validación de la slide 14, que la guía C6 manda decir y no proyectar.
-  Lo hablado sólo agrega números de apoyo (descriptivos de train y recuentos), y todos están en
-  `informe/numeros.md`. Las cifras que la pantalla no muestra —las brechas de la slide 9, cuánto
-  suman los pesos en la 12— no se dicen, y al responder no se usa nada que no esté en las 20 slides
-  (N0-15). La charla sí afirma algunas cosas que no se ven, como que los pesos ayudan en la 12 o la
-  primera exploración de la 3: si el tribunal repregunta por ellas, la respuesta preparada está en
-  «Lo que se dice y no se ve», al final del banco.
+  Todos están en `informe/numeros.md`. La charla no afirma resultados que la pantalla no muestre, y
+  al responder no se usa nada que no esté en las 20 slides (N0-15).
 - Lo que el enunciado pide decir en la presentación: **sobreajuste y subajuste en una curva** (punto
   3.1, p. 2: slide 10), y los métodos **no se describen**, pero los resultados se discuten sabiendo
   cómo funcionan (punto 2.1, p. 2: slide 16 y el banco de preguntas).
@@ -113,13 +110,13 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
 
 | Bloque | Slides | Quién | Duración |
 | --- | --- | --- | --- |
-| El problema y los datos | 1–3 | Andrés | 0:00 → 1:10 |
-| EDA con consecuencias | 4–7 | Sebastián | 1:10 → 3:05 |
-| Métricas, modelos e hiperparámetros | 8–12 | Andrés | 3:05 → 5:25 |
-| Modelo final, errores, conclusiones y limitaciones | 13–17 | Sebastián | 5:25 → 8:00 |
-| Hallazgo y cierre | 18–20 | Andrés | 8:00 → 9:00 |
+| El problema y los datos | 1–3 | Andrés | 0:00 → 1:05 |
+| EDA con consecuencias | 4–7 | Sebastián | 1:05 → 2:45 |
+| Métricas, modelos e hiperparámetros | 8–12 | Andrés | 2:45 → 5:05 |
+| Modelo final, errores, conclusiones y limitaciones | 13–17 | Sebastián | 5:05 → 7:30 |
+| Hallazgo y cierre | 18–20 | Andrés | 7:30 → 8:30 |
 
-Cada uno habla unos cuatro minutos y medio: Andrés 725 palabras (4:29) y Sebastián 732 (4:31). Son
+Cada uno habla algo más de cuatro minutos: Andrés 690 palabras (4:16) y Sebastián 674 (4:10). Son
 cuatro cambios de orador. En las preguntas responde primero quien presentó ese bloque, y el otro
 completa. El reparto es una propuesta: si se cambia, se cambia por bloque entero, nunca a mitad de un
 bloque.
@@ -129,27 +126,27 @@ bloque.
 | Punto del enunciado | Dónde se dice | Minuto |
 | --- | --- | --- |
 | 0. Dataset y problema: predecir `y` para priorizar llamadas | Slide 2 | 0:05–0:35 |
-| Consejo «Importante»: qué datos se usan en cada etapa | Slide 3 (y cada número del guion dice su conjunto) | 0:35–1:10 |
-| 1. Partir antes de transformar; lo aprendido, dentro del pipeline | Slides 3 y 7 | 0:35–1:10 y 2:30–3:05 |
+| Consejo «Importante»: qué datos se usan en cada etapa | Slide 3 (y cada número del guion dice su conjunto) | 0:35–1:05 |
+| 1. Partir antes de transformar; lo aprendido, dentro del pipeline | Slides 3 y 7 | 0:35–1:05 y 2:10–2:45 |
 | 1. EDA: balance de clases | Slide 2 | 0:05–0:35 |
-| 1. EDA: distribuciones y relación con `y`; diferencias entre quienes aceptan y quienes no | Slides 4–6 | 1:10–2:30 |
-| 1. EDA: fuga de datos (qué existe antes de llamar) | Slide 4 (`campaign`, en las aclaraciones de la 2) | 1:10–1:35 |
-| 1. EDA: faltantes y categorías raras | Slide 7 (`unknown` queda como categoría; dos categorías fundidas) | 2:30–3:05 |
-| 1. Cada observación del EDA con su consecuencia | Slides 4–7, cada una con su veredicto | 1:10–3:05 |
-| 2.1 Naive Bayes, SVM, KNN y RF con scikit-learn | Slide 9 (y 13) | 3:35–4:05 |
-| 2.2 k-fold sólo sobre train, sin fuga | Slides 3 y 7 | 0:35–1:10 y 2:30–3:05 |
-| 2.3 Dos métricas justificadas | Slide 8 | 3:05–3:35 |
-| 3.1 Un hiperparámetro por modelo, con curvas de validación | Slides 10–12 | 4:05–5:25 |
-| 3.1 Sobreajuste y subajuste en una curva | Slide 10 (y 11) | 4:05–4:40 |
-| 4. El modelo elegido | Slide 13 | 5:25–5:50 |
-| 4. El desempeño esperado en datos nuevos | Slide 14 | 5:50–6:20 |
-| 5. Qué errores son los relevantes | Slide 15 | 6:20–6:45 |
-| 5. Qué modelos funcionaron mejor y por qué; los supuestos de cada uno | Slide 16 | 6:45–7:25 |
-| 5. Limitaciones y mejoras | Slide 17 | 7:25–8:00 |
-| *(no calificable)* El hallazgo: el modelo aprende la época | Slides 18–19 | 8:00–8:55 |
+| 1. EDA: distribuciones y relación con `y`; diferencias entre quienes aceptan y quienes no | Slides 4–6 | 1:05–2:10 |
+| 1. EDA: fuga de datos (qué existe antes de llamar) | Slide 4 (`campaign`, en las aclaraciones de la 2) | 1:05–1:25 |
+| 1. EDA: faltantes y categorías raras | Slide 7 (`unknown` queda como categoría; dos categorías fundidas) | 2:10–2:45 |
+| 1. Cada observación del EDA con su consecuencia | Slides 4–7, cada una con su veredicto | 1:05–2:45 |
+| 2.1 Naive Bayes, SVM, KNN y RF con scikit-learn | Slide 9 (y 13) | 3:20–3:45 |
+| 2.2 k-fold sólo sobre train, sin fuga | Slides 3 y 7 | 0:35–1:05 y 2:10–2:45 |
+| 2.3 Dos métricas justificadas | Slide 8 | 2:45–3:20 |
+| 3.1 Un hiperparámetro por modelo, con curvas de validación | Slides 10–12 | 3:45–5:05 |
+| 3.1 Sobreajuste y subajuste en una curva | Slide 10 (y 11) | 3:45–4:20 |
+| 4. El modelo elegido | Slide 13 | 5:05–5:25 |
+| 4. El desempeño esperado en datos nuevos | Slide 14 | 5:25–5:55 |
+| 5. Qué errores son los relevantes | Slide 15 | 5:55–6:20 |
+| 5. Qué modelos funcionaron mejor y por qué; los supuestos de cada uno | Slide 16 | 6:20–7:00 |
+| 5. Limitaciones y mejoras | Slide 17 | 7:00–7:30 |
+| *(no calificable)* El hallazgo: el modelo aprende la época | Slides 18–19 | 7:30–8:25 |
 
 **Gate G5: ningún punto calificable cae después del hallazgo.** Todo lo que la consigna califica,
-limitaciones incluidas, termina en la slide 17, a los 8:00. El hallazgo empieza después y no responde
+limitaciones incluidas, termina en la slide 17, a los 7:30. El hallazgo empieza después y no responde
 ningún punto que no esté ya respondido: le pone números a la primera limitación. Si el tribunal
 corta en la 17, el trabajo está completo.
 
@@ -200,16 +197,14 @@ corta en la 17, el trabajo está completo.
 - **La exactitud engaña con clases desbalanceadas:** modelos con la misma exactitud cometen errores
   muy distintos (Clase 4, slides 26–27; D-19).
 
-### 3 · Train decide; test sólo mide, y una sola vez — 0:35 → 1:10 (~92 palabras)
+### 3 · Train decide; test sólo mide, y una sola vez — 0:35 → 1:05 (~76 palabras)
 
 **Habla: Andrés.** Es la regla de juego antes del primer número (guía A3) y el consejo «Importante»
-del enunciado. Se dice completa pero rápido: son definiciones que el tribunal ya conoce. El segundo
-paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (D-04).
+del enunciado. Se dice completa pero rápido: son definiciones que el tribunal ya conoce.
 
 > Primero, quitamos 12 duplicados exactos: si una copia cae en train y otra en test, el test deja de
 > ser independiente. Después, 80/20 estratificado por la clase.
-> **[→]** El análisis exploratorio que decide y las ablaciones leen sólo train: una primera
-> exploración usó el archivo completo, y la rehicimos sobre train antes de decidir nada.
+> **[→]** El análisis exploratorio que decide y las ablaciones leen sólo train.
 > **[→]** La validación cruzada de 5 folds, también: con ella elegimos modelo e hiperparámetros.
 > **[→]** Y el test no decide nada: se abre una vez, al final, para estimar el desempeño. Por eso cada
 > número dice de qué conjunto sale.
@@ -233,14 +228,14 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
 - **El orden importa** porque el enunciado lo pide: partir «antes de aplicar cualquier
   transformación que pueda producir data leakage» (TP2, p. 1).
 
-### 4 · La duración predice el «yes», pero no existe antes de llamar — 1:10 → 1:35 (~66 palabras)
+### 4 · La duración predice el «yes», pero no existe antes de llamar — 1:05 → 1:25 (~58 palabras)
 
 **Habla: Sebastián** (bloque 2, slides 4–7). Entra con la primera decisión del EDA.
 
 > Primera decisión del análisis exploratorio: la fuga. `duration` es la duración de la última
 > llamada: se conoce al colgar, cuando el resultado ya se sabe. Medimos cuánto pesa, en validación:
 > con `duration` los cuatro saltan, y Random Forest pasa de 0,770 a 0,939. Es un techo que no existe
-> antes de llamar, y el propio diccionario del dataset pide descartarla.
+> antes de llamar.
 > **[→]** Consecuencia: `duration` queda fuera del modelo.
 
 #### A aclarar
@@ -257,7 +252,7 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
 - **¿Por qué medirla, si de todos modos sale?** Porque el enunciado sugiere comparar el modelo con y
   sin las variables problemáticas (TP2, p. 1), y porque el techo dice cuánto cuesta no tenerla.
 
-### 5 · El archivo va por fecha: el «yes» sube de 1,9 % a 50,9 % — 1:35 → 2:05 (~79 palabras)
+### 5 · El archivo va por fecha: el «yes» sube de 1,9 % a 50,9 % — 1:25 → 1:55 (~79 palabras)
 
 **Habla: Sebastián.**
 
@@ -284,15 +279,13 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
 - **¿Qué pasaba sin barajar?** Los folds se armarían en el orden del archivo, y cada uno quedaría en
   una época de la figura. Barajados, «cada fold mezcla las épocas» (slide 7; D-06).
 
-### 6 · 999 no significa «nunca contactado» — 2:05 → 2:30 (~67 palabras)
+### 6 · 999 no significa «nunca contactado» — 1:55 → 2:10 (~39 palabras)
 
 **Habla: Sebastián.**
 
-> Tercera: `pdays`. El diccionario dice que 999 es «no contactado antes», y es el 96,3 % de train.
-> Pero 3 302 filas con 999 sí tuvieron contactos previos, y los que tienen días registrados contratan
-> el 64,6 %.
-> **[→]** En validación, sacarla empeora a Naive Bayes y a KNN, y en los otros dos no cambia nada. Se
-> queda: escalado o en un árbol, el 999 funciona como un corte.
+> Tercera: `pdays`. El 999 parece «no contactado antes», pero 3 302 filas con 999 sí tuvieron
+> contactos previos, y los que tienen días registrados contratan el 64,6 %.
+> **[→]** Se queda: escalado o en un árbol, el 999 funciona como un corte.
 
 #### A aclarar
 - **Las tres barras, en train**, cada una con su tasa de «yes» anotada: los nunca contactados (999 y
@@ -311,7 +304,7 @@ paso cuenta, sin esconderla, la primera exploración sobre el archivo completo (
   intercuartílico de `pdays` es cero: las 1 207 filas con días registrados son justo sus atípicos, y
   son las que más contratan. Por eso no se borran (slide 7).
 
-### 7 · Todo se ajusta dentro de cada fold, en este orden — 2:30 → 3:05 (~101 palabras)
+### 7 · Todo se ajusta dentro de cada fold, en este orden — 2:10 → 2:45 (~101 palabras)
 
 **Habla: Sebastián.** Las cajas entran en el orden en que el pipeline las ejecuta. El último overlay
 es la consecuencia del IQR, que es exactamente lo que la cátedra marcó como inconcluso en el TP1:
@@ -349,7 +342,7 @@ se dice para qué sirvió, con su número, y que no se borró nada.
   cada fold, sólo con el de entrenamiento (la caja punteada), que es lo que pide el enunciado (TP2,
   p. 1).
 
-### 8 · Dos métricas que no premian decir siempre «no» — 3:05 → 3:35 (~83 palabras)
+### 8 · Dos métricas que no premian decir siempre «no» — 2:45 → 3:20 (~83 palabras)
 
 **Habla: Andrés** (bloque 3, slides 8–12). Es teoría de la Clase 4: se nombra, no se desarrolla. Lo
 propio es el 20 % y por qué no se usa la exactitud.
@@ -385,7 +378,7 @@ propio es el 20 % y por qué no se usa la exactitud.
 - **¿Y el desbalance?** No se remuestrea: el pipeline de la slide 7 no tiene ese paso, y estas dos
   métricas no premian el «no» (D-21; pregunta 9).
 
-### 9 · Sin ajustar, gana Naive Bayes: 0,782 contra 0,500 sin modelo — 3:35 → 4:05 (~74 palabras)
+### 9 · Sin ajustar, gana Naive Bayes: 0,782 contra 0,500 sin modelo — 3:20 → 3:45 (~74 palabras)
 
 **Habla: Andrés.** Son tres los que sobreajustan: también KNN con k = 15, que es el puente a la
 slide 11, donde sobreajusta el k pequeño.
@@ -417,7 +410,7 @@ slide 11, donde sobreajusta el k pequeño.
   título).
 - **Las barras** son ± 1 desvío entre los 5 folds (el eje).
 
-### 10 · ¿Desde qué profundidad sobreajusta Random Forest? — 4:05 → 4:40 (~98 palabras)
+### 10 · ¿Desde qué profundidad sobreajusta Random Forest? — 3:45 → 4:20 (~98 palabras)
 
 **Habla: Andrés.** Es el punto 3.1 que el enunciado pide decir en la presentación: sobreajuste y
 subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
@@ -455,7 +448,7 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿Y el número de árboles?** No es un eje de complejidad: más árboles no cambian el sesgo y sólo
   bajan la varianza (Clase 7, slide 61; pregunta 19).
 
-### 11 · En KNN sobreajusta el k pequeño: se elige k = 801 — 4:40 → 5:05 (~62 palabras)
+### 11 · En KNN sobreajusta el k pequeño: se elige k = 801 — 4:20 → 4:45 (~62 palabras)
 
 **Habla: Andrés.**
 
@@ -481,11 +474,11 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
   predictoras y distinta respuesta, que empatan a distancia cero (inferencia; pregunta 7).
 - **Escalar no es opcional en KNN:** mide distancias (Clase 8, slide 54; Alpaydin §8.3, p. 192).
 
-### 12 · La SVM queda lineal y muy regularizada: C = 0,001 — 5:05 → 5:25 (~62 palabras)
+### 12 · La SVM queda lineal y muy regularizada: C = 0,001 — 4:45 → 5:05 (~55 palabras)
 
 **Habla: Andrés.**
 
-> En la SVM exploramos C y el kernel, con pesos balanceados, que aquí sí ayudan. Con kernel lineal
+> En la SVM exploramos C y el kernel. Con kernel lineal
 > la curva de C es plana, sin sobreajuste, y tomamos 0,001, el más regularizado.
 > **[→]** Con RBF, en cambio, un C grande sobreajusta: train sube casi a uno y la validación cae. Y
 > ni en su mejor C el RBF supera al lineal: queda lineal.
@@ -503,7 +496,7 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿Y γ?** La curva del RBF varía sólo C, con γ fijo (el eje). El kernel elegido es el lineal, que no
   tiene γ; la grilla conjunta de C y γ es la de la Clase 8, slides 48–49.
 
-### 13 · Ajustados, gana Random Forest por 0,011 de AUC en validación — 5:25 → 5:50 (~60 palabras)
+### 13 · Ajustados, gana Random Forest por 0,011 de AUC en validación — 5:05 → 5:25 (~60 palabras)
 
 **Habla: Sebastián** (bloque 4, slides 13–17). Entra con el resultado de la selección.
 
@@ -530,7 +523,7 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
   por cada «yes» alcanzado, contra 8,9 sin modelo (validación). Con el test evaluado, la slide 15
   muestra en su lugar el recall de test, y esos dos valores ya no están en pantalla.
 
-### 14 · ¿Qué AUC esperar en clientes nuevos de la misma época? — 5:50 → 6:20 (~80 palabras)
+### 14 · ¿Qué AUC esperar en clientes nuevos de la misma época? — 5:25 → 5:55 (~72 palabras)
 
 **Habla: Sebastián.** Es la única slide que no compara nada (guía C2, C3): ni «sin modelo» ni otro
 modelo, ni en pantalla ni en voz alta. La comparación con validación se dice, no se proyecta (C6).
@@ -538,7 +531,7 @@ Los «?» se leen de `informe/numeros.md`, sección «Números de test», despu�
 
 > ¿Qué esperar en clientes nuevos? Lo dice el test: Random Forest reentrenado con todo train, sobre
 > las 8 236 filas de test, una sola vez. Da ? de AUC, con un intervalo del 95 % de ?. Contra
-> validación, la diferencia es ?, frente a un desvío entre folds de 0,006. Y atención a qué mide: el
+> validación, la diferencia es ?. Y atención a qué mide: el
 > test sale de las mismas campañas que train, así que estima clientes nuevos de esa época, no una
 > campaña futura. Eso es el hallazgo.
 
@@ -572,7 +565,7 @@ El encabezado cuenta la variante más larga.
   pipeline, y se dice (pregunta 27). En ningún caso se cambia el modelo después: lo que se promete es
   el número de test.
 
-### 15 · El error caro es el «yes» que no se llama — 6:20 → 6:45 (~72 palabras)
+### 15 · El error caro es el «yes» que no se llama — 5:55 → 6:20 (~72 palabras)
 
 **Habla: Sebastián.**
 
@@ -614,7 +607,7 @@ El encabezado cuenta la variante más larga.
 - **Con el test evaluado**, la matriz es la de test, con el 20 % de su lista, y al lado su recall; no
   se compara con «sin modelo», como en la slide 14.
 
-### 16 · ¿Por qué ganó Random Forest y quedó última la SVM? — 6:45 → 7:25 (~107 palabras)
+### 16 · ¿Por qué ganó Random Forest y quedó última la SVM? — 6:20 → 7:00 (~107 palabras)
 
 **Habla: Sebastián.** Son los cuatro ejemplos del enunciado (TP2, p. 2): variables muy
 correlacionadas y distribuciones no gaussianas (Naive Bayes), diferencias de escala (KNN, SVM) y
@@ -649,13 +642,13 @@ efecto medido, y ninguna frase da una causa del orden como probada: la U de la e
 - **Las distribuciones no gaussianas:** `pdays` es casi binaria, con casi todas las filas en 999
   (slide 6); por eso el Naive Bayes del TP es el categórico, que le gana al gaussiano (slide 9).
 
-### 17 · Limitaciones: el test mide estas campañas, no una futura — 7:25 → 8:00 (~100 palabras)
+### 17 · Limitaciones: el test mide estas campañas, no una futura — 7:00 → 7:30 (~86 palabras)
 
 **Habla: Sebastián.** Antes del hallazgo, siempre (guía A4, A7). Nunca se recorta.
 
 > Tres limitaciones, por impacto. La época: el test sale de las mismas campañas, así que vale para
-> clientes nuevos de esas campañas, no para una futura. Llamar al 20 % es un supuesto: con el 10 % o
-> el 30 %, Random Forest sigue primero en validación. Y elegimos los hiperparámetros con la misma
+> clientes nuevos de esas campañas, no para una futura. Llamar al 20 % es un supuesto. Y elegimos
+> los hiperparámetros con la misma
 > validación que los reporta: el máximo sale algo optimista.
 > **[→]** Lo primero que haríamos es validar hacia adelante en el tiempo, que es como se usaría el
 > modelo. Después, sumar historial: el 86,3 % de train no tiene campaña previa. Y un costo por tipo de
@@ -677,7 +670,7 @@ efecto medido, y ninguna frase da una causa del orden como probada: la U de la e
 - **Otra mejora:** calibrar las probabilidades, porque un costo por tipo de error necesita
   probabilidades y hoy las dos métricas sólo miden el orden (slide 8; inferencia).
 
-### 18 · Entrenado con el pasado, Random Forest cae de 0,795 a 0,558 — 8:00 → 8:30 (~77 palabras)
+### 18 · Entrenado con el pasado, Random Forest cae de 0,795 a 0,558 — 7:30 → 7:55 (~65 palabras)
 
 **Habla: Andrés** (bloque 5, slides 18–20). Entra enganchado con la última frase de Sebastián:
 validar hacia adelante.
@@ -685,8 +678,8 @@ validar hacia adelante.
 > El hallazgo. Validamos hacia adelante dentro de train: cada fold entrena con el pasado y valida con
 > el bloque siguiente. Barajados, los cuatro están entre 0,774 y 0,795; hacia adelante, ninguno pasa
 > de 0,598, y Random Forest cae a 0,558.
-> **[→]** ¿Por qué tanto? Parte del 0,795 es distinguir años: en los puntajes fuera de fold, el 66,3 %
-> de los pares «yes»–«no» son de años distintos, y ahí el AUC es 0,864; en los del mismo año, 0,658.
+> **[→]** ¿Por qué tanto? Parte del 0,795 es distinguir años: en los pares «yes»–«no» de años
+> distintos, el AUC es 0,864; en los del mismo año, 0,658.
 
 #### A aclarar
 - **¿Cómo se validó hacia adelante?** Con train ordenado por fecha y partido en bloques: cada fold
@@ -713,7 +706,7 @@ validar hacia adelante.
   a 50,9 % en los bloques de la slide 5; basta con reconocer la época para ordenar bien un «yes» de
   2010 frente a un «no» de 2008 (inferencia).
 
-### 19 · En 2008 no sirve; en 2009–2010 pierde, pero no cae al azar — 8:30 → 8:55 (~71 palabras)
+### 19 · En 2008 no sirve; en 2009–2010 pierde, pero no cae al azar — 7:55 → 8:25 (~71 palabras)
 
 **Habla: Andrés.** Es lo último que se muestra (guía A6). Si el reloj va atrasado, el segundo paso
 se reduce a la frase de recorte del «Reloj de ensayo».
@@ -749,7 +742,7 @@ se reduce a la frase de recorte del «Reloj de ensayo».
   Para una campaña futura, la mejor referencia que tenemos es la validación hacia adelante de
   2009–2010, 0,664 y 0,711 (inferencia).
 
-### 20 · ¿Preguntas? — 8:55 → 9:00 (~7 palabras)
+### 20 · ¿Preguntas? — 8:25 → 8:30 (~7 palabras)
 
 **Habla: Andrés.**
 
@@ -973,38 +966,38 @@ modelo después de abrirlo: lo que se promete es el número de test. Y en ningú
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Portada | 0:00 | 0:05 | 0 | marco | Andrés |
 | 2 | El problema | 0:05 | 0:30 | 2 | marco | Andrés |
-| 3 | Qué datos deciden | 0:35 | 0:35 | 3 | teoría | Andrés |
-| 4 | `duration`, fuera | 1:10 | 0:25 | 1 | **EDA** | Sebastián |
-| 5 | El archivo va por fecha | 1:35 | 0:30 | 1 | **EDA** | Sebastián |
-| 6 | El 999 de `pdays` | 2:05 | 0:25 | 1 | **EDA** | Sebastián |
-| 7 | El pipeline y el IQR | 2:30 | 0:35 | 4 | **EDA** | Sebastián |
-| 8 | Dos métricas | 3:05 | 0:30 | 2 | teoría | Andrés |
-| 9 | Modelos sin ajustar | 3:35 | 0:30 | 0 | **resultados** | Andrés |
-| 10 | Curva de Random Forest | 4:05 | 0:35 | 2 | **resultados** | Andrés |
-| 11 | Curva de KNN | 4:40 | 0:25 | 0 | **resultados** | Andrés |
-| 12 | Curva de la SVM | 5:05 | 0:20 | 1 | **resultados** | Andrés |
-| 13 | Modelo final | 5:25 | 0:25 | 0 | **resultados** | Sebastián |
-| 14 | El test | 5:50 | 0:30 | 0 | **resultados** | Sebastián |
-| 15 | Los errores | 6:20 | 0:25 | 2 | **resultados** | Sebastián |
-| 16 | Por qué rindió cada uno | 6:45 | 0:40 | 3 | **resultados** | Sebastián |
-| 17 | Limitaciones y mejoras | 7:25 | 0:35 | 1 | **resultados** | Sebastián |
-| 18 | Hallazgo: la caída | 8:00 | 0:30 | 1 | **hallazgo** | Andrés |
-| 19 | Hallazgo: bloque a bloque | 8:30 | 0:25 | 1 | **hallazgo** | Andrés |
-| 20 | ¿Preguntas? | 8:55 | 0:05 | 0 | marco | Andrés |
+| 3 | Qué datos deciden | 0:35 | 0:30 | 3 | teoría | Andrés |
+| 4 | `duration`, fuera | 1:05 | 0:20 | 1 | **EDA** | Sebastián |
+| 5 | El archivo va por fecha | 1:25 | 0:30 | 1 | **EDA** | Sebastián |
+| 6 | El 999 de `pdays` | 1:55 | 0:15 | 1 | **EDA** | Sebastián |
+| 7 | El pipeline y el IQR | 2:10 | 0:35 | 4 | **EDA** | Sebastián |
+| 8 | Dos métricas | 2:45 | 0:35 | 2 | teoría | Andrés |
+| 9 | Modelos sin ajustar | 3:20 | 0:25 | 0 | **resultados** | Andrés |
+| 10 | Curva de Random Forest | 3:45 | 0:35 | 2 | **resultados** | Andrés |
+| 11 | Curva de KNN | 4:20 | 0:25 | 0 | **resultados** | Andrés |
+| 12 | Curva de la SVM | 4:45 | 0:20 | 1 | **resultados** | Andrés |
+| 13 | Modelo final | 5:05 | 0:20 | 0 | **resultados** | Sebastián |
+| 14 | El test | 5:25 | 0:30 | 0 | **resultados** | Sebastián |
+| 15 | Los errores | 5:55 | 0:25 | 2 | **resultados** | Sebastián |
+| 16 | Por qué rindió cada uno | 6:20 | 0:40 | 3 | **resultados** | Sebastián |
+| 17 | Limitaciones y mejoras | 7:00 | 0:30 | 1 | **resultados** | Sebastián |
+| 18 | Hallazgo: la caída | 7:30 | 0:25 | 1 | **hallazgo** | Andrés |
+| 19 | Hallazgo: bloque a bloque | 7:55 | 0:30 | 1 | **hallazgo** | Andrés |
+| 20 | ¿Preguntas? | 8:25 | 0:05 | 0 | marco | Andrés |
 
 **Puntos de control al ensayar.**
 
-- Al terminar la **slide 3** tienen que haber pasado **1:10**: la regla de juego está dicha y
+- Al terminar la **slide 3** tienen que haber pasado **1:05**: la regla de juego está dicha y
   todavía no se mostró ningún resultado.
-- Al terminar la **slide 7** tienen que haber pasado **3:05**. Es el control más importante: el EDA
+- Al terminar la **slide 7** tienen que haber pasado **2:45**. Es el control más importante: el EDA
   está cerrado con sus cuatro consecuencias, y todo lo anterior es marco, teoría y datos. Si pasaron
-  más de 3:20, se aplican ya los recortes 3 y 4, que caen en las slides 9 y 11, y se da por hecho el
+  más de 3:00, se aplican ya los recortes 3 y 4, que caen en las slides 9 y 11, y se da por hecho el
   recorte 1. Nunca se recorta en la 10.
-- Al terminar la **slide 13** tienen que haber pasado **5:50**: el modelo está elegido y lo que queda
-  del punto 4 es el test. Si pasaron más de 6:05, se aplica el recorte 1; si más de 6:20, también el 2.
-- Al terminar la **slide 17** tienen que haber pasado **8:00**: todo lo calificable está dicho (gate
+- Al terminar la **slide 13** tienen que haber pasado **5:25**: el modelo está elegido y lo que queda
+  del punto 4 es el test. Si pasaron más de 5:40, se aplica el recorte 1; si más de 5:55, también el 2.
+- Al terminar la **slide 17** tienen que haber pasado **7:30**: todo lo calificable está dicho (gate
   G5). Lo que queda es el hallazgo, que es lo mejor del trabajo pero no un punto de la consigna. Si
-  pasaron más de 8:15, el hallazgo va con los recortes 1 y 2.
+  pasaron más de 7:45, el hallazgo va con los recortes 1 y 2.
 
 **Orden de recorte, si hay que recortar en vivo.** Es un orden de prioridad: lo primero que se
 sacrifica es lo último que se dice.
@@ -1014,7 +1007,7 @@ sacrifica es lo último que se dice.
    Por eso el test vale para estas campañas.» De 46 a 24 palabras: unos 8 segundos.
 2. **Después, el segundo overlay de la 18:** «Parte del 0,795 es distinguir años: entre años
    distintos el AUC es 0,864; en los del mismo año, 0,658.» Los dos números están en el veredicto
-   de la pantalla. De 37 a 19 palabras: unos 7 segundos.
+   de la pantalla. De 26 a 19 palabras: unos 3 segundos.
 3. **En la slide 9, sin el porqué del categórico:** «El mejor es Naive Bayes, en su versión
    categórica.» El número queda en pantalla y la razón, en las aclaraciones. Unos 7 segundos.
 4. **En la slide 11, sin la ponderación por distancia:** se omite «Ponderar por distancia queda peor
@@ -1034,16 +1027,16 @@ marcas `[→]` ni los signos sueltos, y cada «?» del test cuenta como una pala
 entre 1 y 4 palabras de más. Contado con esta regla, el TP1 dice 1 606 palabras en los 10:00 de su
 reloj, 2,68 por segundo: redondeado, el mismo 2,7.
 
-- **1 457 palabras / 2,7 = 539,6 s = 9:00 ≤ 9:45.** Pasa, con 45 segundos de margen. Con las
-  ventanas redondeadas a 5 segundos, el reloj termina en 9:00, 15 segundos antes que el esqueleto del
-  plan. A 2,68 por segundo, 9:04.
-- **Con los números leídos completos: entre 9:23 y 9:28.** Los números de este guion tardan más en
+- **1 364 palabras / 2,7 = 505,2 s = 8:25 ≤ 9:45.** Pasa, con 80 segundos de margen. Con las
+  ventanas redondeadas a 5 segundos, el reloj termina en 8:30, 45 segundos antes que el esqueleto del
+  plan. A 2,68 por segundo, 8:29.
+- **Con los números leídos completos: entre 8:47 y 8:52.** Los números de este guion tardan más en
   decirse que los del TP1, porque muchos son AUC con tres decimales. Se expandió cada número escrito
   con cifras a las palabras con que se lee («0,795» son seis: «cero coma setecientos noventa y
   cinco»), y cada «?» del test, como un número de tres decimales: cada palabra de este guion equivale
   a 1,19 palabras leídas, y cada una del TP1, a 1,15. A la velocidad de lectura que 2,7 por segundo
-  le supone al TP1, este guion dura 9:23; si el TP1 se dijo en los 10:00 de su reloj, 9:28, 17
-  segundos por debajo del tope. Hay 85 números hablados, el 5,8 % de las palabras (en el TP1, 93,
+  le supone al TP1, este guion dura 8:47; si el TP1 se dijo en los 10:00 de su reloj, 8:52, 53
+  segundos por debajo del tope. Hay 80 números hablados, el 5,9 % de las palabras (en el TP1, 93,
   también el 5,8 %).
 - **Lo que decide son los dos ensayos cronometrados** (paso 8.4 del plan, gate G6): tienen que
   durar 10:00 o menos. Si un ensayo pasa de 9:45, se aplica el orden de recorte de arriba, en ese

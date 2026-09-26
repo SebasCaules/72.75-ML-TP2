@@ -435,9 +435,7 @@
   \note{Primero, quitamos \duplicados{} duplicados exactos: si una copia cae en train y otra en
     test, el test deja de ser independiente. Después, 80/20 estratificado por la clase, con
     semilla fija.
-    \avanza El EDA que decide se hizo sobre train; una primera exploración corrió sobre el
-    archivo completo y la rehicimos sobre train antes de decidir nada (D-04). Las ablaciones
-    también leen sólo train.
+    \avanza El EDA que decide y las ablaciones leen sólo train.
     \avanza La validación cruzada de 5 folds, también: con ella elegimos modelo e
     hiperparámetros.
     \avanza Y el test no decide nada: se abre una vez, al final, para estimar el desempeño.
@@ -472,8 +470,7 @@
     «yes»; el más largo, \pctYesDurationDecilLargo. Medimos cuánto pesa con el AUC de
     validación, la métrica con la que se compara todo el trabajo: \aucAzar{} es
     \rotuloLineaBase. Con \texttt{duration}, los cuatro saltan; Random Forest pasa de
-    \aucReferenciaAblacionRf{} a \aucRfConDuration. Es un techo que no existe antes de llamar, y
-    el propio diccionario del dataset pide descartarla.
+    \aucReferenciaAblacionRf{} a \aucRfConDuration. Es un techo que no existe antes de llamar.
     \avanza Consecuencia: \texttt{duration} queda fuera del modelo.\\[0.4em]
     \textbf{Si preguntan.} ¿Con qué modelos? Los cuatro de la figura, con y sin
     \texttt{duration}, en AUC de validación, media de 5 folds. ¿Por qué el AUC antes de la slide de
@@ -520,12 +517,10 @@
   \vspace{0.2em}
   \onslide<2->{\veredicto{\texttt{pdays} se queda: el \pdaysCentinela{} es un corte, no un
     número}}
-  \note{Tercera: \texttt{pdays}. El diccionario dice que \pdaysCentinela{} es «no contactado
-    antes», y es el \pctPdaysCentinela{} de train. Pero \filasCentinelaConPrevio{} filas con
-    \pdaysCentinela{} sí tuvieron contactos previos, y los que tienen fecha contratan el
-    \pctYesPdaysContactados.
-    \avanza Sacarla empeora Naive Bayes y KNN, y en los otros dos no cambia nada. Se queda:
-    escalado o en un árbol, el \pdaysCentinela{} funciona como un corte.\\[0.4em]
+  \note{Tercera: \texttt{pdays}. El \pdaysCentinela{} parece «no contactado antes», pero
+    \filasCentinelaConPrevio{} filas con \pdaysCentinela{} sí tuvieron contactos previos, y los
+    que tienen fecha contratan el \pctYesPdaysContactados.
+    \avanza Se queda: escalado o en un árbol, el \pdaysCentinela{} funciona como un corte.\\[0.4em]
     \textbf{Si preguntan.} ¿Cuántos tienen días registrados? \filasPdaysContactados{} filas, con
     \pctYesPdaysContactados{} de «yes»; la barra del medio son las \filasCentinelaConPrevio{} con
     \pdaysCentinela{} y contactos previos, y su tasa se señala en pantalla. ¿Y una indicadora de
@@ -730,8 +725,7 @@
     \only<1>{\figgrande[0.97]{curva-svm.png}}%
     \only<2->{\figgrande[0.97]{curva-svm-2.png}}}
   \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
-  \note{En la SVM exploramos C y el kernel, con pesos balanceados, que aquí sí ayudan. Con
-    kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos \cSvm, el más
+  \note{En la SVM exploramos C y el kernel. Con kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos \cSvm, el más
     regularizado.
     \avanza Con RBF, en cambio, un C grande sobreajusta: train sube casi a uno y la validación
     cae. Y ni en su mejor C el RBF supera al lineal: queda lineal.\\[0.4em]
@@ -949,7 +943,7 @@
   \end{columns}
   \note{Tres limitaciones, por impacto. La época: el test sale de las mismas campañas, así que
     vale para clientes nuevos de esas campañas, no para una futura. Llamar al 20~\% es un
-    supuesto: con el \presupuestoBajo{} o el \presupuestoAlto, Random Forest sigue primero. Y
+    supuesto. Y
     elegimos los hiperparámetros con la misma validación que los reporta: el máximo sale algo
     optimista.
     \avanza Lo primero que haríamos es validar hacia adelante en el tiempo, que es como se
@@ -982,9 +976,8 @@
   \note{El hallazgo. Validamos hacia adelante dentro de train: cada fold entrena con el pasado y
     valida con el bloque siguiente. Barajados, los cuatro están entre \aucSvmVal{} y \aucRfVal;
     hacia adelante, ninguno pasa de \aucNbAdelante, y Random Forest cae a \aucRfAdelante.
-    \avanza ¿Por qué tanto? Parte del \aucRfVal{} es distinguir años: el \pctParesEntreAnios{}
-    de los pares «yes»–«no» son de años distintos, y ahí el AUC es \aucOofEntreAnios; en los del
-    mismo año, \aucOofDentroAnio.\\[0.4em]
+    \avanza ¿Por qué tanto? Parte del \aucRfVal{} es distinguir años: en los pares «yes»–«no»
+    de años distintos, el AUC es \aucOofEntreAnios; en los del mismo año, \aucOofDentroAnio.\\[0.4em]
     \textbf{Si preguntan.} ¿Cómo se validó hacia adelante? Con train ordenado por fecha y
     partido en bloques: cada fold valida con un bloque y entrena con todos los anteriores; son los
     bloques de la slide 19, todos dentro de train (D-25). ¿Por qué la barra hacia adelante es tan
