@@ -48,11 +48,11 @@ sesión. Estados: TODO, DOING, DONE, BLOCKED. Un paso está DONE cuando pasa su 
 | 7.5 Cuadernillo de ensayo | DONE | 3287282 | `python -m src.cuadernillo`, 27 páginas; se regenera al cerrar la ola 8 |
 | 7.6 README y GLOSARIO | DONE | 7aa844a | `informe/README-entrega.md`, README del repo, GLOSARIO |
 | 7.7 Informe de respaldo (opcional) | TODO | | S-05 |
-| 8.1 Auditoría adversarial | DOING | 47355bc | 5 lentes: 80 hallazgos (34 altos o medios, 46 bajos); 30 confirmados y 4 refutados; correcciones por grupo aplicadas; cierre de pendientes cruzados en curso |
-| 8.2 Entregables y clon limpio | TODO | 1a5b4ec | Módulo listo |
-| 8.3 Gates | TODO | | |
-| 8.4 Ensayos | TODO | | Del grupo |
-| 8.5 Envío | TODO | | Del grupo |
+| 8.1 Auditoría adversarial | DONE | 47355bc, 540766d | 5 lentes: 80 hallazgos (34 altos o medios, 46 bajos); 30 confirmados y 4 refutados; correcciones por grupo y cierre de los pendientes cruzados, todo re-verificado |
+| 8.2 Entregables y clon limpio | DONE | (este) | `python -m src.entregar --con-bitacora --probar`: zip de 177 archivos con DECISIONES y GLOSARIO (S-01), PDF idéntico a `informe/presentacion.pdf`; en el clon, 20 suites en verde |
+| 8.3 Gates | DONE | (este) | G1 20/20; G2 test intacto (`evaluacion_test.json` no existe: N0-1); G3 `--verificar` OK; G4 títulos afirman o preguntan; G5 tabla de cobertura del guion, todo antes de la 18; G6 9:00 (1 606 palabras a 2,68/s); G7 figuras legibles al 25 % (verificadores de 7.3 y 8.1); G8 paleta OK; G9 clon limpio OK; G10 sin voseo ni coloquialismos; G11 «sin modelo» único rótulo, 18 apariciones, ninguna en la slide 14; G12 cada sección del EDA cierra con su consecuencia (L1) |
+| 8.4 Ensayos | TODO | | Del grupo: dos ensayos cronometrados con `informe/slides-y-guion.pdf`; si pasa de 9:45, el orden de recorte del guion |
+| 8.5 Envío | TODO | | Del grupo, antes del 06/10 (24 h antes de la clase); antes, evaluar el test (5.3) el 01/10 y regenerar deck, guion y cuadernillo |
 
 ## Gaps de la reconciliación (G-nn)
 
@@ -91,4 +91,10 @@ Cada decisión de contrato que no estaba en el plan, con su porqué.
 
 ## Veredicto final
 
-(pendiente)
+**Estado al 26/09/2026:** el TP2 está completo salvo lo que depende de una fecha o del grupo.
+
+- Hecho y verificado: partición, EDA, ablaciones y D-07 a D-17, métricas y presupuesto (D-19 a D-21), Naive Bayes categórico (D-18), curvas e hiperparámetros (D-22, N0-11, N0-12), modelo final RF (D-23), robustez temporal (D-25), conclusiones y hallazgo H1, figuras de análisis y de proyección, deck de 20 frames más 4 de respaldo, guion de 9:00 con 31 preguntas, cuadernillo de ensayo, README de entrega, GLOSARIO, entregables con prueba de clon limpio, auditoría adversarial en cinco lentes con sus correcciones. Los 12 gates pasan.
+- Pendiente con fecha: la evaluación única del test (5.3 y 5.4), después de la clase del 30/09 y de las respuestas de la cátedra (N0-1). Comando: `python -m src.evaluar_test` (abre el test una sola vez, escribe `evaluacion_test.json` y `resultados-test.tex`); después `python -m src.numeros`, recompilar el deck, completar las slides 14 y 15 del guion y regenerar el cuadernillo y los entregables.
+- Pendiente del grupo: enviar `plan/consultas.md` a la cátedra (0.2), leer `resultados/eda/eda.html` (1.1), los dos ensayos (8.4) y el envío (8.5).
+- Deuda registrada: `plan/SUGERENCIAS.md`, S-01 a S-15; ninguna bloquea la entrega.
+- Riesgo principal: si la cátedra responde que las variables del último contacto no están disponibles antes de llamar (consulta 2), hay que medir la variante A13 (S-11) y revisar D-07; si pide partición temporal (consulta 5), cambia el esquema entero.
