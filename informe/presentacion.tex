@@ -698,7 +698,7 @@
 \end{frame}
 
 % ---------------------------------------------------------------------
-% 11 · KNN: el sobreajuste está del otro lado del eje (Mitchell §8.2.1 para la ponderación).
+% 11 · KNN: el sobreajuste está del otro lado del eje (Clase 9, slide 34 para la ponderación).
 \begin{frame}{En KNN sobreajusta el k pequeño: se elige k = \vecinosKnn}
   \renewcommand{\figgrandealto}{0.72}
   \centrado{\figgrande[0.97]{curva-knn.png}}
@@ -711,9 +711,12 @@
     \textbf{Si preguntan.} ¿Dónde está el máximo? La validación forma una meseta en los k
     grandes: desde \vecinosKnnMinimoUnoEs{} casi no cambia, y se toma el más suave. ¿No es enorme
     k = \vecinosKnn? Con \pctYesTrain{} de «yes» (slide 2), estimar bien una proporción baja pide
-    muchos vecinos (inferencia). ¿Y por distancia? Es la línea punteada: en train queda en el tope
-    del eje, porque cada punto de train se encuentra a sí mismo, y en validación queda por debajo
-    de la uniforme en todo el rango (Mitchell §8.2.1).}
+    muchos vecinos (inferencia). ¿Y por distancia? Cada vecino pesa la inversa de su distancia
+    (Clase 9, slide 34). Es la línea punteada: en train queda en el tope del eje, porque cada punto
+    de train se encuentra a sí mismo, y en validación queda por debajo de la uniforme en todo el
+    rango. ¿Un k alto no favorece a la clase mayoritaria (Clase 9, slide 31)? Sólo si se vota
+    por mayoría. Aquí no se vota: la proporción de vecinos «yes» es el puntaje con que se ordena
+    (slide 8).}
 \end{frame}
 
 % ---------------------------------------------------------------------

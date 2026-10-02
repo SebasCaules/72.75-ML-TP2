@@ -148,7 +148,7 @@ ninguna bloquea el trabajo.
 | 3 | ¿Esperan que se trate el desbalance, o alcanza con métricas acordes? | 4-undecies | Métricas acordes; `class_weight` como hiperparámetro opcional |
 | 4 | ¿Qué Naive Bayes esperan para datos numéricos y categóricos a la vez? | 4-duodecies | Se comparan dos variantes y queda la mejor en CV |
 | 5 | El archivo está ordenado por fecha: ¿partición aleatoria o temporal? | 4-terdecies | Aleatoria (D-03), con la validación temporal como limitación (D-25) |
-| 6 | ¿Qué día defiende el grupo? ¿La clase del 30/09 es la de KNN? | 4-septies | Se planifica para el 07/10; KNN se apoya en Mitchell, cap. 8, y en Alpaydin, cap. 8 |
+| 6 | ¿Qué día defiende el grupo? ¿La clase del 30/09 es la de KNN? | 4-septies | Se planifica para el 07/10; KNN se apoya en Mitchell, cap. 8, y en Alpaydin, cap. 8. [02/10: la del 30/09 fue la de KNN; ver N0-16] |
 
 ---
 
@@ -311,7 +311,7 @@ brecha entre las dos y graficar la curva.
 | Paso | Qué | Grilla | Terminado cuando |
 |---|---|---|---|
 | 4.1 | RF: `max_depth`, que es la curva de sobreajuste para discutir en la presentación; y `n_estimators`, que llega a una meseta porque no es un eje de complejidad (Clase 7, slide 61) | Profundidad ∈ {2, 4, 6, 8, 10, 12, 15, 20, 25, sin límite}; árboles ∈ {10, 25, 50, 100, 200, 400, 800} | `resultados/curvas/rf_*.csv`, con train y validación |
-| 4.2 | KNN: `n_neighbors`, con `weights` uniforme y por distancia (Mitchell §8.2.1). Aquí sobreajusta un k pequeño, al revés que en los otros ejes | k ∈ {1, 3, 5, 9, 15, 25, 41, 61, 101, 151, 201} | `resultados/curvas/knn_*.csv` |
+| 4.2 | KNN: `n_neighbors`, con `weights` uniforme y por distancia (Mitchell §8.2.1; la de scikit-learn es la de la Clase 9, slide 34: N0-16). Aquí sobreajusta un k pequeño, al revés que en los otros ejes | k ∈ {1, 3, 5, 9, 15, 25, 41, 61, 101, 151, 201} | `resultados/curvas/knn_*.csv` |
 | 4.3 | SVM: `C` con kernel RBF, y comparación de kernels (lineal, polinómico, RBF) en el mejor C, con el costo medido en el paso 0.6. Se usa la convención de scikit-learn: un C grande regulariza menos (Clase 8, slide 49; C-26) | C ∈ {0,001; 0,01; 0,1; 0,3; 1; 3; 10; 30; 100}, recortada según el paso 0.6 | `resultados/curvas/svm_*.csv` |
 | 4.4 | D-22: elegir cada valor y escribir la discusión de sobreajuste y subajuste sobre la curva de RF, y sobre la de KNN si hay tiempo | `resultados/hiperparametros.json`, `DECISIONES.md` | Cada valor elegido tiene su número de validación y su brecha |
 | 4.5 | Figuras de las tres curvas, con revelado en tres pasos como la curva en U del TP1: train, después validación, después bandas y zonas | `figuras/`, `figuras/presentacion/` | Se leen al 25 % |
@@ -496,7 +496,7 @@ suma una semana de ensayos y revisión, sin alcance nuevo.
 | Riesgo | Mitigación |
 |---|---|
 | La cátedra pide $F_1$ u otra métrica | Las cinco métricas candidatas se guardan desde la ola 1, y el test se evalúa sólo a partir del 01/10 |
-| La clase del 30/09 no es la de KNN, o dice algo distinto | KNN se arma con Mitchell y Alpaydin, y su slide se cierra después del 30/09 |
+| La clase del 30/09 no es la de KNN, o dice algo distinto | KNN se arma con Mitchell y Alpaydin, y su slide se cierra después del 30/09. [02/10: fue la de KNN; los ajustes, en N0-16] |
 | La SVM con kernel lineal o C alto no termina | El costo se mide en el paso 0.6; se usa `LinearSVC` o se recorta la grilla, y se declara |
 | H1 no se sostiene porque el efecto temporal es pequeño | Se pasa a H2 o H3, ya medidas en las olas 1 y 3 |
 | El deck pasa de 10 minutos | El esqueleto suma 9:15, el orden de recorte está escrito en el guion, y todo agregado se paga con un recorte (guía E3) |

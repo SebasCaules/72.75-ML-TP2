@@ -63,8 +63,8 @@ Qué significa cada término que aparece en el repo, y por qué se decidió cada
 | **C** | El costo de las violaciones del margen; con la convención de scikit-learn, un C grande regulariza menos (Clase 8, slide 49) | C = 0,001, el más regularizado de la meseta: 0,001 y 0,01 empatan (D-22) |
 | **pesos de clase** | `class_weight="balanced"`: cada error pesa en proporción inversa a la frecuencia de su clase | En la SVM cambian el orden (+0,068 de AUC con RBF y C = 1) y se adoptan; en RF suman +0,0006, despreciable, y no se adoptan (D-21, N0-12) |
 | **KNN** | Clasificar por los k vecinos más cercanos de train | Segundo en validación: 0,784 ± 0,008 |
-| **k** | Cuántos vecinos votan (`n_neighbors`) | k = 801, el mayor de la meseta dentro de 1 ES (D-22). Aquí sobreajusta el k pequeño: con k = 1, validación 0,619 y train 0,988 |
-| **uniform y distance** | Todos los vecinos votan igual, o cada uno pesa en proporción inversa a su distancia | Uniforme: por distancia, la curva queda por debajo para todo k > 1 y memoriza train (1,000) |
+| **k** | Cuántos vecinos se miran (`n_neighbors`) | k = 801, el mayor de la meseta dentro de 1 ES (D-22). Aquí sobreajusta el k pequeño: con k = 1, validación 0,619 y train 0,988 |
+| **uniform y distance** | Todos los vecinos pesan igual, o cada uno pesa la inversa de su distancia (Clase 9, slide 34) | Uniforme: por distancia, la curva queda por debajo para todo k > 1 y memoriza train (1,000) |
 | **Random Forest** | Muchos árboles de decisión, cada uno sobre una muestra con reemplazo de las filas y con variables sorteadas en cada corte; decide el promedio | El modelo final (D-23): 0,795 ± 0,006 |
 | **max_depth** | La profundidad máxima de cada árbol: el eje de complejidad | 8 (D-22). Con 2, subajuste: 0,782 en validación y 0,783 en train; sin límite, sobreajuste: 0,772 y 1,000 |
 | **n_estimators** | Cuántos árboles | 200 (N0-11): más árboles bajan la varianza pero no cambian el sesgo, y la curva es plana desde 100 |

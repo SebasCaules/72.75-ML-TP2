@@ -102,7 +102,8 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
 - **Cada afirmación teórica cita la teórica** con clase y slide, y sólo con las citas que ya están en
   `DECISIONES.md` o en `plan/PLAN.md`: Clase 2, slides 88–89; Clase 3, slides 98–100 (el sobreajuste
   a la validación y sus cuatro defensas, en D-22); Clase 4, slides 26–27, 30–31, 41–44, 45–51 y 52;
-  Clase 6, slide 46; Clase 7, slides 50 y 61; Clase 8, slides 48–49 y 54; Mitchell §8.2.1 y
+  Clase 6, slide 46; Clase 7, slides 50 y 61; Clase 8, slides 48–49 y 54; Clase 9, slides 9, 26,
+  31, 32, 34, 36 y 38–39 (en D-12, D-22, N0-16 y `resultados/conclusiones.md`); Mitchell §8.2.1 y
   Alpaydin §8.3, p. 192. Lo que no sale de la cátedra —la regla de un error estándar, por ejemplo—
   está marcado como tal, y lo que es inferencia nuestra dice «inferencia».
 
@@ -323,7 +324,7 @@ se dice para qué sirvió, con su número, y que no se borró nada.
 - **¿Qué hacen las reglas fijas?** Son las mismas en todos los folds y no aprenden nada de los datos:
   sacan `duration` (slide 4) y funden categorías; las columnas pasan de 62 a 58 (la caja).
 - **¿Qué codificación lleva cada modelo?** «Según el modelo», dice la caja. KNN y la SVM miden
-  distancias y necesitan escalar (Clase 8, slide 54; Alpaydin §8.3, p. 192); un árbol corta cada
+  distancias y necesitan escalar (Clase 9, slide 32; Clase 8, slide 54; Alpaydin §8.3, p. 192); un árbol corta cada
   variable por separado, así que a Random Forest la escala no le cambia nada (D-12); y el Naive Bayes
   categórico trabaja con valores discretos, así que las numéricas se discretizan (D-18). Para los
   ceros del categórico, la corrección de Laplace: pregunta 13.
@@ -465,14 +466,30 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿No es enorme k = 801?** Cada fold entrena con cuatro quintos de las 32 940 filas de train (slide
   3), y el «yes» es el 11,3 % (slide 2): estimar bien una proporción baja pide muchos vecinos
   (inferencia). Y está en el borde de la grilla: pregunta 18.
-- **¿Y ponderar por distancia?** (Mitchell §8.2.1). Es la línea punteada: en train queda en 1,0,
-  porque cada punto de train se encuentra a sí mismo a distancia cero; en validación, con más de un
-  vecino, queda por debajo de la uniforme en todo el rango (con uno, las dos coinciden).
+- **¿Y ponderar por distancia?** Cada vecino pesa la inversa de su distancia (Clase 9, slide 34),
+  que es lo que hace `weights='distance'`; Mitchell pondera con la inversa del cuadrado (§8.2.1).
+  Es la línea punteada: en train queda en 1,0, porque cada punto de train se encuentra a sí mismo a
+  distancia cero; en validación, con más de un vecino, queda por debajo de la uniforme en todo el
+  rango (con uno, las dos coinciden).
+- **¿La clase no recomendaba un k moderado con ponderación?** (Clase 9, slide 36). El slide lo
+  compara con un k muy pequeño, que es inestable, y eso se ve también aquí: la línea punteada sube
+  con k. Lo que muestra la curva es otra cosa: con el mismo k, ponderar queda debajo de no ponderar,
+  y la meseta está en los k grandes. El slide aclara que reducir k y ponderar dan más peso a los
+  vecinos más cercanos, aunque no son equivalentes; con 11,3 % de «yes» (slide 2), los más
+  cercanos son pocos y ruidosos, y la curva castiga darles más peso (inferencia).
+- **¿Un k alto no favorece a la clase mayoritaria?** (Clase 9, slide 31). Sólo si se vota por
+  mayoría: un cliente necesitaría más de la mitad de sus vecinos en «yes» para salir «yes». Aquí no
+  se vota: la proporción de vecinos «yes» es el puntaje, y con él se ordena (AUC) y se llama al
+  20 % de la lista (slide 8). Si un k alto borrara grupos de «yes» más chicos que k, bajaría el AUC
+  de validación, y no baja hasta 801 (inferencia).
+- **¿Por qué la distancia euclídea?** Es la que trae scikit-learn por defecto. La métrica también
+  es un hiperparámetro (Clase 9, slide 26) y no la ajustamos: es una limitación.
 - **El eje es logarítmico** porque la grilla va de 1 a 801.
 - **¿Por qué train no llega a 1,0 con un vecino?** Si cada fila de train fuera única, con un vecino se
   encontraría a sí misma y train daría 1,0. Que quede apenas por debajo indica filas con las mismas
   predictoras y distinta respuesta, que empatan a distancia cero (inferencia; pregunta 7).
-- **Escalar no es opcional en KNN:** mide distancias (Clase 8, slide 54; Alpaydin §8.3, p. 192).
+- **Escalar no es opcional en KNN:** mide distancias (Clase 9, slide 32; Clase 8, slide 54;
+  Alpaydin §8.3, p. 192).
 
 ### 12 · La SVM queda lineal y muy regularizada: C = 0,001 — 4:45 → 5:05 (~55 palabras)
 
@@ -639,6 +656,10 @@ efecto medido, y ninguna frase da una causa del orden como probada: la U de la e
   la slide); y la distancia con los demás es pequeña: los cuatro van de 0,774 a 0,795.
 - **Las escalas:** sin escalar, en train, `pdays` sola es el 86,6 % de la varianza; la distancia de
   KNN miraría casi sólo esa variable. Por eso se escala dentro de cada fold (slide 7).
+- **¿Qué supone KNN?** Continuidad local: lo cercano se parece (Clase 9, slide 9). Por eso la
+  escala decide quién es cercano (Clase 9, slide 32), y todas las variables entran en la distancia,
+  también las poco informativas, algo que afecta menos a los árboles porque cada corte mira una
+  sola variable (Clase 9, slides 38–39). Que eso explique la ventaja de Random Forest es inferencia.
 - **Las distribuciones no gaussianas:** `pdays` es casi binaria, con casi todas las filas en 999
   (slide 6); por eso el Naive Bayes del TP es el categórico, que le gana al gaussiano (slide 9).
 
@@ -873,7 +894,7 @@ Clase 8, slides 48–49; con γ fijo, el RBF no superó al lineal.
 
 **16. ¿Por qué hay que escalar para KNN y la SVM, y no para Random Forest?** [slides 7 y 16 ·
 Sebastián] — KNN y la SVM miden distancias, y sin escalar las decide la variable de mayor varianza
-(Clase 8, slide 54; Alpaydin §8.3, p. 192): sin escalar, en train, `pdays` sola es el 86,6 % de la
+(Clase 9, slide 32; Clase 8, slide 54; Alpaydin §8.3, p. 192): sin escalar, en train, `pdays` sola es el 86,6 % de la
 varianza (slide 16), así que el vecino más cercano sería el de historial de contacto parecido, no el
 cliente parecido. Un árbol corta cada variable por separado, así que la escala no le cambia nada
 (D-12). Por eso la caja dice «codificar y escalar», «según el modelo» (slide 7).
@@ -882,10 +903,11 @@ cliente parecido. Un árbol corta cada variable por separado, así que la escala
 sobreajusta el k pequeño: con un vecino, train queda cerca de 1,0 y validación apenas por encima de
 0,6 (la figura). Al sumar vecinos la brecha se cierra, la validación forma una meseta en los k
 grandes, y se toma el más suave: 801, con 0,784 de validación y brecha 0,006 (anotados). Con 11,3 %
-de «yes» en train (slide 2), estimar bien una proporción baja pide muchos vecinos (inferencia). Por
-distancia (Mitchell §8.2.1), la línea punteada: en train queda en 1,0, porque cada punto de train se
-encuentra a sí mismo, y en validación, con más de un vecino, queda por debajo de la uniforme en todo
-el rango.
+de «yes» en train (slide 2), estimar bien una proporción baja pide muchos vecinos (inferencia); y
+como no se vota, sino que se ordena por la proporción de vecinos «yes» (slide 8), el aviso de la
+Clase 9 (slide 31), que un k alto favorece a la mayoritaria, no aplica. Por distancia (Clase 9, slide 34), la línea punteada: en train queda en
+1,0, porque cada punto de train se encuentra a sí mismo, y en validación, con más de un vecino, queda
+por debajo de la uniforme en todo el rango.
 
 **18. ¿k = 801 y C = 0,001 no quedaron en el borde de sus grillas?** [slides 11 y 12 · Andrés] — Sí,
 los dos, y no por la misma razón. En KNN, la validación es una meseta en los k grandes, y la regla

@@ -26,8 +26,8 @@ Somos el grupo N (integrantes). Antes de avanzar con el TP2 queríamos hacerles 
 5. **Partición.** El archivo está ordenado por fecha, de mayo de 2008 a noviembre de 2010, y la tasa
    de «yes» cambia mucho con el tiempo. ¿Prefieren una partición aleatoria estratificada o una
    temporal?
-6. **Fechas.** ¿Qué día nos toca defender, el 07/10 o el 14/10? ¿KNN se va a ver en la clase del
-   30/09?
+6. **Fechas.** ¿Qué día nos toca defender, el 07/10 o el 14/10?
+   [Resuelto el 02/10/2026: KNN se dio en la clase del 30/09 (Clase 9).]
 
 Muchas gracias.
 
