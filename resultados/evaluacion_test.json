@@ -1,0 +1,82 @@
+{
+  "ADVERTENCIA": "Evaluación única del test (D-24): este número se mide una vez; no participa de ninguna decisión. Si se cambia el modelo mirando este resultado y se vuelve a evaluar, el número nuevo deja de estimar el desempeño en datos nuevos.",
+  "modelo": "rf",
+  "hiperparametros": {
+    "n_estimators": 200,
+    "max_depth": 8,
+    "pesos_clase": null
+  },
+  "opciones": {
+    "duration": false,
+    "pdays": "crudo",
+    "default": "indicadora",
+    "raras": true,
+    "campaign_log": false,
+    "macro": "completo",
+    "month": true,
+    "day_of_week": true,
+    "edad_tramos": false,
+    "unknown": "categoria",
+    "escalar": null
+  },
+  "n_train": 32940,
+  "n_test": 8236,
+  "n_yes_test": 928,
+  "presupuesto": 0.2,
+  "llamadas": 1647,
+  "metricas": {
+    "auc": {
+      "valor": 0.8079140655965121,
+      "ic95": [
+        0.7896720668362965,
+        0.8243703482278514
+      ]
+    },
+    "ap": {
+      "valor": 0.47990954432790556
+    },
+    "recall_q": {
+      "valor": 0.6487068965517241,
+      "ic95": [
+        0.6196120689655172,
+        0.677801724137931
+      ]
+    },
+    "precision_q": {
+      "valor": 0.3655130540376442
+    },
+    "f1_q": {
+      "valor": 0.46757281553398056
+    }
+  },
+  "matriz_confusion": {
+    "vp": 602,
+    "fp": 1045,
+    "fn": 326,
+    "vn": 6263
+  },
+  "desempate": {
+    "criterio": "Con empate en el corte, la matriz llama primero a la fila de menor `fila` (el orden del CSV original, que es temporal) para que sus celdas sean enteras. recall_q y precision_q reparten el empate en proporción (src/metricas.py), así que difieren de recall_matriz y precision_matriz sólo si empatados > llamados_entre_empatados.",
+    "puntaje_corte": 0.10600823828739316,
+    "empatados": 1,
+    "llamados_entre_empatados": 1,
+    "recall_matriz": 0.6487068965517241,
+    "precision_matriz": 0.3655130540376442
+  },
+  "bootstrap": {
+    "remuestreos": 2000,
+    "estratificado": true,
+    "percentiles": [
+      2.5,
+      97.5
+    ],
+    "metricas": [
+      "auc",
+      "recall_q"
+    ]
+  },
+  "semilla": 42,
+  "fecha": "2026-10-05T14:27:53",
+  "n_evaluaciones": 1,
+  "evaluaciones_previas": []
+}
