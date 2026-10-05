@@ -5,11 +5,9 @@ con reloj y marcas de avance. Sigue las notas de orador (`\note{}`) de `presenta
 de oralidad, y está recortado a lo que efectivamente se dice en 10 minutos. Grupo 7: Andrés Cortese
 (64612) y Sebastián Caules (64331). Hora y aula: a confirmar.
 
-**El test todavía no se evaluó (N0-1).** Sus números valen «?» en `informe/resultados-test.tex` y en
-la sección «Números de test» de `informe/numeros.md`, y se completan solos después del 30/09 con
-`python3 -m src.evaluar_test` y `python3 -m src.numeros`. Las slides 14 y 15 tienen aquí sus dos
-variantes, como en el deck: la de la defensa, con el test evaluado, y la que se ensaya mientras siga
-cerrado.
+**El test ya se evaluó, una sola vez, el 05/10/2026 (N0-1).** Sus números están en
+`informe/resultados-test.tex` y en la sección «Números de test» de `informe/numeros.md`, escritos por
+`python3 -m src.evaluar_test` y `python3 -m src.numeros`.
 
 ## El criterio de reparto: la teoría se nombra, los resultados se defienden
 
@@ -70,7 +68,7 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
 ## Convenciones
 
 - `[→]` = avanzar un overlay (una pulsación). La cantidad de `[→]` de cada slide coincide con los
-  overlays del PDF (25 en total, comprobado contra sus 45 páginas); el último estado queda en
+  overlays del PDF (27 en total, comprobado contra sus 47 páginas); el último estado queda en
   pantalla mientras se termina de hablar.
 - Ritmo de referencia: **2,7 palabras por segundo** (unas 162 por minuto), el del guion del TP1: sus
   22 encabezados declaran 1 632 palabras para un reloj de 10:00, es decir, 2,72 por segundo
@@ -85,8 +83,7 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
 - **Cada número hablado figura, tal cual, en `informe/numeros.md`** (gate G3): coma decimal y espacio
   común de miles, como esa tabla, para que se pueda buscar. Un Δ se dice sin su signo cuando el verbo
   ya lo dice («le suma 0,013», «pierden 0,023»). **Y declara su conjunto** (guía C5):
-  train, validación (en los 5 folds o fuera de fold), hacia adelante dentro de train, o test
-  (pendiente). Los números de las aclaraciones y de las preguntas siguen la misma regla y, además,
+  train, validación (en los 5 folds o fuera de fold), hacia adelante dentro de train, o test. Los números de las aclaraciones y de las preguntas siguen la misma regla y, además,
   tienen que verse en la slide que citan.
 - **Las preguntas se contestan sólo con las 20 slides (N0-15).** Cada aclaración, cada pregunta del
   banco y cada «Si preguntan» de las notas del deck usa sólo lo que se ve en la slide que cita: su
@@ -97,8 +94,7 @@ variables de época ocupa el lugar de la U, y la ficha de KNN se dice casi textu
   derivado que no esté impreso (se nombran los dos valores que se ven), ni se remite a archivos del
   repositorio como respaldo de una respuesta. No hay slides de respaldo.
 - **El número de test no se compara con «sin modelo» ni con otro modelo.** La única comparación
-  permitida es contra validación, hablada y nunca proyectada, como chequeo de coherencia (guía C6);
-  mientras el test siga cerrado, esa comparación vale «?».
+  permitida es contra validación, hablada y nunca proyectada, como chequeo de coherencia (guía C6).
 - **Cada afirmación teórica cita la teórica** con clase y slide, y sólo con las citas que ya están en
   `DECISIONES.md` o en `plan/PLAN.md`: Clase 2, slides 88–89; Clase 3, slides 98–100 (el sobreajuste
   a la validación y sus cuatro defensas, en D-22); Clase 4, slides 26–27, 30–31, 41–44, 45–51 y 52;
@@ -163,8 +159,8 @@ corta en la 17, el trabajo está completo.
 > Marketing*.
 
 #### A aclarar
-- **El 41 188 de la portada es el archivo entero:** la slide 3 lo muestra como «las 41 188 del
-  archivo», antes de quitar los 12 duplicados exactos. Desde la slide 2, cada número dice de qué
+- **El 41 188 de la portada es el archivo entero:** la slide 3 parte de 41 176 filas «sin
+  duplicados»: el archivo menos los 12 duplicados exactos. Desde la slide 2, cada número dice de qué
   conjunto sale, con la tabla de la slide 3: train, validación o test.
 - **El dataset es el del enunciado** (TP2, p. 1): el *Bank Marketing*, contactos de campañas
   telefónicas de un banco, de 2008 a 2010, como dice la portada.
@@ -211,8 +207,9 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
 > número dice de qué conjunto sale.
 
 #### A aclarar
-- **Las cifras de la partición**, en la barra: 41 176 filas sin los 12 duplicados exactos; train
-  32 940 filas (80 %) y test 8 236 (20 %), estratificado por `y`.
+- **Las cifras de la partición**, sobre la barra: 41 176 filas sin duplicados (el archivo menos 12
+  duplicados exactos), estratificadas por `y`; train 80 % (32 940 filas, el conteo de la slide 2) y
+  test 20 % (8 236).
 - **¿Por qué estratificar, si no se vio en clase?** Con 11,3 % de «yes» (slide 2), una partición al
   azar sin estratificar puede dejar al test con otra proporción de «yes» sólo por la semilla, y el
   test se parecería menos a train por azar. Estratificar por `y` mantiene la misma proporción en los
@@ -244,7 +241,7 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
   media de 5 folds (el eje). Los saltos, anotados: Random Forest de 0,770 a 0,939, KNN de 0,755 a
   0,911, SVM de 0,701 a 0,907 y Naive Bayes gaussiano de 0,768 a 0,831.
 - **¿Por qué es fuga?** La duración de la llamada se conoce al colgar, cuando el «yes» ya se sabe, y
-  el modelo decide antes de marcar (slide 2): ahí no existe. Por eso la leyenda la llama techo (D-05).
+  el modelo decide antes de marcar (slide 2): ahí no existe. Por eso se la trata como un techo (D-05).
 - **¿Por qué el AUC antes de la slide de métricas?** Porque ya es la métrica que decide: aquí se
   nombra, con su «sin modelo» en 0,5 (la línea punteada), y en la slide 8 se justifica junto con el
   recall.
@@ -278,7 +275,7 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
   evaluaría en otra: train quedaría casi entero en la época de tasa baja y test, en el final, donde la
   tasa sube (D-03).
 - **¿Qué pasaba sin barajar?** Los folds se armarían en el orden del archivo, y cada uno quedaría en
-  una época de la figura. Barajados, «cada fold mezcla las épocas» (slide 7; D-06).
+  una época de la figura. Barajados («5 folds barajados», slide 7), cada fold mezcla las épocas (D-06).
 
 ### 6 · 999 no significa «nunca contactado» — 1:55 → 2:10 (~39 palabras)
 
@@ -338,7 +335,7 @@ se dice para qué sirvió, con su número, y que no se borró nada.
 - **¿Y KNN sin escalar?** Sin escalar, en train, `pdays` es el 86,6 % de la varianza (slide 16): la
   distancia mediría casi sólo el historial de contacto, no clientes parecidos (pregunta 16).
 - **¿Por qué barajar los folds?** Porque el archivo va por fecha (slide 5): sin barajar, cada fold
-  quedaría en una época; barajados, «cada fold mezcla las épocas».
+  quedaría en una época; barajados («5 folds barajados»), cada fold mezcla las épocas.
 - **Sin fuga por construcción:** lo que se aprende de los datos —escalas, cortes— se ajusta dentro de
   cada fold, sólo con el de entrenamiento (la caja punteada), que es lo que pide el enunciado (TP2,
   p. 1).
@@ -379,13 +376,14 @@ propio es el 20 % y por qué no se usa la exactitud.
 - **¿Y el desbalance?** No se remuestrea: el pipeline de la slide 7 no tiene ese paso, y estas dos
   métricas no premian el «no» (D-21; pregunta 9).
 
-### 9 · Sin ajustar, gana Naive Bayes: 0,782 contra 0,500 sin modelo — 3:20 → 3:45 (~74 palabras)
+### 9 · Sin ajustar, gana Naive Bayes: 0,782 contra 0,500 sin modelo — 3:20 → 3:45 (~81 palabras)
 
 **Habla: Andrés.** Son tres los que sobreajustan: también KNN con k = 15, que es el puente a la
 slide 11, donde sobreajusta el k pequeño.
 
 > Primero, los modelos con hiperparámetros de referencia: en AUC de validación, todos quedan muy por
-> encima de sin modelo. El mejor es Naive Bayes en su versión categórica: discretizar las numéricas
+> encima de sin modelo.
+> **[→]** De cerca, con su desvío entre folds: el mejor es Naive Bayes en su versión categórica: discretizar las numéricas
 > en deciles le suma 0,013 sobre el gaussiano, porque las numéricas están lejos de ser normales. Y
 > tres sobreajustan: Random Forest sin límite de profundidad, la SVM con RBF y KNN con k = 15. Lo
 > muestran, y lo corrigen, las curvas que siguen.
@@ -513,14 +511,15 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
 - **¿Y γ?** La curva del RBF varía sólo C, con γ fijo (el eje). El kernel elegido es el lineal, que no
   tiene γ; la grilla conjunta de C y γ es la de la Clase 8, slides 48–49.
 
-### 13 · Ajustados, gana Random Forest por 0,011 de AUC en validación — 5:05 → 5:25 (~60 palabras)
+### 13 · Ajustados, gana Random Forest por 0,011 de AUC en validación — 5:05 → 5:25 (~70 palabras)
 
 **Habla: Sebastián** (bloque 4, slides 13–17). Entra con el resultado de la selección.
 
-> Con los hiperparámetros elegidos gana Random Forest: en validación, 0,795 de AUC y 0,629 de recall
-> llamando al 20 %. Le siguen KNN, Naive Bayes y la SVM, en ese orden, y ninguno queda dentro de un
-> error estándar de Random Forest. Pero importa la escala: entre el mejor y el peor hay 0,021; entre
-> Random Forest y sin modelo, 0,295.
+> Con los hiperparámetros elegidos, los cuatro quedan lejos de sin modelo: entre Random Forest y sin
+> modelo hay 0,295 de AUC.
+> **[→]** De cerca gana Random Forest: en validación, 0,795 de AUC y 0,629 de recall llamando al
+> 20 %. Le siguen KNN, Naive Bayes y la SVM, y ninguno queda dentro de un error estándar de Random
+> Forest. Pero la escala importa: entre el mejor y el peor hay apenas 0,021.
 
 #### A aclarar
 - **Los cuatro, en AUC de validación** (anotados en la figura): Random Forest 0,795, KNN 0,784, Naive
@@ -536,40 +535,28 @@ subajuste en una curva. Tres pasos, con el mismo encuadre: no apurarla.
   KNN de 0,755 a 0,784 y la SVM de 0,702 a 0,774. Naive Bayes no tiene curva en las slides 10–12:
   queda en 0,782.
 - **¿Y la precisión?** Con el 20 % fijo ordena a los modelos igual que el recall (aclaraciones de la
-  slide 8). Mientras el test siga cerrado, se ve además como su inversa en la slide 15: 2,8 llamadas
-  por cada «yes» alcanzado, contra 8,9 sin modelo (validación). Con el test evaluado, la slide 15
-  muestra en su lugar el recall de test, y esos dos valores ya no están en pantalla.
+  slide 8).
 
-### 14 · ¿Qué AUC esperar en clientes nuevos de la misma época? — 5:25 → 5:55 (~72 palabras)
+### 14 · ¿Qué AUC esperar en clientes nuevos de la misma época? — 5:25 → 5:55 (~74 palabras)
 
 **Habla: Sebastián.** Es la única slide que no compara nada (guía C2, C3): ni «sin modelo» ni otro
 modelo, ni en pantalla ni en voz alta. La comparación con validación se dice, no se proyecta (C6).
-Los «?» se leen de `informe/numeros.md`, sección «Números de test», después de evaluar.
+Los números salen de `informe/numeros.md`, sección «Números de test».
 
 > ¿Qué esperar en clientes nuevos? Lo dice el test: Random Forest reentrenado con todo train, sobre
-> las 8 236 filas de test, una sola vez. Da ? de AUC, con un intervalo del 95 % de ?. Contra
-> validación, la diferencia es ?. Y atención a qué mide: el
+> las 8 236 filas de test, una sola vez. Da 0,808 de AUC, con un intervalo del 95 % de
+> 0,790 a 0,824. Contra validación, la diferencia es +0,013. Y atención a qué mide: el
 > test sale de las mismas campañas que train, así que estima clientes nuevos de esa época, no una
 > campaña futura. Eso es el hallazgo.
-
-**Mientras el test siga cerrado** (ensayos hasta el 01/10), en lugar de lo anterior:
-
-> ¿Qué esperar en clientes nuevos? Lo va a decir el test: Random Forest reentrenado con todo train,
-> sobre las 8 236 filas de test, una sola vez. Todavía no lo abrimos: lo haremos después de las
-> respuestas de la cátedra. Y atención a qué va a medir: el test sale de las mismas campañas que
-> train, así que estima clientes nuevos de esa época, no una campaña futura. Eso es el hallazgo.
-
-El encabezado cuenta la variante más larga.
 
 #### A aclarar
 - **¿Por qué una sola vez?** Si el test se mira más de una vez y algo cambia en el medio, deja de ser
   independiente: pasa a decidir, y la tabla de la slide 3 dice que no decide nada. Por eso se evalúa
-  una vez («test, una sola vez», en esa tabla), con todo lo demás cerrado (N0-1; pregunta 1).
-  Mientras siga cerrado, la slide dice además cuándo: «después del 30/09».
+  una vez («test, una sola vez», en esa tabla), con todo lo demás cerrado (N0-1).
 - **Qué mide:** Random Forest reentrenado con todo train, sobre las 8 236 filas de test (slide 3):
   clientes nuevos de las mismas campañas, no de una campaña futura (slide 17). El reentrenamiento no
   está en pantalla: lo dice la charla, y es el paso de la Clase 2, slides 88–89.
-- **El intervalo** (con el test evaluado, en la slide): cuánto variaría el AUC de test con otra
+- **El intervalo** (en la slide): cuánto variaría el AUC de test con otra
   muestra de clientes nuevos de la misma época; es la incertidumbre de medir sobre un solo test.
 - **¿Por qué no aparece «sin modelo»?** Porque el test no compite con nada: «sólo estima el
   desempeño» (slide 3). Una línea de base al lado lo haría parecer una comparación que decide algo.
@@ -582,40 +569,17 @@ El encabezado cuenta la variante más larga.
   pipeline, y se dice (pregunta 27). En ningún caso se cambia el modelo después: lo que se promete es
   el número de test.
 
-### 15 · El error caro es el «yes» que no se llama — 5:55 → 6:20 (~72 palabras)
+### 15 · El error caro es el «yes» que no se llama — 5:55 → 6:20 (~66 palabras)
 
 **Habla: Sebastián.**
 
 > ¿Qué errores comete? Es la matriz de test, llamando al 20 % de la lista. Un falso positivo es una
 > llamada de más; un falso negativo, un cliente que habría contratado y no se llama: ese es el caro.
-> **[→]** Quedan ? «yes» de test sin llamar. En validación, los perdidos eran sobre todo de 2008 y
+> **[→]** Quedan 326 «yes» de test sin llamar. En validación, los perdidos eran sobre todo de 2008 y
 > sin historial.
-> **[→]** El recall de test, llamando al 20 %, es ?.
-
-**Mientras el test siga cerrado**, la matriz de la slide es la de validación, y se dice:
-
-> ¿Qué errores comete? Con el test cerrado, la matriz es la de validación: los puntajes fuera de
-> fold, llamando al 20 % de la lista. Un falso positivo es una llamada de más; un falso negativo, un
-> cliente que habría contratado y no se llama: ese es el caro.
-> **[→]** Quedan 1 382 «yes» sin llamar, sobre todo de 2008 y sin historial.
-> **[→]** Aun así, cada «yes» cuesta 2,8 llamadas, contra 8,9 sin modelo.
-
-El encabezado cuenta la variante más larga.
+> **[→]** El recall de test, llamando al 20 %, es 0,649.
 
 #### A aclarar
-- **¿Qué es fuera de fold (OOF)?** (Con el test cerrado: la slide dice «validación (OOF)».) Cada
-  fila de train puntuada por el modelo del fold en el que no entrenó: toda train, sin fuga.
-- **La matriz de validación** (con el test cerrado): 2 329 «yes» alcanzados, 1 382 perdidos, 4 259
-  llamadas de más y 24 970 bien descartados, llamando al 20 % de la lista completa, 6 588 llamadas.
-- **¿Por qué la lista completa y no fold por fold?** (Con el test cerrado: la slide dice «la lista
-  completa».) Los puntajes fuera de fold de los 5 folds se juntan en una sola lista y se corta su
-  20 %: es el mismo corte que se aplica al test, el 20 % de su lista. Con el test evaluado, la slide
-  corta el 20 % de la lista de test («llamando al 20 % de la lista»), y la pregunta no se plantea.
-- **El costo por «yes», en validación** (con el test cerrado): 2,8 llamadas es
-  (2 329 + 4 259) / 2 329, las llamadas sobre los «yes» alcanzados; sin modelo, 8,9 es la inversa de
-  la proporción de «yes», el 11,3 % de train (slide 2). Con el test evaluado, la slide muestra en su
-  lugar el recall de test: el costo por «yes» de test no está impreso y no se calcula en vivo; se
-  nombran las llamadas y los «yes» alcanzados de la matriz.
 - **¿Quiénes son los perdidos?** La slide no los desglosa, y se dice así. Lo que se ve lo hace
   esperable (inferencia): en 2008 el modelo ordena poco aun barajado, de 0,519 a 0,584 (slide 19), y
   el 86,3 % de train no tiene campaña previa (slide 17).
@@ -704,7 +668,7 @@ validar hacia adelante.
 
 #### A aclarar
 - **¿Cómo se validó hacia adelante?** Con train ordenado por fecha y partido en bloques: cada fold
-  valida con un bloque y entrena con todos los anteriores (la leyenda de la slide 19), y son los cinco
+  valida con un bloque y entrena con todos los anteriores (el rótulo «hacia adelante» de la slide 19), y son los cinco
   bloques de esa slide (D-25). Todo dentro de train: el test no participa (slide 3).
 - **Los cuatro, en AUC de validación:** barajados, 0,795, 0,784, 0,782 y 0,774; hacia adelante,
   Random Forest 0,558, KNN 0,539, Naive Bayes 0,598 y SVM 0,541.
@@ -786,22 +750,21 @@ sí se ve, sin ninguna cifra que no esté en la slide.
 
 **Para volver a una slide.** El pie dice «n/20» y la página del PDF no coincide, por los overlays.
 Página de la última variante de cada slide: 1 → 1 · 2 → 4 · 3 → 8 · 4 → 10 · 5 → 12 · 6 → 14 ·
-7 → 19 · 8 → 22 · 9 → 23 · 10 → 26 · 11 → 27 · 12 → 29 · 13 → 30 · 14 → 31 · 15 → 34 · 16 → 38 ·
-17 → 40 · 18 → 42 · 19 → 44 · 20 → 45.
+7 → 19 · 8 → 22 · 9 → 24 · 10 → 27 · 11 → 28 · 12 → 30 · 13 → 32 · 14 → 33 · 15 → 36 · 16 → 40 ·
+17 → 42 · 18 → 44 · 19 → 46 · 20 → 47.
 
 ### El test y los datos
 
-**1. ¿Por qué no evaluaron el test todavía?** [slide 14 · Sebastián] — Porque se evalúa una sola vez
-(slides 3 y 14), y una vez abierto ya no se puede cambiar nada sin que deje de ser independiente: se
-abre con todo lo demás cerrado, después del 30/09 (N0-1). *Si en la defensa siguiera cerrado:* la
-única estimación disponible es la de validación, 0,795 (slide 13), y sale algo optimista (slide 17);
-cuánto, no lo medimos (pregunta 10).
+**1. ¿Cuándo y cuántas veces evaluaron el test?** [slide 14 · Sebastián] — Una sola vez, al final
+(slides 3 y 14), con todo lo demás cerrado: modelo, hiperparámetros y preprocesamiento ya estaban
+elegidos con validación (N0-1). Una vez abierto, ya no se puede cambiar nada sin que deje de ser
+independiente. Contra validación, 0,795 (slide 13), da 0,808: una diferencia de +0,013, dentro de su
+intervalo.
 
 **2. ¿Cómo garantizan que ninguna decisión miró el test?** [slide 3 · Andrés] — Por diseño, y la
 tabla lo muestra: el análisis exploratorio, las ablaciones y la validación cruzada leen sólo train;
 el test se usa una vez, al final, y no decide nada (D-04). Además, lo que se aprende de los datos
-—escalas, cortes— se ajusta dentro de cada fold, sólo con el de entrenamiento (slide 7). *Mientras
-siga cerrado*, la slide 14 lo muestra pendiente: se evalúa una vez, después del 30/09.
+—escalas, cortes— se ajusta dentro de cada fold, sólo con el de entrenamiento (slide 7).
 
 **3. ¿Por qué partición aleatoria, si el archivo está ordenado por fecha?** [slides 5 y 19 ·
 Sebastián] — El enunciado plantea k-fold y no menciona el tiempo, y con el último 20 % del archivo
@@ -1043,21 +1006,22 @@ la 15 y la 16, los errores y los supuestos (punto 5). El hallazgo se acorta, per
 modos unos 40 segundos.
 
 **La suma (gate G6).** Las palabras habladas se cuentan como tokens separados por espacios, sin las
-marcas `[→]` ni los signos sueltos, y cada «?» del test cuenta como una palabra; en las slides 14 y
-15 cuenta la variante más larga. Aplicada al guion del TP1, esta cuenta da 1 606 palabras, 26 menos
+marcas `[→]` ni los signos sueltos. Aplicada al guion del TP1, esta cuenta da 1 606 palabras, 26 menos
 (el 1,6 %) que las 1 632 que declaran sus 22 encabezados: siete coinciden y los otros quince declaran
 entre 1 y 4 palabras de más. Contado con esta regla, el TP1 dice 1 606 palabras en los 10:00 de su
 reloj, 2,68 por segundo: redondeado, el mismo 2,7.
 
-- **1 364 palabras / 2,7 = 505,2 s = 8:25 ≤ 9:45.** Pasa, con 80 segundos de margen. Con las
+- **1 377 palabras / 2,7 = 510,0 s = 8:30 ≤ 9:45.** Pasa, con 75 segundos de margen. Con las
   ventanas redondeadas a 5 segundos, el reloj termina en 8:30, 45 segundos antes que el esqueleto del
-  plan. A 2,68 por segundo, 8:29.
-- **Con los números leídos completos: entre 8:47 y 8:52.** Los números de este guion tardan más en
+  plan. A 2,68 por segundo, 8:34. (Al 05/10: el zoom de las slides 9 y 13 y los números de test
+  sumaron 13 palabras a las 1 364 anteriores.)
+- **Con los números leídos completos: entre 8:52 y 8:57** (las cifras de abajo son de la cuenta
+  anterior, de 1 364 palabras, escaladas en proporción). Los números de este guion tardan más en
   decirse que los del TP1, porque muchos son AUC con tres decimales. Se expandió cada número escrito
   con cifras a las palabras con que se lee («0,795» son seis: «cero coma setecientos noventa y
-  cinco»), y cada «?» del test, como un número de tres decimales: cada palabra de este guion equivale
+  cinco»): cada palabra de este guion equivale
   a 1,19 palabras leídas, y cada una del TP1, a 1,15. A la velocidad de lectura que 2,7 por segundo
-  le supone al TP1, este guion dura 8:47; si el TP1 se dijo en los 10:00 de su reloj, 8:52, 53
+  le supone al TP1, este guion dura 8:52; si el TP1 se dijo en los 10:00 de su reloj, 8:57, 48
   segundos por debajo del tope. Hay 80 números hablados, el 5,9 % de las palabras (en el TP1, 93,
   también el 5,8 %).
 - **Lo que decide son los dos ensayos cronometrados** (paso 8.4 del plan, gate G6): tienen que

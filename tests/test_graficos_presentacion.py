@@ -8,7 +8,7 @@ series se buscan por su `gid`.
 
 Además, a cada figura se le exige lo que la hace de proyección (guía de presentaciones, B5, B6 y
 B8): el lienzo de 10,6 × 5,0 in, ningún título, ningún texto por debajo de 14 pt, ningún texto
-fuera del lienzo, la leyenda por encima de los ejes, y en los revelados, el mismo encuadre en
+fuera del lienzo, la leyenda fuera del área de datos, y en los revelados, el mismo encuadre en
 todos los pasos. El test del CLI escribe la lista canónica completa en un directorio temporal, con
 resultados sintéticos y el train real (cargar_train()): train es parte del repositorio.
 """
@@ -45,8 +45,9 @@ ALFA_BANDA = 0.16
 # y este test lo tiene que ver.
 CANONICAS = [
     "duration-techo.png", "orden-temporal.png", "pdays-999.png", "modelos-referencia.png",
-    "curva-rf-1.png", "curva-rf-2.png", "curva-rf-3.png", "curva-knn.png", "curva-svm.png",
-    "curva-svm-2.png", "modelos-final.png", "robustez-modelos.png", "robustez-folds.png",
+    "modelos-referencia-zoom.png", "curva-rf-1.png", "curva-rf-2.png", "curva-rf-3.png",
+    "curva-knn.png", "curva-svm.png", "curva-svm-2.png", "modelos-final.png",
+    "modelos-final-zoom.png", "robustez-modelos.png", "robustez-folds.png",
     "robustez-folds-2.png",
 ]
 
@@ -122,6 +123,10 @@ def _textos_visibles(fig):
     return [t for t in textos if t.get_visible() and t.get_text().strip()]
 
 
+def ax_leyenda(fig):
+    return fig.axes[0].get_legend()
+
+
 def _leyendas(fig):
     return [ax.get_legend() for ax in fig.axes if ax.get_legend() is not None] + list(fig.legends)
 
@@ -170,11 +175,19 @@ def _comprobar_proyeccion(fig, con_leyenda=True):
                 f"el valor «{t.get_text()}» tapa un marcador de {gid}"
     leyendas = _leyendas(fig)
     if con_leyenda:
+        # La leyenda va fuera de los ejes (a la derecha, o arriba en orden-temporal): no pisa el
+        # área de datos de ningún panel, ni marcadores ni rótulos.
         assert leyendas, "la figura no tiene leyenda"
-        techo = max(ax.get_window_extent(renderer).y1 for ax in fig.axes)
         for leyenda in leyendas:
-            assert leyenda.get_window_extent(renderer).y0 >= techo - 1, \
-                "la leyenda no está arriba, fuera del área de datos"
+            caja = leyenda.get_window_extent(renderer)
+            for ax in fig.axes:
+                assert not caja.overlaps(ax.get_window_extent(renderer)), \
+                    "la leyenda está dentro del área de datos"
+            for gid, x, y, r in marcadores:
+                assert not caja.overlaps(Bbox.from_extents(x - r, y - r, x + r, y + r)), \
+                    f"la leyenda tapa un marcador de {gid}"
+            for texto, ct in cajas:
+                assert not caja.overlaps(ct), f"la leyenda tapa el rótulo «{texto}»"
     else:
         assert not leyendas, "esta figura no lleva leyenda"
 
@@ -406,13 +419,15 @@ def test_lista_canonica_y_linea_base():
     assert gp.CON_LINEA_BASE <= set(CANONICAS)
     assert not {a for a in gp.CON_LINEA_BASE if a.startswith("curva-")}
     assert gp.ASPECTO_SLIDE == (10.6, 5.0) and gp.DPI == 200 and gp.TAM_MINIMO >= 14
-    print("ok  la lista canónica tiene las 14 figuras del deck, en 16:9 apaisado a 200 dpi")
+    print("ok  la lista canónica tiene las 16 figuras del deck, en 16:9 apaisado a 200 dpi")
 
 
 def test_duration_techo():
     with _abierta(gp.figura_duration_techo(_ablaciones())) as fig:
         _comprobar_proyeccion(fig)
         _comprobar_linea_base(fig)
+        assert [t.get_text() for t in fig.axes[0].get_legend().get_texts()] == \
+            ["sin duration", "con duration"]
         orden = sorted(A1, key=lambda m: -A1[m][1])  # de mayor a menor techo
         ax = fig.axes[0]
         assert [t.get_text() for t in ax.get_yticklabels()] == \
@@ -469,55 +484,86 @@ def test_pdays():
         barras = {p.get_gid(): p for p in ax.patches}
         for grupo, tasa in zip(gp.GRUPOS_PDAYS, (10.0, 20.0, 65.0)):
             assert np.isclose(barras[f"tasa:{grupo}"].get_width(), tasa)
-            assert _mismo_color(barras[f"tasa:{grupo}"].get_facecolor(),
-                                estilo.COLOR_CLASE["yes"])
+            esperado = (estilo.COLOR_CLASE["yes"] if grupo == gp.GRUPO_RESALTADO_PDAYS
+                        else gp.GRIS_CONTEXTO)
+            assert _mismo_color(barras[f"tasa:{grupo}"].get_facecolor(), esperado)
             assert _texto(fig, f"valor:{grupo}").get_text() == numero(tasa, 1) + " %"
         rotulos = [t.get_text() for t in ax.get_yticklabels()]
         assert "pdays = 999 y previous ≥ 1" in rotulos[1] and "40 filas" in rotulos[1]
         assert "100 filas" in rotulos[0] and "pdays < 999" in rotulos[2]
         assert ax.get_yticklabels()[1].get_fontweight() == "bold"
         assert ax.get_xticklabels()[0].get_text() == "0 %"
-    print("ok  pdays-999: % de «yes» de los tres grupos, con 999 y previous ≥ 1 en negrita")
+    print("ok  pdays-999: % de «yes» de los tres grupos, con 999 y previous ≥ 1 resaltado")
 
 
 def test_modelos_referencia():
-    with _abierta(gp.figura_modelos_referencia(_resumen_cv(CV_REFERENCIA))) as fig:
-        _comprobar_proyeccion(fig, con_leyenda=False)
-        _comprobar_linea_base(fig)
-        ax = fig.axes[0]
-        orden = sorted(CV_REFERENCIA, key=lambda m: -CV_REFERENCIA[m]["auc"][0])
-        assert [t.get_text() for t in ax.get_yticklabels()] == \
-            [gp.rotulo_modelo(m) for m in orden]
-        for y, m in enumerate(orden):
-            media, desvio = CV_REFERENCIA[m]["auc"]
-            _comprobar_barra_horizontal(ax, f"auc:{m}", media, y, desvio, _color_modelo(m))
-            assert _texto(fig, f"valor:auc:{m}").get_text() == numero(media, 3)
-        assert np.allclose(_linea(fig, "linea-base").get_xdata(), [0.5, 0.5])
+    orden = sorted(CV_REFERENCIA, key=lambda m: -CV_REFERENCIA[m]["auc"][0])
+    figs = [gp.figura_modelos_referencia(_resumen_cv(CV_REFERENCIA), zoom) for zoom in (0, 1)]
+    try:
+        entera, zoom = figs
+        for fig in figs:
+            _comprobar_proyeccion(fig, con_leyenda=False)
+            ax = fig.axes[0]
+            assert ax.get_xlabel().endswith(f"{ROTULO_LINEA_BASE}: 0,5")
+            assert [t.get_text() for t in ax.get_yticklabels()] == \
+                [gp.rotulo_modelo(m) for m in orden]
+            for y, m in enumerate(orden):
+                media, desvio = CV_REFERENCIA[m]["auc"]
+                _comprobar_barra_horizontal(ax, f"auc:{m}", media, y, desvio, _color_modelo(m))
+                assert _texto(fig, f"valor:auc:{m}").get_text() == numero(media, 3)
+        # Paso 1: la escala entera, con «sin modelo» y marcas cada 0,1, y la ventana del zoom.
+        _comprobar_linea_base(entera)
+        a = entera.axes[0]
+        assert a.get_xlim()[0] < 0.5 and np.allclose(np.diff(a.get_xticks()), 0.1)
+        ventana = [c for c in a.patches if c.get_gid() == "ventana-zoom"]
+        assert len(ventana) == 1
+        # Paso 2: la ventana, sin la línea (queda fuera del eje).
+        _sin_linea_base(zoom)
+        b = zoom.axes[0]
+        assert b.get_xlim()[0] > 0.5
+        assert np.allclose(ventana[0].get_x(), b.get_xlim()[0])
+        assert np.allclose(ventana[0].get_x() + ventana[0].get_width(), b.get_xlim()[1])
+        assert np.allclose(a.get_position().bounds, b.get_position().bounds)
+    finally:
+        for fig in figs:
+            plt.close(fig)
     # Sin filas sin_modelo, «sin modelo» es el AUC de un puntaje constante: 0,5.
     with _abierta(gp.figura_modelos_referencia(_resumen_cv(CV_REFERENCIA, base=None))) as fig:
         assert np.allclose(_linea(fig, "linea-base").get_xdata(), [0.5, 0.5])
-    print("ok  modelos-referencia: los cinco de mayor a menor AUC, con su color y su valor, "
-          "contra «sin modelo»")
+    print("ok  modelos-referencia y -zoom: los cinco de mayor a menor AUC; primero la escala "
+          "entera con «sin modelo», después el zoom a las barras")
 
 
 def test_modelos_final():
-    with _abierta(gp.figura_modelos_final(_resumen_cv(CV_FINAL))) as fig:
-        _comprobar_proyeccion(fig, con_leyenda=False)
-        _comprobar_linea_base(fig)
-        izq, der = fig.axes
-        orden = sorted(CV_FINAL, key=lambda m: -CV_FINAL[m]["auc"][0])
-        assert orden[0] == "rf"
-        for ax, metrica, base in ((izq, "auc", 0.5), (der, "recall_q", 0.2001)):
-            for y, m in enumerate(orden):
-                media, desvio = CV_FINAL[m][metrica]
-                _comprobar_barra_horizontal(ax, f"{metrica}:{m}", media, y, desvio,
-                                            _color_modelo(m))
-                assert _texto(fig, f"valor:{metrica}:{m}").get_text() == numero(media, 3)
-            linea = [l for l in ax.lines if l.get_gid() == "linea-base"][0]
-            assert np.allclose(linea.get_xdata(), [base, base])
-        assert "20 %" in der.get_xlabel()
-    print("ok  modelos-final: AUC y recall al 20 %, en el mismo orden, cada uno contra su "
-          "«sin modelo»")
+    orden = sorted(CV_FINAL, key=lambda m: -CV_FINAL[m]["auc"][0])
+    assert orden[0] == "rf"
+    figs = [gp.figura_modelos_final(_resumen_cv(CV_FINAL), zoom) for zoom in (0, 1)]
+    try:
+        for paso, fig in enumerate(figs):
+            _comprobar_proyeccion(fig, con_leyenda=False)
+            (_sin_linea_base if paso else _comprobar_linea_base)(fig)
+            izq, der = fig.axes
+            for ax, metrica, base in ((izq, "auc", 0.5), (der, "recall_q", 0.2001)):
+                for y, m in enumerate(orden):
+                    media, desvio = CV_FINAL[m][metrica]
+                    _comprobar_barra_horizontal(ax, f"{metrica}:{m}", media, y, desvio,
+                                                _color_modelo(m))
+                    assert _texto(fig, f"valor:{metrica}:{m}").get_text() == numero(media, 3)
+                assert ax.get_xlabel().endswith(f"{ROTULO_LINEA_BASE}: {numero(base, 1)}")
+                if paso:
+                    assert ax.get_xlim()[0] > base
+                else:
+                    linea = [l for l in ax.lines if l.get_gid() == "linea-base"][0]
+                    assert np.allclose(linea.get_xdata(), [base, base])
+                    assert np.allclose(np.diff(ax.get_xticks()), 0.1)
+            assert "20 %" in der.get_xlabel()
+        for a, b in zip(figs[0].axes, figs[1].axes):
+            assert np.allclose(a.get_position().bounds, b.get_position().bounds)
+    finally:
+        for fig in figs:
+            plt.close(fig)
+    print("ok  modelos-final y -zoom: AUC y recall al 20 %, en el mismo orden; escala entera con "
+          "su «sin modelo» y después el zoom")
 
 
 def _pasos_rf():
@@ -610,6 +656,7 @@ def banda_visible(fig):
 def test_curva_knn():
     with _abierta(gp.figura_curva_knn(_knn("uniform"), _knn("distance"), elegido=801)) as fig:
         _comprobar_proyeccion(fig)
+        assert "weights =\ndistance" in [t.get_text() for t in ax_leyenda(fig).get_texts()]
         _sin_linea_base(fig)
         ax = fig.axes[0]
         assert ax.get_xscale() == "log"
@@ -672,6 +719,8 @@ def test_curva_svm_dos_pasos_con_el_mismo_encuadre():
 def test_robustez_modelos():
     with _abierta(gp.figura_robustez_modelos(_robustez_resumen())) as fig:
         _comprobar_proyeccion(fig)
+        assert [t.get_text() for t in ax_leyenda(fig).get_texts()] == \
+            ["barajado", "hacia\nadelante"]
         _comprobar_linea_base(fig)
         ax = fig.axes[0]
         orden = ["rf", "knn", "svm"]  # por el AUC barajado
@@ -721,6 +770,8 @@ def test_robustez_folds_dos_pasos():
         for fig in figs:
             _comprobar_proyeccion(fig)
             _comprobar_linea_base(fig)
+        visibles = [[t.get_visible() for t in ax_leyenda(f).get_texts()] for f in figs]
+        assert visibles == [[True, False], [True, True]], visibles
         a, b = (f.axes[0] for f in figs)
         assert a.get_xlim() == b.get_xlim() and a.get_ylim() == b.get_ylim()
         assert np.allclose(a.get_position().bounds, b.get_position().bounds)
@@ -729,18 +780,17 @@ def test_robustez_folds_dos_pasos():
             assert np.allclose(adelante.get_xdata(), range(1, 6))
             assert np.allclose(adelante.get_ydata(), ADELANTE)
             assert _mismo_color(adelante.get_color(), estilo.NARANJA)
-            referencia = _linea(fig, "referencia-barajado")
-            assert np.allclose(referencia.get_ydata(), [np.mean(BARAJADO)] * 2)
             for fold, v in enumerate(ADELANTE, start=1):
                 assert _texto(fig, f"valor:adelante:{fold}").get_text() == numero(v, 3)
-            assert _texto(fig, "rotulo-barajado").get_text().endswith(numero(np.mean(BARAJADO), 3))
             rotulos = [t.get_text() for t in fig.axes[0].get_xticklabels()]
             assert rotulos[0] == "may–jul\n2008\n4,7 % «yes»", rotulos[0]
             assert rotulos[3] == "nov–may\n2008–2009\n12,7 % «yes»", rotulos[3]
             assert rotulos[1] == "bloque 2\n6,5 % «yes»", rotulos[1]
-            tallos = [c for c in fig.axes[0].collections if c.get_gid() == "tallos"][0]
-            for segmento, v in zip(tallos.get_segments(), ADELANTE):
-                assert np.allclose(np.asarray(segmento)[:, 1], [0.5, v])
+            # La pérdida: un segmento por bloque, del punto hacia adelante al barajado.
+            perdida = [c for c in fig.axes[0].collections if c.get_gid() == "perdida"][0]
+            for segmento, v, w in zip(perdida.get_segments(), ADELANTE, MISMAS):
+                assert np.allclose(sorted(np.asarray(segmento)[:, 1]), sorted([v, w]))
+            assert perdida.get_visible() == (fig is figs[1])
         azul_1, azul_2 = (_linea(f, "barajado-mismas-filas") for f in figs)
         assert not azul_1.get_visible() and azul_2.get_visible()
         assert np.allclose(azul_2.get_ydata(), MISMAS)
@@ -813,7 +863,7 @@ def test_cli_escribe_la_lista_canonica():
         for nombre in CANONICAS:
             with Image.open(figuras / nombre) as im:
                 assert im.size == (2120, 1000), (nombre, im.size)
-        assert "14 figuras" in salida.getvalue()
+        assert "16 figuras" in salida.getvalue()
 
         # Una entrada que falta es un error: se informa, se siguen las demás, y sale con 1.
         (resultados / "cv_final_resumen.csv").unlink()
@@ -822,7 +872,8 @@ def test_cli_escribe_la_lista_canonica():
             codigo = gp.main(["--resultados", str(resultados), "--figuras", str(otras),
                               "--solo", "modelos-final", "modelos-referencia"])
         assert codigo == 1
-        assert sorted(p.name for p in otras.glob("*.png")) == ["modelos-referencia.png"]
+        assert sorted(p.name for p in otras.glob("*.png")) == ["modelos-referencia-zoom.png",
+                                                          "modelos-referencia.png"]
         assert "modelos-final" in salida.getvalue() and "con error" in salida.getvalue()
     assert not plt.get_fignums(), f"quedaron figuras abiertas: {plt.get_fignums()}"
     print("ok  el CLI escribe las 14 figuras de la lista canónica a 2 120 × 1 000 píxeles; una "

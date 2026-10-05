@@ -6,12 +6,6 @@ Formato: coma decimal; tres decimales en las métricas (AUC, recall, precisión)
 
 Resultados leídos de `resultados/`.
 
-## Pendientes
-
-Estos macros valen «?» porque falta su entrada. El deck compila igual, y se completan solos al volver a correr `python3 -m src.numeros`.
-
-- `resultados/evaluacion_test.json`: `\yesTest`, `\pctYesTest`, `\diferenciaAucTestValidacion`, `\diferenciaRecallTestValidacion`
-
 ## Slide 2 · El problema
 
 | Macro | Valor | Fuente |
@@ -468,10 +462,10 @@ Estos macros valen «?» porque falta su entrada. El deck compila igual, y se co
 
 | Macro | Valor | Fuente |
 |---|---|---|
-| `\yesTest` | ? | `resultados/evaluacion_test.json`: n_yes_test (pendiente) |
-| `\pctYesTest` | ? | `resultados/evaluacion_test.json`: n_yes_test / n_test (pendiente) |
-| `\diferenciaAucTestValidacion` | ? | `resultados/evaluacion_test.json`: metricas.auc.valor menos `resultados/modelo_elegido.json`: metricas.validacion.auc.media (sólo en voz alta, guía C2) (pendiente) |
-| `\diferenciaRecallTestValidacion` | ? | `resultados/evaluacion_test.json`: metricas.recall_q.valor menos `resultados/modelo_elegido.json`: metricas.validacion.recall_q.media (sólo en voz alta, guía C2) (pendiente) |
+| `\yesTest` | 928 | `resultados/evaluacion_test.json`: n_yes_test |
+| `\pctYesTest` | 11,3 % | `resultados/evaluacion_test.json`: n_yes_test / n_test |
+| `\diferenciaAucTestValidacion` | +0,013 | `resultados/evaluacion_test.json`: metricas.auc.valor menos `resultados/modelo_elegido.json`: metricas.validacion.auc.media (sólo en voz alta, guía C2) |
+| `\diferenciaRecallTestValidacion` | +0,019 | `resultados/evaluacion_test.json`: metricas.recall_q.valor menos `resultados/modelo_elegido.json`: metricas.validacion.recall_q.media (sólo en voz alta, guía C2) |
 | `\vpRfVal` | 2 329 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): VP llamando al 20 % de la lista fuera de fold |
 | `\fpRfVal` | 4 259 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): FP llamando al 20 % de la lista fuera de fold |
 | `\fnRfVal` | 1 382 | `resultados/oof_final_rf.csv` con la y de train (`cargar_train()`): FN llamando al 20 % de la lista fuera de fold |
@@ -655,24 +649,24 @@ Los escribe `src/evaluar_test.py`, no este módulo: el deck los toma de ese arch
 
 | Macro | Valor | Fuente |
 |---|---|---|
-| `\auctest` | ? | `informe/resultados-test.tex` |
-| `\aucic` | ? | `informe/resultados-test.tex` |
-| `\recalltest` | ? | `informe/resultados-test.tex` |
-| `\recallic` | ? | `informe/resultados-test.tex` |
-| `\precisiontest` | ? | `informe/resultados-test.tex` |
-| `\fitest` | ? | `informe/resultados-test.tex` |
-| `\aptest` | ? | `informe/resultados-test.tex` |
-| `\vptest` | ? | `informe/resultados-test.tex` |
-| `\fptest` | ? | `informe/resultados-test.tex` |
-| `\fntest` | ? | `informe/resultados-test.tex` |
-| `\vntest` | ? | `informe/resultados-test.tex` |
-| `\recallmatriztest` | ? | `informe/resultados-test.tex` |
-| `\precisionmatriztest` | ? | `informe/resultados-test.tex` |
-| `\empatadostest` | ? | `informe/resultados-test.tex` |
-| `\llamadosempatadostest` | ? | `informe/resultados-test.tex` |
-| `\ntest` | ? | `informe/resultados-test.tex` |
-| `\llamadastest` | ? | `informe/resultados-test.tex` |
-| `\nevaluaciones` | ? | `informe/resultados-test.tex` |
+| `\auctest` | 0,808 | `informe/resultados-test.tex` |
+| `\aucic` | 0,790–0,824 | `informe/resultados-test.tex` |
+| `\recalltest` | 0,649 | `informe/resultados-test.tex` |
+| `\recallic` | 0,620–0,678 | `informe/resultados-test.tex` |
+| `\precisiontest` | 0,366 | `informe/resultados-test.tex` |
+| `\fitest` | 0,468 | `informe/resultados-test.tex` |
+| `\aptest` | 0,480 | `informe/resultados-test.tex` |
+| `\vptest` | 602 | `informe/resultados-test.tex` |
+| `\fptest` | 1 045 | `informe/resultados-test.tex` |
+| `\fntest` | 326 | `informe/resultados-test.tex` |
+| `\vntest` | 6 263 | `informe/resultados-test.tex` |
+| `\recallmatriztest` | 0,649 | `informe/resultados-test.tex` |
+| `\precisionmatriztest` | 0,366 | `informe/resultados-test.tex` |
+| `\empatadostest` | 1 | `informe/resultados-test.tex` |
+| `\llamadosempatadostest` | 1 | `informe/resultados-test.tex` |
+| `\ntest` | 8 236 | `informe/resultados-test.tex` |
+| `\llamadastest` | 1 647 | `informe/resultados-test.tex` |
+| `\nevaluaciones` | 1 | `informe/resultados-test.tex` |
 
 ## Cifras que este módulo no mide
 

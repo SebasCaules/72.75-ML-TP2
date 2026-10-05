@@ -341,14 +341,19 @@
   \vspace{0.4em}
   \centrado{%
   \begin{tikzpicture}[font=\small, x=1cm, y=1cm]
-    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (cli) at (0,1.59)
-      {el cliente\\[-2pt]{\scriptsize\gris{edad, trabajo, estudios, crédito}}};
-    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (his) at (0,0.53)
-      {su historial\\[-2pt]{\scriptsize\gris{campañas anteriores y su resultado}}};
-    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (ctx) at (0,-0.53)
-      {el contexto económico\\[-2pt]{\scriptsize\gris{euribor, empleo, precios, confianza}}};
-    \node[caja, minimum width=4.6cm, minimum height=0.86cm, visible on=<2->] (lla) at (0,-1.59)
-      {la llamada que se va a hacer\\[-2pt]{\scriptsize\gris{canal, mes, día, n.º de llamada}}};
+    % Las cuatro cajas, del mismo ancho y alto (text width fija el ancho aunque el renglón gris
+    % sea más largo), a 1,2 cm de centro a centro: 0,22 cm de aire entre una y otra.
+    \begin{scope}[every node/.append style={caja, text width=4.9cm, minimum height=0.98cm,
+                                            visible on=<2->}]
+      \node (cli) at (0,1.8)
+        {el cliente\\[-2pt]{\scriptsize\gris{edad, trabajo, estudios, crédito}}};
+      \node (his) at (0,0.6)
+        {su historial\\[-2pt]{\scriptsize\gris{campañas anteriores y su resultado}}};
+      \node (ctx) at (0,-0.6)
+        {el contexto económico\\[-2pt]{\scriptsize\gris{euribor, empleo, precios, confianza}}};
+      \node (lla) at (0,-1.8)
+        {la llamada que se va a hacer\\[-2pt]{\scriptsize\gris{canal, mes, día, n.º de llamada}}};
+    \end{scope}
     \node[cajaazul, minimum width=2.7cm, minimum height=1.2cm] (m) at (5.1,0)
       {modelo\\[-2pt]{\scriptsize\gris{antes de llamar}}};
     \node[cajanaranja, minimum width=4.3cm, minimum height=1.2cm] (y) at (9.75,0)
@@ -358,15 +363,18 @@
     \draw[flecha, visible on=<2->] (his.east) -- (m.173);
     \draw[flecha, visible on=<2->] (ctx.east) -- (m.187);
     \draw[flecha, visible on=<2->] (lla.east) -- (m.200);
+    % La barra de clases, a escala: 4,3 cm = las \filasTrain{} filas de train; el corte, en el
+    % 88,7 % (11,414 cm). El rótulo de arriba dice qué se cuenta; cada tramo lleva su clase.
     \begin{scope}[visible on=<3->]
-      \node[anchor=south west, font=\footnotesize, text=tintasec, inner sep=1pt] at (7.6,-0.93)
-        {en train};
-      \fill[azul!85] (7.6,-1.40) rectangle (11.414,-0.95);
-      \fill[naranja] (11.414,-1.40) rectangle (11.9,-0.95);
-      \node[anchor=west, font=\footnotesize\bfseries, text=white, inner sep=1pt] at (7.7,-1.175)
+      \node[anchor=south west, font=\footnotesize, text=tinta, inner sep=1pt]
+        at (7.6,-1.12) {\textbf{respuestas en train}\sepdato{\color{tintasec}\filasTrain}};
+      \fill[azul] (7.6,-1.72) rectangle (11.414,-1.17);
+      \fill[naranja] (11.454,-1.72) rectangle (11.9,-1.17);
+      \node[anchor=west, font=\footnotesize\bfseries, text=white, inner sep=1pt] at (7.72,-1.445)
         {«no»\sepdato\exactitudSiempreNo};
+      \draw[naranja, line width=0.7pt] (11.677,-1.76) -- (11.677,-1.94);
       \node[anchor=north east, font=\footnotesize\bfseries, text=naranja, inner sep=1pt]
-        at (11.9,-1.46) {«yes»\sepdato\pctYesTrain};
+        at (11.9,-1.96) {«yes»\sepdato\pctYesTrain};
     \end{scope}
   \end{tikzpicture}}
   \note{Un banco ofrece un plazo fijo por teléfono. La pregunta es: antes de marcar, ¿este
@@ -397,15 +405,14 @@
   \vspace{0.2em}
   \centrado{%
   \begin{tikzpicture}[x=1cm, y=1cm]
-    \node[anchor=south west, font=\scriptsize, text=apagado, inner sep=1pt] at (0,1.08)
-      {\filasSinDuplicados{} filas: las \filasCsv{} del archivo menos \duplicados{} duplicados
-       exactos\sepdato 80/20 estratificado por \texttt{y}};
+    \node[anchor=south west, font=\footnotesize, text=tintasec, inner sep=1pt] at (0,1.08)
+      {\filasSinDuplicados{} filas sin duplicados, estratificadas por \texttt{y}};
     \fill[azul!20, rounded corners=2pt] (0,0) rectangle (11.25,1.0);
     \node[font=\small, align=center] at (5.625,0.5)
-      {\textbf{train}\\[-2.5pt]{\scriptsize\gris{\filasTrain{} filas\sepdato\proporcionTrain}}};
+      {\textbf{train}\sepdato\proporcionTrain};
     \fill[naranja!20, rounded corners=2pt] (11.39,0) rectangle (14.2,1.0);
     \node[font=\small, align=center] at (12.795,0.5)
-      {\textbf{test}\\[-2.5pt]{\scriptsize\gris{\filasTest{} filas\sepdato\proporcionTest}}};
+      {\textbf{test}\sepdato\proporcionTest};
     % La tabla: etapa, datos y qué decide.
     \node[anchor=west, inner sep=0pt] at (0.25,-0.62) {\cab{Etapa}};
     \node[anchor=west, inner sep=0pt] at (4.55,-0.62) {\cab{Datos}};
@@ -532,39 +539,34 @@
 \end{frame}
 
 % ---------------------------------------------------------------------
-% 7 · El pipeline, con la consecuencia de cada paso debajo de su caja. La partición queda
+% 7 · El pipeline: cuatro cajas iguales, cada una con lo que hace su paso. La partición queda
 % afuera; lo que se ajusta con datos vive dentro de cada fold (enunciado, punto 1: «dentro del
 % pipeline correspondiente»). Las cajas entran en el orden en que el pipeline las ejecuta, y el
 % último overlay es el veredicto de la sección: los atípicos por IQR (D-17).
 \begin{frame}{Todo se ajusta dentro de cada fold, en este orden}
   \vspace{0.3em}
   \centrado{%
-  \begin{tikzpicture}[x=1cm, y=1cm, font=\small,
-      consecuencia/.style={font=\scriptsize, text=azuloscuro, align=flush center, text width=3.2cm,
-                           anchor=north, inner sep=1pt}]
-    \node[caja, minimum width=2.7cm, minimum height=1.2cm, visible on=<1->] (a) at (1.35,0)
-      {partición\\[-1pt]{\scriptsize\gris{5 folds, barajados}}};
-    \node[caja, minimum width=2.8cm, minimum height=1.2cm, visible on=<2->] (b) at (5.25,0)
-      {reglas fijas\\[-1pt]{\scriptsize\gris{sin \texttt{duration}}}};
-    \node[cajaazul, minimum width=3.0cm, minimum height=1.2cm, visible on=<3->] (c) at (8.85,0)
-      {codificar y escalar\\[-1pt]{\scriptsize\gris{según el modelo}}};
-    \node[cajanaranja, minimum width=2.7cm, minimum height=1.2cm, visible on=<4->] (d)
-      at (12.45,0) {clasificador\\[-1pt]{\scriptsize\gris{NB, SVM, KNN, RF}}};
+  \begin{tikzpicture}[x=1cm, y=1cm, font=\small]
+    % Cuatro cajas iguales; debajo del nombre, sólo lo que hace el paso.
+    \begin{scope}[every node/.append style={text width=3.05cm, minimum height=1.2cm}]
+      \node[caja, visible on=<1->] (a) at (1.7,0)
+        {partición\\[-1pt]{\scriptsize\gris{5 folds barajados}}};
+      \node[caja, visible on=<2->] (b) at (5.4,0)
+        {reglas fijas\\[-1pt]{\scriptsize\gris{\columnasReferencia\salto\columnasFinales{}
+         columnas}}};
+      \node[cajaazul, visible on=<3->] (c) at (9.1,0)
+        {codificar y escalar\\[-1pt]{\scriptsize\gris{con train del fold}}};
+      \node[cajanaranja, visible on=<4->] (d) at (12.8,0)
+        {clasificador\\[-1pt]{\scriptsize\gris{NB, SVM, KNN, RF}}};
+    \end{scope}
     \draw[flecha, visible on=<2->] (a) -- (b);
     \draw[flecha, visible on=<3->] (b) -- (c);
     \draw[flecha, visible on=<4->] (c) -- (d);
-    \node[consecuencia, visible on=<1->] (ca) at (1.35,-0.78) {cada fold mezcla\\las épocas};
-    \node[consecuencia, visible on=<2->] (cb) at (5.25,-0.78)
-      {categorías fundidas:\\
-       \columnasReferencia\salto\columnasFinales{} columnas};
-    \node[consecuencia, visible on=<3->] (cc) at (8.85,-0.78)
-      {ajustado sólo con el\\fold de entrenamiento};
-    \node[consecuencia, visible on=<4->] (cd) at (12.45,-0.78) {los cuatro, en\\los mismos folds};
     \begin{scope}[on background layer]
       \node[draw=apagado, dash pattern=on 2.4pt off 2pt, rounded corners=4pt, line width=0.6pt,
-            inner sep=0.22cm, fit=(b) (c) (d) (cb) (cc) (cd), visible on=<2->] (fold) {};
+            inner sep=0.22cm, fit=(b) (c) (d), visible on=<2->] (fold) {};
     \end{scope}
-    \node[anchor=south, font=\scriptsize, text=apagado, inner sep=2pt, visible on=<2->]
+    \node[anchor=south, font=\scriptsize, text=tintasec, inner sep=2pt, visible on=<2->]
       at (fold.north) {dentro de cada fold};
   \end{tikzpicture}}
   \vspace{0.9em}
@@ -642,12 +644,16 @@
 \section{Modelos}
 % =====================================================================
 % 9 · Los cinco clasificadores con valores de referencia (Naive Bayes en sus dos variantes,
-% D-18), contra «sin modelo».
+% D-18), en dos pasos: la escala entera contra «sin modelo», con la ventana del zoom sombreada, y
+% el zoom a esa ventana, donde se leen las barras de ±1 desvío.
 \begin{frame}{Sin ajustar, gana \modeloMejorReferencia: \aucNbReferencia{} contra
   \aucSinModelo{} \rotuloLineaBase}
-  \centrado{\figgrande[0.97]{modelos-referencia.png}}
+  \centrado{%
+    \only<1>{\figgrande[0.97]{modelos-referencia.png}}%
+    \only<2->{\figgrande[0.97]{modelos-referencia-zoom.png}}}
   \note{Primero, los modelos con valores de referencia, sin ajustar, en los mismos 5 folds:
-    todos quedan muy por encima de sin modelo. El mejor es Naive Bayes, en su versión
+    todos quedan muy por encima de sin modelo.
+    \avanza De cerca, con su desvío entre folds: el mejor es Naive Bayes, en su versión
     categórica: discretizar las numéricas en deciles le suma \deltaAucNbCategorico{} sobre el
     gaussiano, porque ninguna numérica es normal. Y tres sobreajustan: Random Forest sin límite
     de profundidad, la SVM con RBF y KNN con k = \vecinosKnnReferencia. Lo muestran, y lo
@@ -668,14 +674,13 @@
 % =====================================================================
 % 10 · La curva de sobreajuste (punto 3.1), revelada en tres pasos como la curva en U del TP1:
 % train, validación, y las bandas con las zonas y el valor elegido. Mismo encuadre en las tres.
-% «Sin modelo» (AUC 0,5) queda debajo del eje, así que va como referencia (G11).
+% «Sin modelo» (AUC 0,5) queda debajo del eje; sin línea de referencia, para que la curva
+% ocupe el frame (pedido de menos texto de apoyo, 05/10).
 \begin{frame}{¿Desde qué profundidad sobreajusta Random Forest?}
-  \renewcommand{\figgrandealto}{0.72}
   \centrado{%
     \only<1>{\figgrande[0.97]{curva-rf-1.png}}%
     \only<2>{\figgrande[0.97]{curva-rf-2.png}}%
     \only<3->{\figgrande[0.97]{curva-rf-3.png}}}
-  \onslide<2->{\referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}}
   \note{Esta es la curva para discutir sobreajuste: la profundidad máxima de los árboles.
     Train sube siempre, y sin límite llega a \aucTrainRfProfundidadSinLimite: los árboles
     memorizan.
@@ -700,9 +705,7 @@
 % ---------------------------------------------------------------------
 % 11 · KNN: el sobreajuste está del otro lado del eje (Clase 9, slide 34 para la ponderación).
 \begin{frame}{En KNN sobreajusta el k pequeño: se elige k = \vecinosKnn}
-  \renewcommand{\figgrandealto}{0.72}
   \centrado{\figgrande[0.97]{curva-knn.png}}
-  \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
   \note{En KNN el eje va al revés. Con \vecinosKnnMinimo{} vecino, train da \aucTrainKnnUno{} y
     validación \aucKnnUno: cada cliente es su propio vecino, sobreajuste puro. Al sumar vecinos
     la brecha se cierra, y desde \vecinosKnnMinimoUnoEs{} todo queda dentro de un error estándar
@@ -723,11 +726,9 @@
 % 12 · La SVM: la curva de C con kernel lineal y, en el segundo paso, la del RBF atenuada, que
 % es la que sobreajusta.
 \begin{frame}{La SVM queda lineal y muy regularizada: C = \cSvm}
-  \renewcommand{\figgrandealto}{0.72}
   \centrado{%
     \only<1>{\figgrande[0.97]{curva-svm.png}}%
     \only<2->{\figgrande[0.97]{curva-svm-2.png}}}
-  \referencia{AUC de validación \sepdato \rotuloLineaBase: \aucSinModelo, debajo del eje}
   \note{En la SVM exploramos C y el kernel. Con kernel lineal, la curva de C es plana, sin sobreajuste, y tomamos \cSvm, el más
     regularizado.
     \avanza Con RBF, en cambio, un C grande sobreajusta: train sube casi a uno y la validación
@@ -744,14 +745,18 @@
 % =====================================================================
 \section{Modelo final}
 % =====================================================================
-% 13 · Los cuatro ajustados, en AUC y en recall, contra «sin modelo» (D-23).
+% 13 · Los cuatro ajustados, en AUC y en recall, contra «sin modelo» (D-23); como la 9, primero la
+% escala entera y después el zoom.
 \begin{frame}{Ajustados, gana \modeloFinal{} por \margenAucFinal{} de AUC en validación}
-  \centrado{\figgrande[0.97]{modelos-final.png}}
-  \note{Con los hiperparámetros elegidos gana Random Forest: \aucRfVal{} de AUC y \recallRfVal{}
-    de recall llamando al 20~\%. Le siguen KNN, \aucKnnVal; Naive Bayes, \aucNbVal, y la SVM,
-    \aucSvmVal. Ninguno queda dentro de un error estándar de Random Forest. Pero importa la
-    escala: entre el mejor y el peor hay \rangoAucFinal; entre Random Forest y sin modelo,
-    \margenAucSinModeloFinal.\\[0.4em]
+  \centrado{%
+    \only<1>{\figgrande[0.97]{modelos-final.png}}%
+    \only<2->{\figgrande[0.97]{modelos-final-zoom.png}}}
+  \note{Con los hiperparámetros elegidos, los cuatro quedan lejos de sin modelo: entre Random
+    Forest y sin modelo hay \margenAucSinModeloFinal{} de AUC.
+    \avanza De cerca gana Random Forest: \aucRfVal{} de AUC y \recallRfVal{} de recall llamando
+    al 20~\%. Le siguen KNN, \aucKnnVal; Naive Bayes, \aucNbVal, y la SVM, \aucSvmVal. Ninguno
+    queda dentro de un error estándar de Random Forest. Pero la escala importa: entre el mejor y
+    el peor hay apenas \rangoAucFinal.\\[0.4em]
     \textbf{Si preguntan.} ¿Y si hubiera empate? No lo hubo: ninguno quedó dentro de un error
     estándar, y Random Forest es primero también en recall: \recallRfVal{} contra \recallKnnVal{}
     de KNN. ¿Sobreajusta? Brecha de \brechaRf{} (slide 10). ¿Cuánto sumó ajustar? Contra la
@@ -966,7 +971,7 @@
 % =====================================================================
 \section{Hallazgo}
 % =====================================================================
-% 18 y 19 · El hallazgo H1, lo último que se muestra (guía A4, A6), en dos pasos: primero la
+% 18 y 19 · El hallazgo H1 (la 19, como pesas: barajado arriba, hacia adelante abajo), lo último que se muestra (guía A4, A6), en dos pasos: primero la
 % caída de los cuatro modelos y por qué el barajado es alto, lectura (a); después, bloque a
 % bloque, las lecturas (b) y (c) (resultados/conclusiones.md, §2; D-25). Si el reloj va atrasado
 % en la slide 13, el segundo paso de la 19 es lo que se recorta, nunca las limitaciones.
@@ -974,8 +979,8 @@
   \renewcommand{\figgrandealto}{0.68}
   \centrado{\figgrande[0.97]{robustez-modelos.png}}
   \vspace{0.2em}
-  \onslide<2->{\veredicto{Barajado, AUC \aucOofEntreAnios{} en pares «yes»–«no» de años
-    distintos y \aucOofDentroAnio{} en los del mismo año}}
+  \onslide<2->{\veredicto{Barajado, el AUC es \aucOofEntreAnios{} entre años distintos y
+    \aucOofDentroAnio{} dentro del mismo año}}
   \note{El hallazgo. Validamos hacia adelante dentro de train: cada fold entrena con el pasado y
     valida con el bloque siguiente. Barajados, los cuatro están entre \aucSvmVal{} y \aucRfVal;
     hacia adelante, ninguno pasa de \aucNbAdelante, y Random Forest cae a \aucRfAdelante.

@@ -8,7 +8,6 @@
 % texto es \textminus, que dentro de $…$ LaTeX compone mal, y en matemática es «-».
 % Con babel-spanish, \% ya agrega su propio espacio fino y \,\% queda doble: el preámbulo
 % del deck lleva \spanishplainpercent después de \usepackage[spanish]{babel}.
-% Valen «?» porque falta su entrada: resultados/evaluacion_test.json (4).
 
 \DeclareRobustCommand{\signoMenos}{\ifmmode-\else\textminus\fi}
 
@@ -429,10 +428,10 @@
 \newcommand{\rangoAucFinal}{0{,}021}                        % resultados/modelo_elegido.json: ranking, AUC del 1.º menos el del último
 
 % --- Slides 14 y 15 · Test y matriz de confusión ---------------------------------------------------
-\newcommand{\yesTest}{?}                                    % resultados/evaluacion_test.json: n_yes_test
-\newcommand{\pctYesTest}{?}                                 % resultados/evaluacion_test.json: n_yes_test / n_test
-\newcommand{\diferenciaAucTestValidacion}{?}                % resultados/evaluacion_test.json: metricas.auc.valor menos resultados/modelo_elegido.json: metricas.validacion.auc.media (sólo en voz alta, guía C2)
-\newcommand{\diferenciaRecallTestValidacion}{?}             % resultados/evaluacion_test.json: metricas.recall_q.valor menos resultados/modelo_elegido.json: metricas.validacion.recall_q.media (sólo en voz alta, guía C2)
+\newcommand{\yesTest}{928}                                  % resultados/evaluacion_test.json: n_yes_test
+\newcommand{\pctYesTest}{11{,}3\,\%}                        % resultados/evaluacion_test.json: n_yes_test / n_test
+\newcommand{\diferenciaAucTestValidacion}{+0{,}013}         % resultados/evaluacion_test.json: metricas.auc.valor menos resultados/modelo_elegido.json: metricas.validacion.auc.media (sólo en voz alta, guía C2)
+\newcommand{\diferenciaRecallTestValidacion}{+0{,}019}      % resultados/evaluacion_test.json: metricas.recall_q.valor menos resultados/modelo_elegido.json: metricas.validacion.recall_q.media (sólo en voz alta, guía C2)
 \newcommand{\vpRfVal}{2\,329}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): VP llamando al 20 % de la lista fuera de fold
 \newcommand{\fpRfVal}{4\,259}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FP llamando al 20 % de la lista fuera de fold
 \newcommand{\fnRfVal}{1\,382}                               % resultados/oof_final_rf.csv con la y de train (cargar_train()): FN llamando al 20 % de la lista fuera de fold

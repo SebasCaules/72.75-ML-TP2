@@ -9,7 +9,8 @@ solas en una página, y éstas se proyectan detrás de alguien que habla. Por es
   2 120 × 1 000 píxeles exactos. Así entran en el frame con la misma escala, y un rótulo de 15 pt
   mide lo mismo en todas las slides;
 - no llevan título: lo que diría el título lo dicen el título del frame y el orador;
-- ningún texto baja de TAM_MINIMO (14 pt), y la leyenda va arriba, fuera del área de datos;
+- ningún texto baja de TAM_MINIMO (14 pt), y la leyenda va fuera de los ejes, a la derecha, en una
+  columna (bajo el título se leía como un subtítulo); orden-temporal la conserva arriba;
 - un solo panel por figura, salvo orden-temporal (la tasa de «yes» y el euribor tienen escalas
   que no se mezclan en un eje doble) y modelos-final (AUC y recall, cada uno con su línea de base);
 - los valores anotados llevan coma decimal y van en la tinta del texto, no en el color de la serie;
@@ -31,15 +32,18 @@ Lista canónica (FIGURAS), en figuras/presentacion/:
                                cambios de año inferidos
   pdays-999.png                slide 6: % de «yes» con pdays = 999 sin contacto previo, con 999 y
                                previous ≥ 1, y con pdays < 999
-  modelos-referencia.png       slide 9: AUC de validación de los cinco modelos de referencia
+  modelos-referencia.png, -zoom.png
+                               slide 9: AUC de validación de los cinco modelos de referencia, con
+                               «sin modelo» y marcas cada 0,1; + el zoom a las barras de error
   curva-rf-1/2/3.png           slide 10: max_depth de RF: train; + validación; + bandas, zonas y
                                la profundidad elegida con su brecha
   curva-knn.png                slide 11: n_neighbors de KNN (uniform), con distance atenuada
   curva-svm.png, -2.png        slide 12: C de la SVM lineal; + la RBF atenuada, en el mismo encuadre
-  modelos-final.png            slide 13: AUC y recall al 20 % de los cuatro modelos finales
+  modelos-final.png, -zoom.png slide 13: AUC y recall al 20 % de los cuatro modelos finales, en
+                               escala entera y después con zoom
   robustez-modelos.png         slide 18: AUC barajado contra hacia adelante, por modelo
   robustez-folds.png, -2.png   slide 19: RF hacia adelante bloque a bloque; + el barajado en las
-                               mismas filas (la lectura b y c de H1)
+                               mismas filas, unido por la pérdida (la lectura b y c de H1)
 
 Opciones: `--solo` dibuja sólo esos grupos (los nombres de FIGURAS); `--figuras DIR` cambia el
 directorio de salida y `--resultados DIR` el de entrada. Un archivo de entrada que falta o no se
@@ -158,16 +162,17 @@ FIGURAS = {
     "duration-techo": ("duration-techo.png",),
     "orden-temporal": ("orden-temporal.png",),
     "pdays-999": ("pdays-999.png",),
-    "modelos-referencia": ("modelos-referencia.png",),
+    "modelos-referencia": ("modelos-referencia.png", "modelos-referencia-zoom.png"),
     "curva-rf": ("curva-rf-1.png", "curva-rf-2.png", "curva-rf-3.png"),
     "curva-knn": ("curva-knn.png",),
     "curva-svm": ("curva-svm.png", "curva-svm-2.png"),
-    "modelos-final": ("modelos-final.png",),
+    "modelos-final": ("modelos-final.png", "modelos-final-zoom.png"),
     "robustez-modelos": ("robustez-modelos.png",),
     "robustez-folds": ("robustez-folds.png", "robustez-folds-2.png"),
 }
-# Las que llevan la línea de base «sin modelo», con ese rótulo (guía C1; gate G11). Las curvas de
-# hiperparámetros no: comparan train contra validación dentro de un modelo, y un eje que llegara a
+# Las que llevan la línea de base «sin modelo», con ese rótulo (guía C1; gate G11). Las versiones
+# -zoom de modelos-referencia y modelos-final acotan el eje a las barras de error y dejan la línea
+# fuera: ahí «sin modelo» va en el rótulo del eje (_rotulo_con_base). Las curvas de hiperparámetros no la llevan: comparan train contra validación dentro de un modelo, y un eje que llegara a
 # 0,5 aplastaría la forma de la curva de validación, que es lo que se usa para elegir.
 CON_LINEA_BASE = frozenset({
     "duration-techo.png", "modelos-referencia.png", "modelos-final.png", "robustez-modelos.png",
@@ -210,6 +215,22 @@ def _leyenda_arriba(ax, manijas, ncol=None):
     return ax.legend(handles=manijas, ncol=ncol or len(manijas), frameon=False,
                      fontsize=TAM_LEYENDA, handlelength=1.8, handletextpad=0.5, columnspacing=1.4,
                      borderaxespad=0.2, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+
+
+def _leyenda_derecha(ax, manijas):
+    """Leyenda FUERA de los ejes, a la derecha, en una columna alineada con el borde superior del
+    área de datos. Arriba, centrada bajo el título, se leía como un subtítulo; adentro competía con
+    los datos. A la derecha queda pegada a la figura, del lado del ancho que sobra en 16:9, y el
+    diseño restringido le hace lugar."""
+    return ax.legend(handles=manijas, ncol=1, loc="upper left", bbox_to_anchor=(1.015, 1.0),
+                     frameon=False, fontsize=TAM_LEYENDA, handlelength=1.8, handletextpad=0.6,
+                     labelspacing=0.9, borderaxespad=0.0, borderpad=0.0)
+
+
+def _entradas_leyenda(leyenda, indices):
+    """El símbolo y el texto de las entradas `indices` de una leyenda, para ocultarlas sin que la
+    leyenda se reacomode (el texto oculto conserva su lugar)."""
+    return [a for i in indices for a in (leyenda.legend_handles[i], leyenda.get_texts()[i])]
 
 
 def _marcas(ax, eje, paso, decimales=None, formato=None):
@@ -295,12 +316,6 @@ def _ocultar(artistas):
     for artista in artistas:
         if artista is not None:
             artista.set_visible(False)
-
-
-def _entradas_leyenda(leyenda, indices):
-    """El símbolo y el texto de las entradas `indices` de una leyenda, para ocultarlas sin que la
-    leyenda se reacomode (el texto oculto conserva su lugar)."""
-    return [a for i in indices for a in (leyenda.legend_handles[i], leyenda.get_texts()[i])]
 
 
 def _filas_modelo(ax, orden, rotulos):
@@ -405,11 +420,11 @@ def figura_duration_techo(ablaciones, variante="A1"):
     _marcas(ax, "x", 0.1, 1)
     n = t["n_folds"].max() if "n_folds" in t.columns else None
     _rotulo_eje(ax, x=f"AUC de validación (media de {_texto_folds(n)})")
-    _leyenda_arriba(ax, [
+    _leyenda_derecha(ax, [
         Line2D([], [], ls="none", marker="o", ms=MARCADOR + 2, color=AZUL, mec=SUPERFICIE,
                label="sin duration"),
         Line2D([], [], ls="none", marker="o", ms=MARCADOR + 2, color=NARANJA, mec=SUPERFICIE,
-               label="con duration: techo, no existe antes de llamar")])
+               label="con duration")])
 
     _fijar_diseno(fig)
     for y, a, b, m in zip(ys, sin, con, orden):
@@ -524,6 +539,8 @@ def _paso_entero(lo, hi):
 # --- Slide 6: 999 no es «nunca contactado» ------------------------------------------------------
 
 GRUPOS_PDAYS = ("sin_previos", "centinela_con_previos", "contactados")
+GRUPO_RESALTADO_PDAYS = "centinela_con_previos"
+GRIS_CONTEXTO = "#c9c7bf"  # las barras de contexto: un gris que no compite con el resalte
 
 
 def grupos_pdays(train):
@@ -562,7 +579,11 @@ def figura_pdays(train):
     ax = ejes[0, 0]
     ys = _filas_modelo(ax, list(GRUPOS_PDAYS), ["\n".join(rotulos[k]) for k in GRUPOS_PDAYS])
     tasas = [float(g.at[k, "tasa"]) for k in GRUPOS_PDAYS]
-    barras = ax.barh(ys, tasas, height=0.4, color=COLOR_CLASE["yes"], zorder=3)
+    # Un solo color de resalte: la barra que desmiente que 999 sea «nunca contactado». Las otras
+    # dos son el contexto que la enmarca, en gris.
+    colores = [COLOR_CLASE["yes"] if k == GRUPO_RESALTADO_PDAYS else GRIS_CONTEXTO
+               for k in GRUPOS_PDAYS]
+    barras = ax.barh(ys, tasas, height=0.5, color=colores, zorder=3)
     for barra, k in zip(barras, GRUPOS_PDAYS):
         barra.set_gid(f"tasa:{k}")
     tope = max(max(tasas), 1.0) * 1.22
@@ -585,27 +606,56 @@ def figura_pdays(train):
 
 def _panel_filas(ax, orden, medidas, base, gid_metrica):
     """Una métrica por modelo, una fila cada uno: punto con barra de ±1 desvío entre folds, del
-    color y con el marcador del modelo, y «sin modelo» como línea vertical. Devuelve los puntos
-    (x, y, desvío, modelo) para rotularlos con el diseño fijo."""
+    color y con el marcador del modelo. Devuelve los puntos (x, y, desvío, modelo) para
+    rotularlos con el diseño fijo. «Sin modelo» lo dibuja _limites_metrica en el paso sin zoom, y
+    en los dos pasos va en el rótulo del eje (_rotulo_con_base)."""
     ys = np.arange(len(orden), dtype=float)
-    _linea_base_vertical(ax, base)
     puntos = []
     for y, m in zip(ys, orden):
         media, desvio = float(medidas.at[m, "media"]), float(medidas.at[m, "desvio"])
         _punto_con_barra(ax, media, y, desvio, color_modelo(m), MARCADOR_MODELO.get(m, "o"),
-                         gid=f"{gid_metrica}:{m}")
+                         gid=f"{gid_metrica}:{m}", tam=MARCADOR + 5)
         puntos.append((media, y, desvio, m))
     return puntos
 
 
-def _limites_metrica(ax, medidas, base, antes=0.05, despues=0.075):
-    lo = min(base, float((medidas["media"] - medidas["desvio"]).min())) - antes
-    hi = max(base, float((medidas["media"] + medidas["desvio"]).max())) + despues
+def _ventana_zoom(medidas, antes=0.25, despues=0.45):
+    """Los límites del eje x acotado a las barras de ±1 desvío, con `antes` y `despues` del rango
+    de margen (el de la derecha, para los valores). El rango nunca baja de 0,03: si no, una
+    diferencia de milésimas parecería enorme."""
+    lo = float((medidas["media"] - medidas["desvio"]).min())
+    hi = float((medidas["media"] + medidas["desvio"]).max())
+    rango = max(hi - lo, 0.03)
+    centro = (lo + hi) / 2
+    return centro - rango / 2 - antes * rango, centro + rango / 2 + despues * rango
+
+
+def _limites_metrica(ax, medidas, base, zoom, antes=0.25, despues=0.45, margen=0.11):
+    """El eje x de un panel de modelos, en uno de los dos pasos de su revelado. Sin zoom: la escala
+    entera, de «sin modelo» (dibujada, con su rótulo) a los valores, con marcas cada 0,1, y la
+    ventana del paso siguiente sombreada. Con zoom: sólo esa ventana, donde la barra de error se
+    lee. Devuelve la línea de base (o None)."""
+    a, b = _ventana_zoom(medidas, antes, despues)
+    if zoom:
+        ax.set_xlim(a, b)
+        lo, hi = ax.get_xlim()
+        _marcas(ax, "x", _paso_marcas(lo, hi, maximo=6))
+        return None
+    lo = min(base, float((medidas["media"] - medidas["desvio"]).min())) - 0.05
+    hi = float((medidas["media"] + medidas["desvio"]).max()) + margen
     ax.set_xlim(lo, hi)
     _marcas(ax, "x", 0.1, 1)
+    ax.axvspan(a, b, color=REJILLA, alpha=0.55, lw=0, zorder=0.5, gid="ventana-zoom")
+    return _linea_base_vertical(ax, base)
 
 
-def figura_modelos_referencia(resumen):
+def _rotulo_con_base(texto, base, sep="  ·  "):
+    """El rótulo del eje x con «sin modelo» al final: la línea de base queda fuera del eje
+    acotado, y así se sigue leyendo en la slide. En un panel angosto, `sep="\n"`."""
+    return f"{texto}{sep}{ROTULO_LINEA_BASE}: {numero(base, 1)}"
+
+
+def figura_modelos_referencia(resumen, zoom=False):
     """Slide 9: el AUC de validación de cada modelo con los hiperparámetros de referencia (media ±
     1 desvío entre folds, valor anotado), de mayor a menor, contra «sin modelo». `resumen` es
     cv_referencia_resumen.csv de src/experimentos.py (los cinco modelos, NB gaussiano incluido)."""
@@ -616,18 +666,20 @@ def figura_modelos_referencia(resumen):
     ax = ejes[0, 0]
     _filas_modelo(ax, orden, [rotulo_modelo(m) for m in orden])
     puntos = _panel_filas(ax, orden, medidas, base, "auc")
-    _limites_metrica(ax, medidas, base)
+    _limites_metrica(ax, medidas, base, zoom)
     n = resumen["n"].max() if "n" in resumen.columns else None
-    _rotulo_eje(ax, x=f"AUC de validación, media ± 1 desvío entre {_texto_folds(n)}")
+    _rotulo_eje(ax, x=_rotulo_con_base(
+        f"AUC de validación, media ± 1 desvío entre {_texto_folds(n)}", base))
 
     _fijar_diseno(fig)
     for x, y, d, m in puntos:
         _valor_a_la_derecha(ax, x, y, d, numero(x, 3), f"valor:auc:{m}")
-    _rotular_vertical(ax, base, ROTULO_LINEA_BASE, "rotulo-linea-base")
+    if not zoom:
+        _rotular_vertical(ax, base, ROTULO_LINEA_BASE, "rotulo-linea-base")
     return fig
 
 
-def figura_modelos_final(resumen):
+def figura_modelos_final(resumen, zoom=False):
     """Slide 13: AUC (izquierda) y recall llamando al 20 % de la lista (derecha) de los modelos
     con los hiperparámetros elegidos, media ± 1 desvío entre folds y valor anotado, ordenados por
     AUC en los dos paneles, cada uno contra su «sin modelo» (0,5 y el 20 %). `resumen` es
@@ -647,16 +699,22 @@ def figura_modelos_final(resumen):
     for ax, metrica, medidas in ((izq, "auc", auc), (der, "recall_q", recall)):
         base = _linea_base_de(resumen, metrica)
         paneles.append((ax, metrica, base, _panel_filas(ax, orden, medidas, base, metrica)))
-        # Cada panel tiene la mitad del ancho: el margen derecho es el lugar de los valores.
-        _limites_metrica(ax, medidas.loc[orden], base, antes=0.06, despues=0.15)
-    _rotulo_eje(izq, x="AUC de validación")
-    _rotulo_eje(der, x=f"recall llamando al {porcentaje(100 * PRESUPUESTO, 0)} de la lista")
+        # Cada panel tiene la mitad del ancho: el margen derecho es el lugar de los valores, y
+        # el izquierdo, el mismo, para que los puntos queden al centro de su panel.
+        _limites_metrica(ax, medidas.loc[orden], base, zoom, antes=0.6, despues=0.9,
+                         margen=0.18)
+    _rotulo_eje(izq, x=_rotulo_con_base("AUC de validación", _linea_base_de(resumen, "auc"),
+                                          sep="\n"))
+    _rotulo_eje(der, x=_rotulo_con_base(
+        f"recall al {porcentaje(100 * PRESUPUESTO, 0)} de la lista",
+        _linea_base_de(resumen, "recall_q"), sep="\n"))
 
     _fijar_diseno(fig)
     for ax, metrica, base, puntos in paneles:
         for x, y, d, m in puntos:
             _valor_a_la_derecha(ax, x, y, d, numero(x, 3), f"valor:{metrica}:{m}")
-        _rotular_vertical(ax, base, ROTULO_LINEA_BASE, "rotulo-linea-base")
+        if not zoom:
+            _rotular_vertical(ax, base, ROTULO_LINEA_BASE, "rotulo-linea-base")
     return fig
 
 
@@ -863,7 +921,7 @@ def figura_curva_rf(tabla, paso=3, elegido=PROFUNDIDAD_ELEGIDA):
     _limites_curvas(ax, [curva], abajo=0.2)
     _rotulo_eje(ax, x="max_depth: profundidad máxima de cada árbol",
                 y=f"AUC (media de {_texto_folds(_n_folds(curva))})")
-    leyenda = _leyenda_arriba(ax, _manijas_curva([_estrella_leyenda("profundidad elegida")]))
+    leyenda = _leyenda_derecha(ax, _manijas_curva([_estrella_leyenda("profundidad\nelegida")]))
 
     _fijar_diseno(fig)
     zonas = [_rotulo_zona(ax, "← subajuste", "izquierda", 0.55, "zona:subajuste"),
@@ -918,8 +976,8 @@ def figura_curva_knn(uniforme, distancia=None, elegido=VECINOS_ELEGIDOS):
     extra = [_estrella_leyenda("k elegido")]
     if otra is not None:
         extra.insert(0, Line2D([], [], color=TINTA_SECUNDARIA, ls="--", lw=LINEA,
-                               alpha=ALFA_ATENUADA + 0.2, label="weights = distance"))
-    _leyenda_arriba(ax, _manijas_curva(extra))
+                               alpha=ALFA_ATENUADA + 0.2, label="weights =\ndistance"))
+    _leyenda_derecha(ax, _manijas_curva(extra))
 
     _fijar_diseno(fig)
     _rotulo_zona(ax, "← sobreajuste", "izquierda", 0.5, "zona:sobreajuste")
@@ -965,10 +1023,9 @@ def figura_curva_svm(lineal, rbf=None, paso=1, elegido=C_ELEGIDO):
     if otra is not None:
         extra.append(Line2D([], [], color=TINTA_SECUNDARIA, ls="--", lw=LINEA,
                             alpha=ALFA_ATENUADA + 0.2, label="kernel RBF"))
-    leyenda = _leyenda_arriba(ax, _manijas_curva(extra))
+    leyenda = _leyenda_derecha(ax, _manijas_curva(extra))
 
     _fijar_diseno(fig)
-    _rotulo_kernel(ax, curva, eje, "kernel lineal", "rotulo-kernel:lineal")
     tardios = []
     if otra is not None:
         tardios.append(_rotulo_zona(ax, "sobreajuste con RBF →", "derecha", 0.62,
@@ -980,24 +1037,11 @@ def figura_curva_svm(lineal, rbf=None, paso=1, elegido=C_ELEGIDO):
     return fig
 
 
-def _rotulo_kernel(ax, curva, eje, texto, gid):
-    """Nombra una curva por su kernel, sobre su último punto de train."""
-    r = curva.resumen
-    ultimo = [p for p in eje["puntos"] if p in r.index][-1]
-    x = _x(eje, ultimo)
-    y = float(max(r.at[ultimo, "media_train"], r.at[ultimo, "media_validacion"]))
-    crear = _creador(ax, texto, gid, fontsize=TAM_ROTULO + 1, color=TINTA_SECUNDARIA)
-    candidatos = [((x, y), -6, 12, "right", "bottom"), ((x, y), -6, 26, "right", "bottom"),
-                  ((x, y), -6, -14, "right", "top")]
-    return _colocar(ax, crear, candidatos)[0][0]
-
-
 # --- Slides 18 y 19: el hallazgo H1 -------------------------------------------------------------
 
 COLOR_ESQUEMA = {ESQUEMA_BARAJADO: AZUL, ESQUEMA_ADELANTE: NARANJA}
-DESPLAZAMIENTO_MISMAS = 0.26  # el punto barajado en las mismas filas, a la derecha del bloque
-LEYENDA_ESQUEMA = {ESQUEMA_BARAJADO: "barajado (mezcla las épocas)",
-                   ESQUEMA_ADELANTE: "hacia adelante (entrena con el pasado)"}
+DESPLAZAMIENTO_MISMAS = 0.0  # el punto barajado en las mismas filas, en la x de su bloque
+LEYENDA_ESQUEMA = {ESQUEMA_BARAJADO: "barajado", ESQUEMA_ADELANTE: "hacia\nadelante"}
 DESPLAZAMIENTO_ESQUEMA = {ESQUEMA_BARAJADO: -0.17, ESQUEMA_ADELANTE: 0.17}
 
 
@@ -1024,9 +1068,9 @@ def _panel_pares(ax, t, modelos, rotulos):
     ax.set_xlim(lo, hi)
     _marcas(ax, "x", 0.1, 1)
     _rotulo_eje(ax, x="AUC de validación, media ± 1 desvío entre folds")
-    _leyenda_arriba(ax, [Line2D([], [], ls="none", marker="o", ms=MARCADOR + 1,
+    _leyenda_derecha(ax, [Line2D([], [], ls="none", marker="o", ms=MARCADOR + 1,
                                 color=COLOR_ESQUEMA[e], mec=SUPERFICIE, label=LEYENDA_ESQUEMA[e])
-                         for e in (ESQUEMA_BARAJADO, ESQUEMA_ADELANTE)])
+                          for e in (ESQUEMA_BARAJADO, ESQUEMA_ADELANTE)])
     return puntos
 
 
@@ -1128,61 +1172,57 @@ def figura_robustez_folds(largo, folds, mismas_filas=None, periodos=None, paso=1
     fig, ejes = _lienzo()
     ax = ejes[0, 0]
     _linea_base_horizontal(ax)
-    if media_barajada is not None:
-        ax.axhline(media_barajada, color=AZUL, ls="--", lw=2.0, alpha=0.8, zorder=2,
-                   gid="referencia-barajado")
     color = COLOR_ESQUEMA[ESQUEMA_ADELANTE]
-    ax.vlines(xs, AUC_SIN_MODELO, ys, color=color, lw=3.4, zorder=3, gid="tallos")
-    ax.plot(xs, ys, ls="none", marker="o", ms=MARCADOR + 5, color=color, mec=SUPERFICIE,
-            mew=ANILLO, zorder=5, gid="hacia-adelante")
     tardios = []
+    # Una pesa por bloque, en la misma x: el barajado en las mismas filas (azul, hueco) arriba,
+    # hacia adelante (naranja) abajo, y entre los dos un segmento gris que es lo que se pierde al
+    # entrenar sólo con el pasado. La distancia del naranja a «sin modelo» dice si queda algo.
     if mismas is not None:
-        punto_azul, = ax.plot(xs + DESPLAZAMIENTO_MISMAS, mismas.to_numpy(float), ls="none",
-                              marker="o", ms=MARCADOR + 4, mfc=SUPERFICIE, mec=AZUL, mew=3.0,
-                              zorder=5, gid="barajado-mismas-filas")
+        ym = mismas.to_numpy(float)
+        validos = np.isfinite(ym)
+        tardios.append(ax.vlines(xs[validos], ys[validos], ym[validos], color=GRIS_REFERENCIA,
+                                 lw=4.0, alpha=0.55, zorder=2, gid="perdida"))
+        punto_azul, = ax.plot(xs + DESPLAZAMIENTO_MISMAS, ym, ls="none", marker="o",
+                              ms=MARCADOR + 5, mfc=SUPERFICIE, mec=AZUL, mew=3.2, zorder=5,
+                              gid="barajado-mismas-filas")
         tardios.append(punto_azul)
+    ax.plot(xs, ys, ls="none", marker="o", ms=MARCADOR + 6, color=color, mec=SUPERFICIE,
+            mew=ANILLO, zorder=6, gid="hacia-adelante")
 
     ax.set_xticks(xs, [_rotulo_bloque(int(f), bloques.get(int(f)), periodos.get(int(f)))
                        for f in xs])
-    ax.set_xlim(xs.min() - 0.72, xs.max() + 0.82)
+    ax.set_xlim(xs.min() - 0.5, xs.max() + 0.55)
     ax.tick_params(axis="x", length=0, labelsize=TAM_MARCAS)
     ax.grid(axis="x", visible=False)
     extremos = [AUC_SIN_MODELO, *ys]
-    extremos += [media_barajada] if media_barajada is not None else []
     extremos += list(mismas.dropna()) if mismas is not None else []
     lo, hi = min(extremos), max(extremos)
     alto = (hi - lo) or 0.1
-    ax.set_ylim(lo - 0.16 * alto, hi + 0.14 * alto)
+    ax.set_ylim(lo - 0.12 * alto, hi + 0.2 * alto)
     _marcas(ax, "y", 0.1, 1)
     _rotulo_eje(ax, y="AUC de validación de RF")
     manijas = [Line2D([], [], ls="none", marker="o", ms=MARCADOR + 3, color=color,
-                      mec=SUPERFICIE, label="hacia adelante: entrena con los bloques anteriores"),
+                      mec=SUPERFICIE, label="hacia\nadelante"),
                Line2D([], [], ls="none", marker="o", ms=MARCADOR + 2, mfc=SUPERFICIE, mec=AZUL,
-                      mew=3.0, label="barajado, en las mismas filas")]
-    leyenda = _leyenda_arriba(ax, manijas if mismas is not None else manijas[:1])
+                      mew=3.0, label="barajado,\nmismas filas")]
+    leyenda = _leyenda_derecha(ax, manijas if mismas is not None else manijas[:1])
 
     _fijar_diseno(fig)
     _rotular_horizontal(ax, AUC_SIN_MODELO, ROTULO_LINEA_BASE, "rotulo-linea-base",
-                        preferido="derecha")
-    if media_barajada is not None:
-        _rotular_horizontal(ax, media_barajada, f"barajado, todas las filas: "
-                            f"{numero(media_barajada, 3)}", "rotulo-barajado",
-                            preferido="izquierda")
-    # Cada bloque se lee de izquierda a derecha: el valor hacia adelante, su punto, el punto
-    # barajado en las mismas filas y su valor. Los rótulos se ubican con los puntos azules ya
-    # dibujados, aunque el paso 1 los oculte: así ningún rótulo se corre entre un paso y otro.
+                        preferido="izquierda")
+    # Los valores: el naranja a la izquierda de su punto, el azul a la derecha del suyo. Se ubican
+    # con los puntos azules ya dibujados, aunque el paso 1 los oculte: así nada se corre (B8).
     for x, y in zip(xs, ys):
         _colocar(ax, _creador(ax, numero(y, 3), f"valor:adelante:{int(x)}"),
-                 _alrededor(x, y, dx=16, dy=14, preferido=(
-                     "izquierda", "arriba" if y >= AUC_SIN_MODELO else "abajo", "derecha")))
+                 _alrededor(x, y, dx=16, dy=14, preferido=("izquierda", "abajo", "derecha")))
     if mismas is not None:
         for x, y in zip(xs, mismas.to_numpy(float)):
             if np.isfinite(y):
                 tardios += _colocar(ax, _creador(ax, numero(y, 3), f"valor:mismas:{int(x)}"),
                                     _alrededor(x + DESPLAZAMIENTO_MISMAS, y, dx=16, dy=14,
                                                preferido=("derecha", "arriba", "abajo")))[0]
-        if paso < 2:
-            _ocultar(tardios + _entradas_leyenda(leyenda, [1]))
+    if paso < 2 and mismas is not None:
+        _ocultar(tardios + _entradas_leyenda(leyenda, [1]))
     return fig
 
 
@@ -1274,12 +1314,13 @@ def _dibujos(ctx):
         "orden-temporal": lambda: [figura_orden_temporal(ctx.train, ctx.names)],
         "pdays-999": lambda: [figura_pdays(ctx.train)],
         "modelos-referencia": lambda: [figura_modelos_referencia(
-            ctx.csv("cv_referencia_resumen.csv"))],
+            ctx.csv("cv_referencia_resumen.csv"), zoom) for zoom in (False, True)],
         "curva-rf": curva_rf,
         "curva-knn": lambda: [figura_curva_knn(ctx.curva("knn_n_neighbors_uniform"),
                                                ctx.curva("knn_n_neighbors_distance"))],
         "curva-svm": curva_svm,
-        "modelos-final": lambda: [figura_modelos_final(ctx.csv("cv_final_resumen.csv"))],
+        "modelos-final": lambda: [figura_modelos_final(ctx.csv("cv_final_resumen.csv"), zoom)
+                                  for zoom in (False, True)],
         "robustez-modelos": lambda: [figura_robustez_modelos(
             ctx.csv("robustez_temporal_resumen.csv"))],
         "robustez-folds": robustez_folds,
