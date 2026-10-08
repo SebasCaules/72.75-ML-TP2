@@ -4,8 +4,7 @@
 
 **Grupo 7** — Andrés Cortese (64612) · Sebastián Caules (64331)
 
-Defensa: 07/10/2026 según el enunciado (o el 14/10, la otra fecha posible); presentación y código se
-envían 24 h antes. Enunciado: [`TP2-Clasificación supervisada.pdf`](TP2-Clasificación%20supervisada.pdf)
+Defensa: 14/10/2026; presentación y código se envían 24 h antes. Enunciado: [`TP2-Clasificación supervisada.pdf`](TP2-Clasificación%20supervisada.pdf)
 
 Predecir si un cliente contrata un depósito a plazo fijo (`y` = yes/no) a partir de datos
 demográficos, de campañas previas y del contexto económico, con Naive Bayes, SVM, KNN y Random

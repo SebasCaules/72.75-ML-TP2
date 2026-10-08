@@ -4,8 +4,7 @@
 
 **72.75 Aprendizaje Automático (Machine Learning) — ITBA — 2026 Q2**
 
-Defensa: 07/10/2026 según el enunciado (la otra fecha posible es el 14/10/2026). La presentación y
-este código se envían 24 h antes.
+Defensa: 14/10/2026. La presentación y este código se envían 24 h antes.
 
 Predecir, antes de llamar a un cliente, si va a contratar un depósito a plazo fijo (`y` = yes/no),
 con el dataset **Bank Marketing** del punto 0 del enunciado y los cuatro clasificadores del punto 2.1
