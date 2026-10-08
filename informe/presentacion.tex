@@ -280,7 +280,7 @@
 \subtitle{Trabajo Práctico 2: clasificación supervisada}
 \author{Grupo 7 --- Andrés Cortese (64612) \textperiodcentered{} Sebastián Caules (64331)}
 \institute{Instituto Tecnológico de Buenos Aires --- 72.75 Aprendizaje Automático}
-\date{Defensa: 07/10/2026}
+\date{Defensa: 14/10/2026}
 
 % Metadatos y apertura: el visor abre sólo la página, con la slide entera (las razones, en el
 % deck del TP1).
@@ -337,7 +337,7 @@
 % (lo que el banco sabe antes de marcar, D-07) y el desbalance, que es el título. La barra de
 % clases está dibujada a escala con el % de «yes» de train (\pctYesTrain): si cambiara la
 % partición, hay que mover el corte (hoy en 11,414 cm: el 88,7 % de los 4,3 cm de la barra).
-\begin{frame}{Decir siempre «no» ya acierta el \exactitudSiempreNo}
+\begin{frame}{El problema y el desbalance de clases}
   \vspace{0.4em}
   \centrado{%
   \begin{tikzpicture}[font=\small, x=1cm, y=1cm]
@@ -401,7 +401,7 @@
 % métrica, la partición y la tabla etapa → datos → qué decide. La barra de train y test está a
 % escala del 80/20; las filas de la tabla entran de a una, y la del test va en naranja porque es
 % la única que no decide nada.
-\begin{frame}{Train decide; test sólo mide, y una sola vez}
+\begin{frame}{División de los datos en train y test}
   \vspace{0.2em}
   \centrado{%
   \begin{tikzpicture}[x=1cm, y=1cm]
@@ -420,7 +420,7 @@
     \draw[apagado, line width=0.4pt] (0,-0.86) -- (14.2,-0.86);
     \begin{scope}[visible on=<2->]
       \fill[rejilla!35] (0,-1.02) rectangle (14.2,-1.62);
-      \node[anchor=west, font=\small] at (0.25,-1.32) {EDA y ablaciones};
+      \node[anchor=west, font=\small] at (0.25,-1.32) {análisis de datos};
       \node[anchor=west, font=\small\bfseries, text=azul] at (4.55,-1.32) {train};
       \node[anchor=west, font=\small] at (8.85,-1.32) {qué variables entran, y cómo};
     \end{scope}
@@ -442,7 +442,7 @@
   \note{Primero, quitamos \duplicados{} duplicados exactos: si una copia cae en train y otra en
     test, el test deja de ser independiente. Después, 80/20 estratificado por la clase, con
     semilla fija.
-    \avanza El EDA que decide y las ablaciones leen sólo train.
+    \avanza El análisis de datos, incluidas las pruebas con y sin cada variable, lee sólo train.
     \avanza La validación cruzada de 5 folds, también: con ella elegimos modelo e
     hiperparámetros.
     \avanza Y el test no decide nada: se abre una vez, al final, para estimar el desempeño.
@@ -522,8 +522,7 @@
   \renewcommand{\figgrandealto}{0.68}
   \centrado{\figgrande[0.97]{pdays-999.png}}
   \vspace{0.2em}
-  \onslide<2->{\veredicto{\texttt{pdays} se queda: el \pdaysCentinela{} es un corte, no un
-    número}}
+  \onslide<2->{\veredicto{Decisión: \texttt{pdays} se mantiene sin transformar}}
   \note{Tercera: \texttt{pdays}. El \pdaysCentinela{} parece «no contactado antes», pero
     \filasCentinelaConPrevio{} filas con \pdaysCentinela{} sí tuvieron contactos previos, y los
     que tienen fecha contratan el \pctYesPdaysContactados.
@@ -584,9 +583,9 @@
     \textbf{Si preguntan.} ¿Qué hacen las reglas fijas? Son las mismas en todos los folds y no
     aprenden nada de los datos: sacan \texttt{duration} y funden categorías, de
     \columnasReferencia{} a \columnasFinales{} columnas. ¿Y Random Forest? Un árbol corta cada
-    variable por separado: la escala no le cambia nada (D-12). ¿Cómo se decidió cada paso? Con
-    ablaciones sobre train (slide 3): cada una compara con y sin una decisión, como la de
-    \texttt{duration} en la slide 4. ¿Por qué no borrar los atípicos? Entre los de
+    variable por separado: la escala no le cambia nada (D-12). ¿Cómo se decidió cada paso? Comparando
+    en train (slide 3) el AUC con y sin cada decisión, como la de \texttt{duration} en la
+    slide 4. ¿Por qué no borrar los atípicos? Entre los de
     \texttt{pdays}, el «yes» es \pctYesAtipicosPdays{} (slide 6), contra \pctYesTrain{} en todo
     train (slide 2): son los que más contratan (D-17). ¿Y KNN sin escalar? En train, \texttt{pdays}
     sería el \pctVarianzaPdays{} de la varianza (slide 16): la distancia miraría casi sólo esa
@@ -628,7 +627,7 @@
     quién llamar; no depende de un umbral ni premia decir siempre «no»: sin modelo vale
     \aucAzar. Con ella comparamos y elegimos.
     \avanza La segunda es el uso real: si el banco llama al 20~\% de la lista con mayor puntaje,
-    ¿qué parte de los que contratarían alcanza? Cuenta el error caro, el cliente perdido; sin
+    ¿qué parte de los que contratarían alcanza? Cuenta los clientes que habrían contratado y no se llamaron; sin
     modelo vale \recallSinModelo.
     \avanza La exactitud, no: decir siempre «no» ya da \exactitudSiempreNo.\\[0.4em]
     \textbf{Si preguntan.} ¿Por qué no el umbral de la Clase 4, el punto de la ROC más cercano
@@ -819,7 +818,7 @@
 \newcommand{\lecturaCosto}{\iftestpendiente\dato{\llamadasPorYesRf} llamadas por cada «yes»\\
   {\small\color{apagado}\rotuloLineaBase: \llamadasPorYesSinModelo}\else recall de test:
   \dato{\recallmatriztest}\fi}
-\begin{frame}{El error caro es el «yes» que no se llama}
+\begin{frame}{Matriz de confusión de \modeloFinal{} llamando al 20~\%}
   \vspace{0.3em}
   \begin{columns}[c,onlytextwidth]
     \begin{column}{0.56\textwidth}
@@ -846,7 +845,7 @@
     \end{column}
     \begin{column}{0.40\textwidth}
       \begin{itemize}\setlength\itemsep{1.1em}
-        \item<2-> \ojo{\matrizFN{} «yes» sin llamar}:\\ el error caro
+        \item<2-> \ojo{\matrizFN{} «yes» sin llamar}:\\ el error más costoso
         \item<3-> \lecturaCosto
       \end{itemize}
     \end{column}
@@ -855,7 +854,7 @@
     validación: los puntajes fuera de fold, sobre la lista completa de validación (los 5 folds
     juntos), llamando al 20~\%.\else Es la matriz de test, llamando al 20~\% de la
     lista.\fi{} Un falso positivo es una llamada de más; un falso negativo, un cliente que
-    habría contratado y no se llama: ese es el caro.
+    habría contratado y no se llama: es el error más costoso.
     \avanza \iftestpendiente Quedan \fnRfVal{} «yes» sin llamar, sobre todo de 2008 y sin
     historial.\else Quedan \fntest{} «yes» de test sin llamar.\fi
     \avanza \iftestpendiente Aun así, cada «yes» cuesta \llamadasPorYesRf{} llamadas, contra

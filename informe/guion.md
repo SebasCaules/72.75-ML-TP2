@@ -1,4 +1,4 @@
-# Guion de la defensa — TP2 · Grupo 7 · 07/10/2026 (o 14/10) · 10 + 10 minutos
+# Guion de la defensa — TP2 · Grupo 7 · 14/10/2026 · 10 + 10 minutos
 
 Guion hablado de la presentación (`presentacion.pdf`: 20 slides), slide por slide,
 con reloj y marcas de avance. Sigue las notas de orador (`\note{}`) de `presentacion.tex`, con ajustes
@@ -165,7 +165,7 @@ corta en la 17, el trabajo está completo.
 - **El dataset es el del enunciado** (TP2, p. 1): el *Bank Marketing*, contactos de campañas
   telefónicas de un banco, de 2008 a 2010, como dice la portada.
 
-### 2 · Decir siempre «no» ya acierta el 88,7 % — 0:05 → 0:35 (~87 palabras)
+### 2 · El problema y el desbalance de clases — 0:05 → 0:35 (~87 palabras)
 
 **Habla: Andrés.**
 
@@ -194,14 +194,14 @@ corta en la 17, el trabajo está completo.
 - **La exactitud engaña con clases desbalanceadas:** modelos con la misma exactitud cometen errores
   muy distintos (Clase 4, slides 26–27; D-19).
 
-### 3 · Train decide; test sólo mide, y una sola vez — 0:35 → 1:05 (~76 palabras)
+### 3 · División de los datos en train y test — 0:35 → 1:05 (~76 palabras)
 
 **Habla: Andrés.** Es la regla de juego antes del primer número (guía A3) y el consejo «Importante»
 del enunciado. Se dice completa pero rápido: son definiciones que el tribunal ya conoce.
 
 > Primero, quitamos 12 duplicados exactos: si una copia cae en train y otra en test, el test deja de
 > ser independiente. Después, 80/20 estratificado por la clase.
-> **[→]** El análisis exploratorio que decide y las ablaciones leen sólo train.
+> **[→]** El análisis de datos, incluidas las pruebas con y sin cada variable, lee sólo train.
 > **[→]** La validación cruzada de 5 folds, también: con ella elegimos modelo e hiperparámetros.
 > **[→]** Y el test no decide nada: se abre una vez, al final, para estimar el desempeño. Por eso cada
 > número dice de qué conjunto sale.
@@ -215,7 +215,7 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
   test se parecería menos a train por azar. Estratificar por `y` mantiene la misma proporción en los
   dos, y no cuesta nada.
 - **¿Cómo se garantiza que nada mire el test?** Por diseño, y la tabla lo fija: el análisis
-  exploratorio, las ablaciones y la validación cruzada leen sólo train; el test se usa una vez, al
+  de datos y la validación cruzada leen sólo train; el test se usa una vez, al
   final, y no decide nada. Lo que se aprende de los datos se ajusta dentro de cada fold, sólo con el
   de entrenamiento (slide 7; pregunta 2).
 - **Cada vuelta de la validación cruzada**, dentro de train, valida con uno de los 5 folds y ajusta
@@ -283,7 +283,8 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
 
 > Tercera: `pdays`. El 999 parece «no contactado antes», pero 3 302 filas con 999 sí tuvieron
 > contactos previos, y los que tienen días registrados contratan el 64,6 %.
-> **[→]** Se queda: escalado o en un árbol, el 999 funciona como un corte.
+> **[→]** Decisión: `pdays` se mantiene sin transformar; escalado o en un árbol, el 999 funciona
+> como un corte.
 
 #### A aclarar
 - **Las tres barras, en train**, cada una con su tasa de «yes» anotada: los nunca contactados (999 y
@@ -292,8 +293,8 @@ del enunciado. Se dice completa pero rápido: son definiciones que el tribunal y
   pantalla, no se dictan.
 - **Por qué 999 no es «nunca contactado»:** la barra del medio son filas con 999 y `previous` ≥ 1,
   es decir, contactadas antes, y su tasa queda por encima de la de los nunca contactados.
-- **¿Por qué se queda?** Porque separa grupos que contratan muy distinto. Escalado o en un árbol, el
-  999 funciona como un corte, que es lo que dice el veredicto: el árbol lo aísla en una rama, y
+- **¿Por qué se mantiene?** Porque separa grupos que contratan muy distinto. Escalado o en un árbol, el
+  999 funciona como un corte, que es por lo que no hace falta transformarlo: el árbol lo aísla en una rama, y
   escalado queda como un extremo aparte (D-10).
 - **¿Y una indicadora de contacto previo?** Ya la da el historial, que entra al modelo (slide 2:
   «campañas anteriores y su resultado»), y `previous`, que separa los dos grupos del 999, cuenta los
@@ -325,8 +326,8 @@ se dice para qué sirvió, con su número, y que no se borró nada.
   variable por separado, así que a Random Forest la escala no le cambia nada (D-12); y el Naive Bayes
   categórico trabaja con valores discretos, así que las numéricas se discretizan (D-18). Para los
   ceros del categórico, la corrección de Laplace: pregunta 13.
-- **¿Cómo se decidió cada paso?** Con ablaciones sobre train (slide 3: «EDA y ablaciones»): cada una
-  compara el modelo con y sin una decisión, como la de `duration` en la slide 4, con el AUC de
+- **¿Cómo se decidió cada paso?** Comparando en train (slide 3: «análisis de datos») el
+  modelo con y sin cada decisión, como la de `duration` en la slide 4, con el AUC de
   validación, media de 5 folds (su eje).
 - **Los atípicos** (D-17): la regla del IQR marca 6 731 filas de train con algún valor alejado, y no
   se borra ninguna. Entre los de `pdays`, que son las 1 207 filas con días registrados, el «yes» es
@@ -348,7 +349,7 @@ propio es el 20 % y por qué no se usa la exactitud.
 > Falta la vara: dos métricas de la Clase 4. El AUC mide si el modelo ordena bien a quién llamar, sin
 > depender de un umbral; sin modelo vale 0,5. Con ella comparamos y elegimos, siempre en validación.
 > **[→]** La segunda es el uso real: si el banco llama al 20 % de la lista con mayor puntaje, ¿qué
-> parte de los que contratarían alcanza? Cuenta el error caro, el cliente perdido; sin modelo vale
+> parte de los que contratarían alcanza? Cuenta los clientes que habrían contratado y no se llamaron; sin modelo vale
 > 0,200.
 > **[→]** La exactitud, no: decir siempre «no» ya da el 88,7 %.
 
@@ -569,12 +570,12 @@ Los números salen de `informe/numeros.md`, sección «Números de test».
   pipeline, y se dice (pregunta 27). En ningún caso se cambia el modelo después: lo que se promete es
   el número de test.
 
-### 15 · El error caro es el «yes» que no se llama — 5:55 → 6:20 (~66 palabras)
+### 15 · Matriz de confusión de Random Forest llamando al 20 % — 5:55 → 6:20 (~66 palabras)
 
 **Habla: Sebastián.**
 
 > ¿Qué errores comete? Es la matriz de test, llamando al 20 % de la lista. Un falso positivo es una
-> llamada de más; un falso negativo, un cliente que habría contratado y no se llama: ese es el caro.
+> llamada de más; un falso negativo, un cliente que habría contratado y no se llama: es el error más costoso.
 > **[→]** Quedan 326 «yes» de test sin llamar. En validación, los perdidos eran sobre todo de 2008 y
 > sin historial.
 > **[→]** El recall de test, llamando al 20 %, es 0,649.
@@ -583,7 +584,7 @@ Los números salen de `informe/numeros.md`, sección «Números de test».
 - **¿Quiénes son los perdidos?** La slide no los desglosa, y se dice así. Lo que se ve lo hace
   esperable (inferencia): en 2008 el modelo ordena poco aun barajado, de 0,519 a 0,584 (slide 19), y
   el 86,3 % de train no tiene campaña previa (slide 17).
-- **Por qué el falso negativo es el caro:** una llamada de más cuesta una llamada; un cliente perdido
+- **Por qué el falso negativo es el más costoso:** una llamada de más cuesta una llamada; un cliente perdido
   es un plazo fijo que no se contrata. Es el costo desigual de la Clase 4, slides 41–44.
 - **Con el test evaluado**, la matriz es la de test, con el 20 % de su lista, y al lado su recall; no
   se compara con «sin modelo», como en la slide 14.
@@ -762,8 +763,8 @@ independiente. Contra validación, 0,795 (slide 13), da 0,808: una diferencia de
 intervalo.
 
 **2. ¿Cómo garantizan que ninguna decisión miró el test?** [slide 3 · Andrés] — Por diseño, y la
-tabla lo muestra: el análisis exploratorio, las ablaciones y la validación cruzada leen sólo train;
-el test se usa una vez, al final, y no decide nada (D-04). Además, lo que se aprende de los datos
+tabla lo muestra: el análisis de datos (con las pruebas con y sin cada variable) y la validación cruzada leen sólo
+train; el test se usa una vez, al final, y no decide nada (D-04). Además, lo que se aprende de los datos
 —escalas, cortes— se ajusta dentro de cada fold, sólo con el de entrenamiento (slide 7).
 
 **3. ¿Por qué partición aleatoria, si el archivo está ordenado por fecha?** [slides 5 y 19 ·
